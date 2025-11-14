@@ -75,6 +75,7 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 ```
 
 ## Recent Changes
+- **November 14, 2025**: Made member names clickable in admin home view for easier navigation to member details
 - **November 14, 2025**: Imported to Replit environment, configured workflow for Flask app on port 5000, set up deployment with Gunicorn, added .gitignore for Python, configured secure environment variables (ADMIN_PASSWORD, SESSION_SECRET)
 - **October 18, 2025**: Initial project setup with Flask application, authentication system, admin and member dashboards, and sample data
 - **October 18, 2025**: Added full CRUD support for contributions (edit/delete), improved data validation and error handling across all forms, enhanced JSON file operations with comprehensive error handling

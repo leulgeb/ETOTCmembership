@@ -31,7 +31,11 @@
                             {% for member in members %}
                             <tr>
                                 <td><strong>{{ member.id }}</strong></td>
-                                <td>{{ member.name }}</td>
+                                <td>
+                                    <a href="{{ url_for('member_details', member_id=member.id) }}" class="text-decoration-none text-primary fw-bold">
+                                        {{ member.name }}
+                                    </a>
+                                </td>
                                 <td>{{ member.phone }}</td>
                                 <td>{{ member.email }}</td>
                                 <td><span class="badge bg-success">${{ "%.2f"|format(member.monthly_payment) }}</span></td>
