@@ -11,16 +11,43 @@
                 
                 <form method="POST">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-12 mb-3">
                             <label for="member_id" class="form-label">Member ID *</label>
                             <input type="text" class="form-control" id="member_id" name="member_id" 
                                    value="{{ member.id }}" required>
                             <small class="text-muted">Can be edited if needed</small>
                         </div>
+                    </div>
+                    
+                    {% set name_parts = member.name.split() %}
+                    {% if name_parts|length == 2 %}
+                        {% set first = name_parts[0] %}
+                        {% set middle = '' %}
+                        {% set last = name_parts[1] %}
+                    {% elif name_parts|length >= 3 %}
+                        {% set first = name_parts[0] %}
+                        {% set middle = ' '.join(name_parts[1:-1]) %}
+                        {% set last = name_parts[-1] %}
+                    {% else %}
+                        {% set first = member.name %}
+                        {% set middle = '' %}
+                        {% set last = '' %}
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="first_name" class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ first }}" required>
+                        </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="name" class="form-label">Full Name *</label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ member.name }}" required>
+                        <div class="col-md-4 mb-3">
+                            <label for="middle_name" class="form-label">Middle Name</label>
+                            <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ middle }}">
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="last_name" class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ last }}" required>
                         </div>
                     </div>
                     

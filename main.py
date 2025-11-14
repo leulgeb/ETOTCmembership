@@ -249,13 +249,19 @@ def edit_member(member_id):
     if request.method == 'POST':
         try:
             new_id = request.form.get('member_id', '').strip().upper()
-            name = request.form.get('name', '').strip()
+            first_name = request.form.get('first_name', '').strip()
+            middle_name = request.form.get('middle_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
             phone = request.form.get('phone', '').strip()
             email = request.form.get('email', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
             
-            if not all([new_id, name, phone, email, monthly_payment]):
-                flash('All fields are required.', 'danger')
+            # Combine name parts
+            name_parts = [first_name, middle_name, last_name] if middle_name else [first_name, last_name]
+            name = ' '.join(name_parts)
+            
+            if not all([new_id, first_name, last_name, phone, email, monthly_payment]):
+                flash('All required fields must be filled.', 'danger')
                 return render_template('edit_member.html', member=member)
             
             # Check if ID is being changed and if new ID already exists
