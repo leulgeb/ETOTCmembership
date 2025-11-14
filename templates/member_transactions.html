@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-list-check"></i> Transaction History</h2>
+                    <a href="{{ url_for('member_dashboard') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                                <th>Amount</th>
+                                <th>Receipt #</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.date }}</td>
+                                <td>
+                                    {% if transaction.type == 'contribution' %}
+                                    <span class="badge bg-primary">Contribution</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Donation</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.type == 'contribution' %}
+                                    {{ transaction.month }}
+                                    {% else %}
+                                    {{ transaction.reason }}
+                                    {% endif %}
+                                </td>
+                                <td><strong>${{ "%.2f"|format(transaction.amount) }}</strong></td>
+                                <td><code>{{ transaction.receipt }}</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No transactions found yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

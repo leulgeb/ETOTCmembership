@@ -1,0 +1,246 @@
+Build a full-featured Flask web app for a church to manage monthly member contributions and additional donations.
+The system should support Admin and Member roles with secure login, detailed payment tracking, donation management, CSV export, and simulated receipts.
+
+👥 User Roles
+
+Admin: logs in with a hardcoded username/password.
+
+Member: logs in using their auto-generated Member ID and password.
+
+🧑‍💼 Admin Features
+
+Admin Home Page
+
+Displays all members in a list with:
+
+Auto-generated Member ID (editable by admin if needed)
+
+Name
+
+Phone
+
+Email
+
+Monthly contribution amount
+
+Includes buttons to:
+
+View Details – opens member’s contribution and donation records
+
+Edit – modify contact info, monthly amount, or ID
+
+Delete – remove a member (with confirmation)
+
+Option to Add New Member.
+
+When a new member is added, automatically assign the next sequential ID (e.g., CH001, CH002, CH003...).
+
+Admin can override and manually edit the ID if needed.
+
+Member Details View
+
+Displays a 12-month breakdown (Jan–Dec) of contributions for the selected year.
+
+Each month shows:
+
+Payment status (Paid/Unpaid)
+
+Amount paid
+
+Payment date
+
+Receipt number (auto-generated per transaction)
+
+Members must pay in order — no skipping future months.
+
+New year records (12 unpaid months) are automatically created every January.
+
+Visual color indicators for payment status (e.g., green = paid, red = unpaid).
+
+Monthly Payment Setup
+
+Each member has a monthly contribution amount (minimum $30).
+
+Admin-only editable, with a confirmation prompt before saving changes.
+
+Donation Management
+
+Dedicated Donations Dashboard showing all donations from all members.
+
+Displays:
+
+Member name & ID
+
+Amount
+
+Date
+
+“Reason/Donation For” field
+
+Receipt number
+
+Include filters for:
+
+By member
+
+By date range
+
+Reports & Export
+
+Show total contributions and donations per member and overall totals.
+
+Export to CSV options:
+
+Export all contributions
+
+Export all donations
+
+Export member list
+
+Each CSV includes timestamps and totals.
+
+🙋 Member Features
+
+Member Login
+
+Members log in using their Member ID and password.
+
+Redirect to personalized dashboard on success.
+
+Member Dashboard
+
+Displays 12-month contribution summary for the current year.
+
+Shows totals for paid vs. unpaid months.
+
+Allows switching between previous years to view history.
+
+Shows each payment’s receipt number and date.
+
+Simulated Monthly Payment
+
+“Pay Now” button appears next to the next unpaid month.
+
+On click:
+
+Show a confirmation popup.
+
+Once confirmed, mark the month as “Paid.”
+
+Generate a unique receipt number (e.g., RCPT-2025-0001).
+
+Display a payment confirmation page showing:
+
+Member name
+
+Month paid
+
+Amount
+
+Date
+
+Receipt number
+
+Add this record to the member’s transaction history.
+
+Simulated Email Receipt
+
+After each payment or donation, simulate sending a confirmation email to the member.
+
+Instead of real email, show an on-screen message:
+
+“A payment receipt has been sent to [member’s email address].”
+
+Include the same details as the on-screen receipt.
+
+Additional Donations
+
+Members can make one-time donations outside of their monthly contributions.
+
+Donation form fields:
+
+Amount
+
+Reason/Donation For (optional)
+
+If the “Reason” field is left blank:
+
+Show a confirmation popup:
+“You haven’t entered a reason for this donation. Do you want to continue?”
+
+If confirmed, proceed with the donation.
+
+Assign a unique receipt number to each donation.
+
+Record donation under the member’s account and add to their transaction history.
+
+Transaction History
+
+Displays all past contributions and donations.
+
+Each record includes type, date, amount, and receipt number.
+
+💾 Data Storage
+
+Use a local data.json file.
+
+Each member record includes:
+
+{
+  "id": "CH003",
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "phone": "555-3210",
+  "password": "hashed_or_plain",
+  "monthly_payment": 50,
+  "contributions": {
+    "2025": {
+      "January": {"status": "Paid", "amount": 50, "date": "2025-01-03", "receipt": "RCPT-2025-0001"},
+      ...
+    }
+  },
+  "donations": [
+    {"date": "2025-04-10", "amount": 120, "reason": "Church Renovation", "receipt": "RCPT-2025-0012"}
+  ],
+  "transactions": [
+    {"type": "contribution", "month": "January", "amount": 50, "date": "2025-01-03", "receipt": "RCPT-2025-0001"},
+    {"type": "donation", "amount": 120, "reason": "Church Renovation", "date": "2025-04-10", "receipt": "RCPT-2025-0012"}
+  ]
+}
+
+
+The system automatically:
+
+Generates sequential Member IDs (CH001 → CH002 → CH003...).
+
+Generates unique receipt numbers (RCPT-[YEAR]-[SEQUENCE]).
+
+Adds a new year’s record every January with 12 unpaid months.
+
+🎨 UI & Design
+
+Clean and responsive interface using Bootstrap.
+
+Separate login pages for Admin and Member.
+
+Dashboards for both roles with simple navigation and logout.
+
+Use modals for confirmations and popups for simulated receipts and emails.
+
+Highlight unpaid months clearly and display totals.
+
+✅ Extra Notes
+
+Include sample members, transactions, and donations in data.json for testing.
+
+Build all within one Replit project (main.py entry point).
+
+File structure:
+
+/templates
+/static
+data.json
+main.py
+
+
+Keep code modular and ready for future database or real payment integration.

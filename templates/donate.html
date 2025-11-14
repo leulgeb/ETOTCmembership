@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Make Donation - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-gift"></i> Make a Donation</h2>
+                
+                {% if show_confirmation %}
+                <div class="alert alert-warning">
+                    <h5><i class="bi bi-exclamation-triangle"></i> Confirm Donation</h5>
+                    <p>You haven't entered a reason for this donation. Do you want to continue?</p>
+                    <form method="POST">
+                        <input type="hidden" name="amount" value="{{ amount }}">
+                        <input type="hidden" name="reason" value="">
+                        <input type="hidden" name="confirm_no_reason" value="yes">
+                        <button type="submit" class="btn btn-warning me-2">
+                            <i class="bi bi-check"></i> Yes, Continue
+                        </button>
+                        <a href="{{ url_for('make_donation') }}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Go Back
+                        </a>
+                    </form>
+                </div>
+                {% else %}
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Donation Amount ($) *</label>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               step="0.01" min="0.01" required autofocus>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason/Donation For (Optional)</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" 
+                                  placeholder="e.g., Church Renovation, Mission Trip, etc."></textarea>
+                        <small class="text-muted">Leave blank if no specific reason</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-gift"></i> Submit Donation
+                        </button>
+                        <a href="{{ url_for('member_dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

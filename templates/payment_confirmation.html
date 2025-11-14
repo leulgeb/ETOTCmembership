@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Confirmation - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-success">
+            <div class="card-body p-5 text-center">
+                <i class="bi bi-check-circle-fill" style="font-size: 5rem; color: #27ae60;"></i>
+                <h2 class="mt-3 mb-4">Payment Successful!</h2>
+                
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Receipt Details</h5>
+                        <hr>
+                        <div class="text-start">
+                            <p class="mb-2"><strong>Type:</strong> {{ transaction_type }}</p>
+                            <p class="mb-2"><strong>Member:</strong> {{ member.name }} ({{ member.id }})</p>
+                            {% if month %}
+                            <p class="mb-2"><strong>Month:</strong> {{ month }}</p>
+                            {% endif %}
+                            {% if reason %}
+                            <p class="mb-2"><strong>Reason:</strong> {{ reason }}</p>
+                            {% endif %}
+                            <p class="mb-2"><strong>Amount:</strong> ${{ "%.2f"|format(amount) }}</p>
+                            <p class="mb-2"><strong>Date:</strong> {{ date }}</p>
+                            <p class="mb-0"><strong>Receipt #:</strong> <code>{{ receipt }}</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-envelope"></i> A payment receipt has been sent to <strong>{{ member.email }}</strong>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <a href="{{ url_for('member_dashboard') }}" class="btn btn-primary">
+                        <i class="bi bi-speedometer2"></i> Back to Dashboard
+                    </a>
+                    <a href="{{ url_for('member_transactions') }}" class="btn btn-secondary">
+                        <i class="bi bi-list-check"></i> View All Transactions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

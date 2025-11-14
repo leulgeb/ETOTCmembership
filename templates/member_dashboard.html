@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboard - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Welcome, {{ member.name }}!</h2>
+
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-muted">Your Information</h6>
+                                <p class="mb-1"><strong>ID:</strong> {{ member.id }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ member.email }}</p>
+                                <p class="mb-0"><strong>Phone:</strong> {{ member.phone }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6>Monthly Payment</h6>
+                                <h2>${{ "%.2f"|format(member.monthly_payment) }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6>Paid ({{ selected_year }})</h6>
+                                <h2>${{ "%.2f"|format(total_paid) }}</h2>
+                                <p class="mb-0">{{ paid_months }} of 12 months</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6>Year</h6>
+                                <form method="GET" id="yearForm">
+                                    <select name="year" class="form-select" onchange="document.getElementById('yearForm').submit()">
+                                        {% for year in available_years %}
+                                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="mb-3">Your Contributions - {{ selected_year }}</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Month</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Receipt #</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for month in months %}
+                            {% set contrib = contributions[month] %}
+                            <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
+                                <td><strong>{{ month }}</strong></td>
+                                <td>
+                                    <span class="status-badge-{{ contrib.status.lower() }}">
+                                        {{ contrib.status }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
+                                <td>{{ contrib.date if contrib.date else '-' }}</td>
+                                <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                                <td>
+                                    {% if contrib.status == 'Unpaid' and month == next_unpaid_month and selected_year == current_year %}
+                                    <form method="POST" action="{{ url_for('pay_month', year=selected_year, month=month) }}" 
+                                          onsubmit="return confirm('Confirm payment of ${{ "%.2f"|format(member.monthly_payment) }} for {{ month }}?')">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-credit-card"></i> Pay Now
+                                        </button>
+                                    </form>
+                                    {% elif contrib.status == 'Paid' %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Paid</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if next_unpaid_month and selected_year == current_year %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-circle"></i> <strong>Next Payment Due:</strong> {{ next_unpaid_month }} - ${{ "%.2f"|format(member.monthly_payment) }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

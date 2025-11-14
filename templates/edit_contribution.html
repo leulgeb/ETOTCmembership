@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Contribution - Church Contribution Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-pencil"></i> Edit Contribution</h2>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Member</label>
+                        <input type="text" class="form-control" value="{{ contribution.member_id }}" disabled>
+                        <small class="text-muted">Member cannot be changed</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month *</label>
+                        <input type="month" class="form-control" id="month" name="month" value="{{ contribution.month }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount ($) *</label>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               step="0.01" min="0" value="{{ contribution.amount }}" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Update Contribution
+                        </button>
+                        <a href="{{ url_for('view_member_contributions', member_id=contribution.member_id) }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

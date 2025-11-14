@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Add Contribution - Church Contribution Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-cash-stack"></i> Record Contribution</h2>
+                
+                {% if members %}
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="member_id" class="form-label">Select Member *</label>
+                        <select class="form-select" id="member_id" name="member_id" required>
+                            <option value="">Choose a member...</option>
+                            {% for member in members %}
+                            <option value="{{ member.member_id }}">
+                                {{ member.member_id }} - {{ member.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month *</label>
+                        <input type="month" class="form-control" id="month" name="month" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount ($) *</label>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               step="0.01" min="0" required placeholder="e.g., 100.00">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Record Contribution
+                        </button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No members found. Please add members first.
+                </div>
+                <a href="{{ url_for('add_member') }}" class="btn btn-primary">
+                    <i class="bi bi-person-plus"></i> Add Member
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

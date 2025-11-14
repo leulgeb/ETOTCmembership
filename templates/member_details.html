@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Member Details - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-person-circle"></i> {{ member.name }}</h2>
+                    <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Members
+                    </a>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-muted">Member Information</h6>
+                                <p class="mb-1"><strong>ID:</strong> {{ member.id }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ member.email }}</p>
+                                <p class="mb-1"><strong>Phone:</strong> {{ member.phone }}</p>
+                                <p class="mb-0"><strong>Monthly:</strong> ${{ "%.2f"|format(member.monthly_payment) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6>Total Paid ({{ selected_year }})</h6>
+                                <h2>${{ "%.2f"|format(total_paid) }}</h2>
+                                <p class="mb-0">{{ paid_months }} of 12 months paid</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6>Year Selection</h6>
+                                <form method="GET" id="yearForm">
+                                    <select name="year" class="form-select" onchange="document.getElementById('yearForm').submit()">
+                                        {% for year in available_years %}
+                                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="mb-3">Monthly Contribution Breakdown - {{ selected_year }}</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Month</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Receipt #</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for month in months %}
+                            {% set contrib = contributions[month] %}
+                            <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
+                                <td><strong>{{ month }}</strong></td>
+                                <td>
+                                    <span class="status-badge-{{ contrib.status.lower() }}">
+                                        {{ contrib.status }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
+                                <td>{{ contrib.date if contrib.date else '-' }}</td>
+                                <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

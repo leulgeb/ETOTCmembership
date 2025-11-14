@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Add Member - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-person-plus"></i> Add New Member</h2>
+                
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="custom_id" class="form-label">Member ID</label>
+                            <input type="text" class="form-control" id="custom_id" name="custom_id" 
+                                   placeholder="Leave blank for auto-generation: {{ suggested_id }}">
+                            <small class="text-muted">Auto-generated: {{ suggested_id }} (or enter custom ID)</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone Number *</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="monthly_payment" class="form-label">Monthly Payment * (Min: $30)</label>
+                            <input type="number" class="form-control" id="monthly_payment" name="monthly_payment" 
+                                   step="0.01" min="30" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Add Member
+                        </button>
+                        <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
