@@ -38,16 +38,37 @@ with app.app_context():
             db.session.add(admin_user)
             db.session.commit()
 
-DATA_FILE = 'data.json'
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
-if not ADMIN_PASSWORD:
-    raise ValueError("ADMIN_PASSWORD environment variable must be set. Please configure this secret before starting the application.")
-ADMIN_PASSWORD_HASH = generate_password_hash(ADMIN_PASSWORD)
+DATA_FILE = 'data.json'  # Legacy JSON file - now in read-only mode for backup
 CHURCH_NAME = 'ETOTC'
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 
           'July', 'August', 'September', 'October', 'November', 'December']
 MINIMUM_MONTHLY_PAYMENT = 30
+
+# Helper functions for database-backed ID generation
+def get_next_member_id():
+    """Generate next member ID using database sequence counter"""
+    counter = SequenceCounter.query.filter_by(counter_name='member_id').first()
+    if not counter:
+        counter = SequenceCounter(counter_name='member_id', counter_value=1)
+        db.session.add(counter)
+    
+    member_id = f"CH{counter.counter_value:03d}"
+    counter.counter_value += 1
+    db.session.commit()
+    return member_id
+
+def get_next_receipt_number():
+    """Generate next receipt number using database sequence counter"""
+    counter = SequenceCounter.query.filter_by(counter_name='receipt_number').first()
+    if not counter:
+        counter = SequenceCounter(counter_name='receipt_number', counter_value=1)
+        db.session.add(counter)
+    
+    current_year = datetime.now().year
+    receipt = f"RCPT-{current_year}-{counter.counter_value:04d}"
+    counter.counter_value += 1
+    db.session.commit()
+    return receipt
 
 def load_data():
     """Load data from JSON file with error handling"""
@@ -113,13 +134,47 @@ def initialize_year_contributions(year):
         }
     return contributions
 
-def admin_required(f):
-    """Decorator to require admin login"""
+def staff_required(f):
+    """Decorator to require admin or cashier login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('is_admin'):
+        user_id = session.get('user_id')
+        if not user_id:
+            flash('Please log in to access this page.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Verify user exists and has valid role from database
+        user = User.query.get(user_id)
+        if not user or not user.is_active:
+            session.clear()
+            flash('Invalid session. Please log in again.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Verify user has staff role (admin or cashier)
+        if user.role not in [UserRole.ADMIN, UserRole.CASHIER]:
+            session.clear()
+            flash('Staff access required.', 'danger')
+            return redirect(url_for('login'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require admin login (admin-only features)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
             flash('Please log in as admin to access this page.', 'danger')
             return redirect(url_for('login'))
+        
+        # Verify user exists and is admin from database
+        user = User.query.get(user_id)
+        if not user or user.role != UserRole.ADMIN or not user.is_active:
+            session.clear()
+            flash('Admin access required.', 'danger')
+            return redirect(url_for('login'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -133,6 +188,13 @@ def member_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def get_current_user():
+    """Get the current logged-in staff user (admin or cashier)"""
+    user_id = session.get('user_id')
+    if user_id:
+        return User.query.get(user_id)
+    return None
+
 @app.route('/')
 def index():
     """Landing page"""
@@ -140,15 +202,27 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Admin login"""
+    """Admin/Cashier login"""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
-        if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
-            session['is_admin'] = True
-            session['username'] = username
-            flash('Successfully logged in as admin!', 'success')
+        # Find user in database
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.is_active and check_password_hash(user.password_hash, password):
+            # Prevent session fixation by regenerating session
+            session.clear()
+            session.regenerate = True
+            
+            # Set session variables
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_role'] = user.role.value
+            session['user_name'] = user.full_name or user.username
+            
+            role_display = "Admin" if user.role == UserRole.ADMIN else "Cashier"
+            flash(f'Successfully logged in as {role_display}!', 'success')
             return redirect(url_for('admin_home'))
         else:
             flash('Invalid credentials. Please try again.', 'danger')
@@ -162,13 +236,14 @@ def member_login():
         member_id = request.form.get('member_id', '').strip().upper()
         password = request.form.get('password')
         
-        data = load_data()
-        member = next((m for m in data['members'] if m['id'] == member_id), None)
+        # Find member in database
+        member = Member.query.filter_by(member_id=member_id).first()
         
-        if member and check_password_hash(member.get('password_hash', ''), password):
-            session['member_id'] = member_id
-            session['member_name'] = member['name']
-            flash(f'Welcome, {member["name"]}!', 'success')
+        if member and member.is_active and check_password_hash(member.password_hash, password):
+            session['member_id'] = member.id
+            session['member_code'] = member.member_id
+            session['member_name'] = member.full_name
+            flash(f'Welcome, {member.full_name}!', 'success')
             return redirect(url_for('member_dashboard'))
         else:
             flash('Invalid Member ID or Password. Please try again.', 'danger')
@@ -183,11 +258,21 @@ def logout():
     return redirect(url_for('index'))
 
 @app.route('/admin/home')
-@admin_required
+@staff_required
 def admin_home():
-    """Admin home page with member list"""
-    data = load_data()
-    return render_template('admin_home.html', members=data['members'])
+    """Admin/Cashier home page with member list"""
+    members = Member.query.filter_by(is_active=True).all()
+    current_user = get_current_user()
+    
+    # Calculate total contributions for each member
+    for member in members:
+        total = db.session.query(db.func.sum(Contribution.amount)).filter(
+            Contribution.member_id == member.id,
+            Contribution.status == PaymentStatus.PAID
+        ).scalar() or 0
+        member.total_contributions = total
+    
+    return render_template('admin_home.html', members=members, current_user=current_user)
 
 @app.route('/admin/add-member', methods=['GET', 'POST'])
 @admin_required
