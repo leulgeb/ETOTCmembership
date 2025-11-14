@@ -171,15 +171,21 @@ def add_member():
         try:
             # Get form data
             custom_id = request.form.get('custom_id', '').strip().upper()
-            name = request.form.get('name', '').strip()
+            first_name = request.form.get('first_name', '').strip()
+            middle_name = request.form.get('middle_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
             phone = request.form.get('phone', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
             
+            # Combine name parts
+            name_parts = [first_name, middle_name, last_name] if middle_name else [first_name, last_name]
+            name = ' '.join(name_parts)
+            
             # Validation
-            if not all([name, phone, email, password, monthly_payment]):
-                flash('All fields are required.', 'danger')
+            if not all([first_name, last_name, phone, email, password, monthly_payment]):
+                flash('All required fields must be filled.', 'danger')
                 return render_template('add_member.html', suggested_id=generate_member_id(data))
             
             try:
