@@ -83,6 +83,13 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 ## Sample Data
 The application includes 5 sample members (CH001-CH005) with contribution and donation records for testing purposes.
 
+**Note:** The sample members have encrypted passwords that aren't documented. To test the member portal:
+1. Log in as admin (username: `admin`, password: your ADMIN_PASSWORD secret)
+2. Create a new member with a password you choose
+3. Log out and test member login with that new member's credentials
+
+Alternatively, you can use the admin panel to view and manage the existing sample members.
+
 ## Replit Configuration
 
 ### Environment Variables
