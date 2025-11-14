@@ -339,6 +339,62 @@ def member_details(member_id):
                          paid_months=paid_months,
                          total_paid=total_paid)
 
+@app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
+@admin_required
+def admin_pay_month(member_id, year, month):
+    """Admin processes a monthly payment for a member"""
+    data = load_data()
+    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    # Validate month
+    if month not in MONTHS:
+        flash('Invalid month.', 'danger')
+        return redirect(url_for('member_details', member_id=member_id, year=year))
+    
+    # Ensure year exists
+    if year not in member['contributions']:
+        member['contributions'][year] = initialize_year_contributions(year)
+    
+    contributions = member['contributions'][year]
+    
+    # Check if already paid
+    if contributions[month]['status'] == 'Paid':
+        flash('This month has already been paid.', 'warning')
+        return redirect(url_for('member_details', member_id=member_id, year=year))
+    
+    # Process payment
+    receipt_number = generate_receipt_number(data)
+    payment_date = datetime.now().strftime('%Y-%m-%d')
+    
+    contributions[month] = {
+        'status': 'Paid',
+        'amount': member['monthly_payment'],
+        'date': payment_date,
+        'receipt': receipt_number
+    }
+    
+    # Add to transactions
+    if 'transactions' not in member:
+        member['transactions'] = []
+    
+    transaction = {
+        'type': 'contribution',
+        'month': month,
+        'amount': member['monthly_payment'],
+        'date': payment_date,
+        'receipt': receipt_number
+    }
+    member['transactions'].append(transaction)
+    
+    save_data(data)
+    
+    flash(f'Payment processed successfully for {month}! Receipt: {receipt_number}', 'success')
+    return redirect(url_for('member_details', member_id=member_id, year=year))
+
 @app.route('/admin/donations')
 @admin_required
 def admin_donations():

@@ -61,6 +61,7 @@
                                 <th>Amount</th>
                                 <th>Payment Date</th>
                                 <th>Receipt #</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -76,6 +77,18 @@
                                 <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
                                 <td>{{ contrib.date if contrib.date else '-' }}</td>
                                 <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                                <td>
+                                    {% if contrib.status == 'Unpaid' %}
+                                    <form method="POST" action="{{ url_for('admin_pay_month', member_id=member.id, year=selected_year, month=month) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-success" 
+                                                onclick="return confirm('Process payment of ${{ member.monthly_payment }} for {{ month }}?')">
+                                            <i class="bi bi-cash-coin"></i> Pay
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
