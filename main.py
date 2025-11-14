@@ -6,9 +6,37 @@ import csv
 from datetime import datetime
 from functools import wraps
 from io import StringIO, BytesIO
+from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, UserRole, PaymentMethod, PaymentStatus
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
+
+# Database configuration
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+db.init_app(app)
+
+# Create all database tables
+with app.app_context():
+    db.create_all()
+    
+    # Create default admin user if not exists
+    admin_user = User.query.filter_by(username='admin').first()
+    if not admin_user:
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        if admin_password:
+            admin_user = User(
+                username='admin',
+                password_hash=generate_password_hash(admin_password),
+                role=UserRole.ADMIN,
+                full_name='System Administrator',
+                email='admin@etotc.org'
+            )
+            db.session.add(admin_user)
+            db.session.commit()
 
 DATA_FILE = 'data.json'
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
