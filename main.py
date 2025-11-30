@@ -12,6 +12,15 @@ from models import db, User, Member, Contribution, Donation, ChangeLog, Sequence
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
 
+# Email configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@etotc.org')
+mail = Mail(app)
+
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -135,6 +144,191 @@ def initialize_year_contributions(year):
         }
     return contributions
 
+def check_year_complete(contributions):
+    """Check if all 12 months are paid for a year"""
+    return all(contributions[month]['status'] == 'Paid' for month in MONTHS)
+
+def generate_receipt_html(receipt_data, is_year_complete=False):
+    """Generate HTML for receipt email"""
+    payments_html = ""
+    for payment in receipt_data['payments']:
+        payments_html += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">{payment['month']}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${payment['amount']:.2f}</td>
+        </tr>
+        """
+    
+    year_complete_section = ""
+    if is_year_complete:
+        year_complete_section = f"""
+        <div style="background: #28a745; color: white; padding: 20px; margin-top: 20px; border-radius: 8px; text-align: center;">
+            <h2 style="margin: 0;">🎉 Congratulations!</h2>
+            <p style="margin: 10px 0 0 0; font-size: 1.1em;">
+                You have completed all contributions for {receipt_data.get('year', datetime.now().year)}!
+            </p>
+        </div>
+        """
+    
+    html = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; border-bottom: 2px solid #2c3e50; padding-bottom: 15px; margin-bottom: 20px;">
+            <h1 style="margin: 0; color: #2c3e50;">ETOTC Church</h1>
+            <p style="margin: 5px 0; color: #666;">Contribution Receipt</p>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+                <strong>Receipt Number:</strong><br>
+                <span style="font-size: 1.2em; color: #27ae60;">{receipt_data['receipt_number']}</span>
+            </div>
+            <div style="text-align: right;">
+                <strong>Date:</strong><br>
+                {receipt_data['date']}
+            </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0;">Member Information</h3>
+            <p style="margin: 5px 0;"><strong>Name:</strong> {receipt_data['member_name']}</p>
+            <p style="margin: 5px 0;"><strong>Member ID:</strong> {receipt_data['member_id']}</p>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background: #2c3e50; color: white;">
+                    <th style="padding: 10px; text-align: left;">Month</th>
+                    <th style="padding: 10px; text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {payments_html}
+            </tbody>
+            <tfoot>
+                <tr style="background: #f8f9fa; font-weight: bold;">
+                    <td style="padding: 10px;">Total</td>
+                    <td style="padding: 10px; text-align: right;">${receipt_data['total']:.2f}</td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        {year_complete_section}
+        
+        <div style="text-align: center; color: #666; font-size: 0.9em; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px;">
+            <p style="margin: 5px 0;">Thank you for your contribution!</p>
+            <p style="margin: 5px 0;">God bless you.</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
+def generate_year_completion_sheet(member, year, contributions):
+    """Generate HTML for year completion certificate/sheet"""
+    total_paid = sum(contributions[month]['amount'] for month in MONTHS)
+    
+    html = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="text-align: center; border-bottom: 3px solid #27ae60; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="margin: 0; color: #2c3e50; font-size: 2.5em;">⛪ ETOTC Church</h1>
+                <h2 style="margin: 10px 0; color: #27ae60;">Certificate of Completion</h2>
+                <p style="color: #666; font-size: 1.1em;">Annual Contribution Record</p>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <p style="font-size: 1.2em; color: #333;">This certifies that</p>
+                <h2 style="font-size: 2em; color: #2c3e50; margin: 10px 0; border-bottom: 2px solid #27ae60; display: inline-block; padding-bottom: 5px;">
+                    {member['name']}
+                </h2>
+                <p style="color: #666;">Member ID: {member['id']}</p>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <p style="font-size: 1.1em; color: #333;">
+                    has successfully completed all monthly contributions for the year
+                </p>
+                <h1 style="font-size: 3em; color: #27ae60; margin: 10px 0;">{year}</h1>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                <h3 style="text-align: center; margin-top: 0; color: #2c3e50;">Payment Summary</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #2c3e50; color: white;">
+                            <th style="padding: 10px; text-align: left;">Month</th>
+                            <th style="padding: 10px; text-align: right;">Amount</th>
+                            <th style="padding: 10px; text-align: center;">Receipt #</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    """
+    
+    for month in MONTHS:
+        contrib = contributions[month]
+        html += f"""
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 8px;">{month}</td>
+                            <td style="padding: 8px; text-align: right;">${contrib['amount']:.2f}</td>
+                            <td style="padding: 8px; text-align: center;">{contrib['receipt']}</td>
+                        </tr>
+        """
+    
+    html += f"""
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #27ae60; color: white; font-weight: bold;">
+                            <td style="padding: 10px;">Total Annual Contribution</td>
+                            <td style="padding: 10px; text-align: right;">${total_paid:.2f}</td>
+                            <td style="padding: 10px;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div style="text-align: center; color: #666; padding-top: 20px; border-top: 1px solid #ddd;">
+                <p style="margin: 5px 0;">May God bless you abundantly for your faithful giving.</p>
+                <p style="margin: 15px 0; font-style: italic;">"Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." - 2 Corinthians 9:7</p>
+                <p style="margin-top: 20px; color: #999; font-size: 0.9em;">Generated on {datetime.now().strftime('%B %d, %Y')}</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
+def send_receipt_email(member_email, member_name, receipt_data, is_year_complete=False, year_sheet_html=None):
+    """Send receipt email to member"""
+    if not app.config['MAIL_USERNAME'] or not member_email:
+        return False
+    
+    try:
+        subject = f"ETOTC Church - Payment Receipt {receipt_data['receipt_number']}"
+        if is_year_complete:
+            subject = f"ETOTC Church - Year {receipt_data.get('year', datetime.now().year)} Completed! 🎉"
+        
+        msg = Message(
+            subject=subject,
+            recipients=[member_email],
+            html=generate_receipt_html(receipt_data, is_year_complete)
+        )
+        
+        # Attach year completion sheet if year is complete
+        if is_year_complete and year_sheet_html:
+            msg.attach(
+                f"ETOTC_Year_{receipt_data.get('year', datetime.now().year)}_Certificate.html",
+                "text/html",
+                year_sheet_html
+            )
+        
+        mail.send(msg)
+        return True
+    except Exception as e:
+        app.logger.error(f"Failed to send email: {str(e)}")
+        return False
+
 def staff_required(f):
     """Decorator to require admin or cashier login"""
     @wraps(f)
@@ -212,15 +406,17 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and user.is_active and check_password_hash(user.password_hash, password):
-            # Prevent session fixation by regenerating session
+            # Clear any existing session data first
             session.clear()
-            session.regenerate = True
             
             # Set session variables
             session['user_id'] = user.id
             session['username'] = user.username
             session['user_role'] = user.role.value
             session['user_name'] = user.full_name or user.username
+            session['is_staff'] = True
+            session.permanent = True
+            session.modified = True
             
             role_display = "Admin" if user.role == UserRole.ADMIN else "Cashier"
             flash(f'Successfully logged in as {role_display}!', 'success')
@@ -510,20 +706,47 @@ def admin_pay_month(member_id, year, month):
     
     save_data(data)
     
+    # Check if year is now complete
+    is_year_complete = check_year_complete(contributions)
+    year_sheet_html = None
+    
+    if is_year_complete:
+        year_sheet_html = generate_year_completion_sheet(member, year, contributions)
+        flash(f'🎉 Congratulations! {member["name"]} has completed all contributions for {year}!', 'success')
+    
     # Store receipt data in session for display
     receipt_data = {
-        'receipt_numbers': [receipt_number],
+        'receipt_number': receipt_number,
         'date': payment_date,
         'member_name': member['name'],
         'member_id': member['id'],
+        'member_email': member.get('email', ''),
         'payments': [{
             'month': month,
-            'receipt': receipt_number,
             'amount': member['monthly_payment']
         }],
-        'total': member['monthly_payment']
+        'total': member['monthly_payment'],
+        'year': year,
+        'is_year_complete': is_year_complete
     }
     session['receipt_data'] = receipt_data
+    
+    # Store year sheet in session if complete
+    if is_year_complete and year_sheet_html:
+        session['year_sheet'] = year_sheet_html
+    
+    # Send email automatically
+    member_email = member.get('email')
+    if member_email:
+        email_sent = send_receipt_email(
+            member_email, 
+            member['name'], 
+            receipt_data,
+            is_year_complete,
+            year_sheet_html
+        )
+        if email_sent:
+            flash(f'Receipt emailed to {member_email}', 'info')
     
     flash(f'Payment processed successfully for {month}! Receipt: {receipt_number}', 'success')
     return redirect(url_for('member_details', member_id=member_id, year=year))
@@ -532,7 +755,7 @@ def admin_pay_month(member_id, year, month):
 @app.route('/admin/bulk-pay/<member_id>/<year>', methods=['POST'])
 @staff_required
 def admin_bulk_pay(member_id, year):
-    """Admin processes bulk payments for multiple months"""
+    """Admin processes bulk payments for multiple months with ONE receipt"""
     data = load_data()
     member = next((m for m in data['members'] if m['id'] == member_id), None)
     
@@ -559,64 +782,89 @@ def admin_bulk_pay(member_id, year):
     
     payment_date = datetime.now().strftime('%Y-%m-%d')
     processed_payments = []
-    receipt_numbers = []
     skipped_months = []
     
+    # Collect valid months first
+    valid_months = []
     for month in selected_months:
-        # Validate month
         if month not in MONTHS:
             continue
-        
-        # Skip if already paid
         if contributions[month]['status'] == 'Paid':
             skipped_months.append(month)
             continue
-        
-        # Generate receipt for this payment
+        valid_months.append(month)
+    
+    if valid_months:
+        # Generate ONE receipt for all months in this transaction
         receipt_number = generate_receipt_number(data)
-        receipt_numbers.append(receipt_number)
+        total_amount = len(valid_months) * member['monthly_payment']
         
-        contributions[month] = {
-            'status': 'Paid',
-            'amount': member['monthly_payment'],
-            'date': payment_date,
-            'receipt': receipt_number
-        }
+        for month in valid_months:
+            contributions[month] = {
+                'status': 'Paid',
+                'amount': member['monthly_payment'],
+                'date': payment_date,
+                'receipt': receipt_number  # Same receipt for all months
+            }
+            
+            # Add transaction
+            transaction = {
+                'type': 'contribution',
+                'month': month,
+                'amount': member['monthly_payment'],
+                'date': payment_date,
+                'receipt': receipt_number
+            }
+            member['transactions'].append(transaction)
+            
+            processed_payments.append({
+                'month': month,
+                'amount': member['monthly_payment']
+            })
         
-        # Add transaction
-        transaction = {
-            'type': 'contribution',
-            'month': month,
-            'amount': member['monthly_payment'],
-            'date': payment_date,
-            'receipt': receipt_number
-        }
-        member['transactions'].append(transaction)
+        save_data(data)
         
-        processed_payments.append({
-            'month': month,
-            'receipt': receipt_number,
-            'amount': member['monthly_payment']
-        })
-    
-    save_data(data)
-    
-    if processed_payments:
-        total_amount = len(processed_payments) * member['monthly_payment']
+        # Check if year is now complete
+        is_year_complete = check_year_complete(contributions)
+        year_sheet_html = None
+        
+        if is_year_complete:
+            year_sheet_html = generate_year_completion_sheet(member, year, contributions)
+            flash(f'🎉 Congratulations! {member["name"]} has completed all contributions for {year}!', 'success')
         
         # Store receipt data in session for display
         receipt_data = {
-            'receipt_numbers': receipt_numbers,
+            'receipt_number': receipt_number,
             'date': payment_date,
             'member_name': member['name'],
             'member_id': member['id'],
+            'member_email': member.get('email', ''),
             'payments': processed_payments,
-            'total': total_amount
+            'total': total_amount,
+            'year': year,
+            'is_year_complete': is_year_complete
         }
         session['receipt_data'] = receipt_data
         
+        # Store year sheet in session if complete
+        if is_year_complete and year_sheet_html:
+            session['year_sheet'] = year_sheet_html
+        
+        # Send email automatically
+        member_email = member.get('email')
+        if member_email:
+            email_sent = send_receipt_email(
+                member_email, 
+                member['name'], 
+                receipt_data,
+                is_year_complete,
+                year_sheet_html
+            )
+            if email_sent:
+                flash(f'Receipt emailed to {member_email}', 'info')
+        
         months_str = ', '.join([p['month'] for p in processed_payments])
-        flash(f'Bulk payment processed successfully for {len(processed_payments)} month(s): {months_str}', 'success')
+        flash(f'Payment processed! Receipt {receipt_number} for {months_str}', 'success')
         
         # Notify about skipped months if any
         if skipped_months:
