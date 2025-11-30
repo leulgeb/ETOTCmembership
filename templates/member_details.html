@@ -18,9 +18,14 @@
                             </button>
                         </h2>
                     </div>
-                    <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to Members
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('admin_member_transactions', member_id=member.id) }}" class="btn btn-outline-info">
+                            <i class="bi bi-receipt"></i> View History
+                        </a>
+                        <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Members
+                        </a>
+                    </div>
                 </div>
 
                 <div class="collapse" id="memberInfoCollapse">

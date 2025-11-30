@@ -145,8 +145,43 @@ def initialize_year_contributions(year):
     return contributions
 
 def check_year_complete(contributions):
-    """Check if all 12 months are paid for a year"""
-    return all(contributions[month]['status'] == 'Paid' for month in MONTHS)
+    """Check if all 12 months are paid for a year, safely handling missing months"""
+    for month in MONTHS:
+        if month not in contributions:
+            return False
+        if contributions[month].get('status') != 'Paid':
+            return False
+    return True
+
+def count_paid_months(contributions):
+    """Count how many months are paid for a year, safely handling missing months"""
+    count = 0
+    for month in MONTHS:
+        if month in contributions and contributions[month].get('status') == 'Paid':
+            count += 1
+    return count
+
+def ensure_next_year_sheet(member, current_year):
+    """Create next year's contribution sheet if it doesn't exist"""
+    next_year = str(int(current_year) + 1)
+    if next_year not in member.get('contributions', {}):
+        if 'contributions' not in member:
+            member['contributions'] = {}
+        member['contributions'][next_year] = initialize_year_contributions(next_year)
+        return next_year
+    return None
+
+def normalize_year_contributions(contributions):
+    """Ensure all 12 months exist in the contributions dict, backfilling missing months"""
+    for month in MONTHS:
+        if month not in contributions:
+            contributions[month] = {
+                'status': 'Unpaid',
+                'amount': 0,
+                'date': '',
+                'receipt': ''
+            }
+    return contributions
 
 def generate_receipt_html(receipt_data, is_year_complete=False):
     """Generate HTML for receipt email"""
@@ -628,17 +663,18 @@ def member_details(member_id):
     current_year = str(datetime.now().year)
     selected_year = request.args.get('year', current_year)
     
-    # Ensure year exists
+    # Ensure year exists and normalize contributions
     if selected_year not in member['contributions']:
         member['contributions'][selected_year] = initialize_year_contributions(selected_year)
         save_data(data)
     
     contributions = member['contributions'][selected_year]
+    normalize_year_contributions(contributions)
     available_years = sorted(member['contributions'].keys(), reverse=True)
     
-    # Calculate stats
-    paid_months = sum(1 for month in MONTHS if contributions[month]['status'] == 'Paid')
-    total_paid = sum(contributions[month]['amount'] for month in MONTHS if contributions[month]['status'] == 'Paid')
+    # Calculate stats using safe .get() accessors
+    paid_months = sum(1 for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
+    total_paid = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     
     # Get receipt data from session if available (after payment)
     receipt_data = session.pop('receipt_data', None)
@@ -669,11 +705,12 @@ def admin_pay_month(member_id, year, month):
         flash('Invalid month.', 'danger')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
-    # Ensure year exists
+    # Ensure year exists and normalize contributions
     if year not in member['contributions']:
         member['contributions'][year] = initialize_year_contributions(year)
     
     contributions = member['contributions'][year]
+    normalize_year_contributions(contributions)
     
     # Check if already paid
     if contributions[month]['status'] == 'Paid':
@@ -705,6 +742,14 @@ def admin_pay_month(member_id, year, month):
     member['transactions'].append(transaction)
     
     save_data(data)
+    
+    # Check paid months count after payment and auto-generate next year's sheet
+    paid_count = count_paid_months(contributions)
+    if paid_count >= 11:
+        new_year = ensure_next_year_sheet(member, year)
+        if new_year:
+            save_data(data)  # Save again with new year sheet
+            flash(f'Next year ({new_year}) contribution sheet has been created!', 'info')
     
     # Check if year is now complete
     is_year_complete = check_year_complete(contributions)
@@ -770,11 +815,12 @@ def admin_bulk_pay(member_id, year):
         flash('Please select at least one month to pay.', 'warning')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
-    # Ensure year exists
+    # Ensure year exists and normalize contributions
     if year not in member['contributions']:
         member['contributions'][year] = initialize_year_contributions(year)
     
     contributions = member['contributions'][year]
+    normalize_year_contributions(contributions)
     
     # Add transactions list if not exists
     if 'transactions' not in member:
@@ -823,6 +869,14 @@ def admin_bulk_pay(member_id, year):
             })
         
         save_data(data)
+        
+        # Check paid months count after payment and auto-generate next year's sheet
+        paid_count = count_paid_months(contributions)
+        if paid_count >= 11:
+            new_year = ensure_next_year_sheet(member, year)
+            if new_year:
+                save_data(data)  # Save again with new year sheet
+                flash(f'Next year ({new_year}) contribution sheet has been created!', 'info')
         
         # Check if year is now complete
         is_year_complete = check_year_complete(contributions)
@@ -874,6 +928,126 @@ def admin_bulk_pay(member_id, year):
         flash('No payments were processed. All selected months were already paid.', 'warning')
     
     return redirect(url_for('member_details', member_id=member_id, year=year))
+
+@app.route('/admin/member/<member_id>/transactions')
+@staff_required
+def admin_member_transactions(member_id):
+    """View all transactions/receipts for a member"""
+    data = load_data()
+    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    # Collect all transactions grouped by receipt
+    receipts = {}
+    for transaction in member.get('transactions', []):
+        receipt_num = transaction.get('receipt', '')
+        if receipt_num:
+            if receipt_num not in receipts:
+                receipts[receipt_num] = {
+                    'receipt_number': receipt_num,
+                    'date': transaction['date'],
+                    'payments': [],
+                    'total': 0
+                }
+            receipts[receipt_num]['payments'].append({
+                'type': transaction.get('type', 'contribution'),
+                'month': transaction.get('month', ''),
+                'amount': transaction['amount']
+            })
+            receipts[receipt_num]['total'] += transaction['amount']
+    
+    # Convert to list and sort by date (newest first)
+    receipt_list = sorted(receipts.values(), key=lambda x: x['date'], reverse=True)
+    
+    # Get completed years
+    completed_years = []
+    for year, contributions in member.get('contributions', {}).items():
+        if check_year_complete(contributions):
+            total = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS)
+            completed_years.append({'year': year, 'total': total})
+    completed_years.sort(key=lambda x: x['year'], reverse=True)
+    
+    return render_template('admin_member_transactions.html',
+                          member=member,
+                          receipts=receipt_list,
+                          completed_years=completed_years)
+
+@app.route('/admin/member/<member_id>/receipt/<receipt_number>')
+@staff_required
+def view_receipt(member_id, receipt_number):
+    """View/reprint a specific receipt"""
+    data = load_data()
+    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    # Find transactions for this receipt
+    payments = []
+    receipt_date = ''
+    for transaction in member.get('transactions', []):
+        if transaction.get('receipt') == receipt_number:
+            payments.append({
+                'type': transaction.get('type', 'contribution'),
+                'month': transaction.get('month', ''),
+                'reason': transaction.get('reason', ''),
+                'amount': transaction['amount']
+            })
+            if not receipt_date:
+                receipt_date = transaction['date']
+    
+    if not payments:
+        flash('Receipt not found.', 'danger')
+        return redirect(url_for('admin_member_transactions', member_id=member_id))
+    
+    total = sum(p['amount'] for p in payments)
+    
+    receipt_data = {
+        'receipt_number': receipt_number,
+        'date': receipt_date,
+        'member_name': member['name'],
+        'member_id': member['id'],
+        'member_email': member.get('email', ''),
+        'payments': payments,
+        'total': total
+    }
+    
+    return render_template('view_receipt.html',
+                          member=member,
+                          receipt=receipt_data)
+
+@app.route('/admin/member/<member_id>/year-certificate/<year>')
+@staff_required
+def view_year_certificate(member_id, year):
+    """View/print year completion certificate"""
+    data = load_data()
+    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    if year not in member.get('contributions', {}):
+        flash('Year not found.', 'danger')
+        return redirect(url_for('admin_member_transactions', member_id=member_id))
+    
+    contributions = member['contributions'][year]
+    
+    if not check_year_complete(contributions):
+        flash('Year is not complete yet.', 'warning')
+        return redirect(url_for('admin_member_transactions', member_id=member_id))
+    
+    # Generate the certificate HTML
+    certificate_html = generate_year_completion_sheet(member, year, contributions)
+    
+    return render_template('view_certificate.html',
+                          member=member,
+                          year=year,
+                          certificate_html=certificate_html)
 
 @app.route('/admin/donations')
 @admin_required
