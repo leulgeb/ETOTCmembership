@@ -57,28 +57,28 @@
             "receipt": "RCPT-2025-0019"
           },
           "September": {
-            "status": "Unpaid",
-            "amount": 0,
-            "date": "",
-            "receipt": ""
+            "status": "Paid",
+            "amount": 50.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0020"
           },
           "October": {
-            "status": "Unpaid",
-            "amount": 0,
-            "date": "",
-            "receipt": ""
+            "status": "Paid",
+            "amount": 50.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0021"
           },
           "November": {
-            "status": "Unpaid",
-            "amount": 0,
-            "date": "",
-            "receipt": ""
+            "status": "Paid",
+            "amount": 50.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0022"
           },
           "December": {
-            "status": "Unpaid",
-            "amount": 0,
-            "date": "",
-            "receipt": ""
+            "status": "Paid",
+            "amount": 50.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0023"
           }
         }
       },
@@ -153,6 +153,34 @@
           "amount": 50.0,
           "date": "2025-11-30",
           "receipt": "RCPT-2025-0019"
+        },
+        {
+          "type": "contribution",
+          "month": "September",
+          "amount": 50.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0020"
+        },
+        {
+          "type": "contribution",
+          "month": "October",
+          "amount": 50.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0021"
+        },
+        {
+          "type": "contribution",
+          "month": "November",
+          "amount": 50.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0022"
+        },
+        {
+          "type": "contribution",
+          "month": "December",
+          "amount": 50.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0023"
         }
       ],
       "password_hash": "scrypt:32768:8:1$ptjqKf0mxSikpken$a2b6ee5cb25279bda3625d0cb2b6e5b4e8bd3df5df357dc6974a0e4eaf0e4be7d3232e3e2a55dde753b8404f62458708a0c0954afeac873358b279bff4d61522"
@@ -589,5 +617,5 @@
     }
   ],
   "next_member_id": 6,
-  "next_receipt_number": 20
+  "next_receipt_number": 24
 }
