@@ -130,7 +130,12 @@
                                             <i class="bi bi-cash-coin"></i> Pay
                                         </button>
                                         {% else %}
-                                        <span class="text-success me-2"><i class="bi bi-check-lg"></i></span>
+                                        {% if contrib.receipt %}
+                                        <a href="{{ url_for('view_receipt', member_id=member.member_id, receipt_number=contrib.receipt) }}" 
+                                           class="btn btn-sm btn-outline-info" title="View Receipt">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                        {% endif %}
                                         {% if session.user_role == 'admin' %}
                                         <a href="{{ url_for('admin_correction', member_id=member.member_id, year=selected_year, month=month) }}" 
                                            class="btn btn-sm btn-outline-warning" title="Correct">
@@ -238,15 +243,100 @@
     const monthlyPayment = {{ member.monthly_payment }};
     const memberId = "{{ member.id }}";
     const selectedYear = "{{ selected_year }}";
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    function getCheckboxes() {
+        return Array.from(document.querySelectorAll('.month-checkbox'));
+    }
+    
+    function updateCheckboxStates() {
+        const checkboxes = getCheckboxes();
+        let foundFirstUnchecked = false;
+        let lastCheckedIndex = -1;
+        
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                lastCheckedIndex = index;
+            }
+        });
+        
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                cb.disabled = false;
+            } else if (index === 0 || index === lastCheckedIndex + 1) {
+                cb.disabled = false;
+            } else if (lastCheckedIndex === -1 && index === 0) {
+                cb.disabled = false;
+            } else {
+                cb.disabled = true;
+            }
+        });
+        
+        if (checkboxes.length > 0 && !checkboxes[0].checked) {
+            checkboxes[0].disabled = false;
+        }
+        
+        checkboxes.forEach((cb, index) => {
+            if (!cb.checked && index <= lastCheckedIndex) {
+                cb.disabled = true;
+            }
+        });
+        
+        let canSelect = true;
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                cb.disabled = false;
+            } else {
+                cb.disabled = !canSelect;
+                if (canSelect) canSelect = false;
+            }
+        });
+        
+        let lastSelected = -1;
+        for (let i = checkboxes.length - 1; i >= 0; i--) {
+            if (checkboxes[i].checked) {
+                lastSelected = i;
+                break;
+            }
+        }
+        
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                cb.disabled = false;
+            } else if (lastSelected === -1 && index === 0) {
+                cb.disabled = false;
+            } else if (index === lastSelected + 1) {
+                cb.disabled = false;
+            } else {
+                cb.disabled = true;
+            }
+        });
+    }
     
     document.getElementById('selectAll').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.month-checkbox');
-        checkboxes.forEach(cb => cb.checked = this.checked);
+        const checkboxes = getCheckboxes();
+        if (this.checked) {
+            checkboxes.forEach(cb => {
+                cb.disabled = false;
+                cb.checked = true;
+            });
+        } else {
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+        updateCheckboxStates();
         updateSelectedInfo();
     });
 
     document.querySelectorAll('.month-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateSelectedInfo);
+        cb.addEventListener('change', function() {
+            updateCheckboxStates();
+            updateSelectedInfo();
+        });
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCheckboxStates();
     });
 
     function updateSelectedInfo() {
