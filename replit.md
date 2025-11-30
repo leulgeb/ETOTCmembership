@@ -76,6 +76,10 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 ```
 
 ## Recent Changes
+- **November 30, 2025**: Added transaction history view with receipt grouping - "View History" button on member details page
+- **November 30, 2025**: Added view/reprint functionality for receipts and year completion certificates anytime
+- **November 30, 2025**: Auto-generates next year contribution sheet when 11th month is paid
+- **November 30, 2025**: Fixed KeyError bugs with legacy data through normalize_year_contributions() helper
 - **November 30, 2025**: Added automatic email receipt sending after every payment
 - **November 30, 2025**: Bulk payments now generate ONE receipt for all months in a single transaction
 - **November 30, 2025**: Added year completion detection and certificate generation when all 12 months are paid
