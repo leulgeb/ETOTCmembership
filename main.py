@@ -1836,13 +1836,13 @@ def daily_report():
                 'receipt_number': receipt_num,
                 'member': contrib.member.full_name if contrib.member else 'Unknown',
                 'member_id': contrib.member.member_id if contrib.member else 'N/A',
-                'items': [],
+                'line_items': [],
                 'total': 0,
                 'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
                 'processed_by': contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown',
                 'time': contrib.payment_date.strftime('%H:%M') if contrib.payment_date else ''
             }
-        receipts[receipt_num]['items'].append({
+        receipts[receipt_num]['line_items'].append({
             'type': 'Contribution',
             'description': f"{contrib.month} {contrib.year}",
             'amount': contrib.amount
@@ -1857,13 +1857,13 @@ def daily_report():
                 'receipt_number': receipt_num,
                 'member': donation.member.full_name if donation.member else 'Unknown',
                 'member_id': donation.member.member_id if donation.member else 'N/A',
-                'items': [],
+                'line_items': [],
                 'total': 0,
                 'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
                 'processed_by': donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown',
                 'time': donation.donation_date.strftime('%H:%M') if donation.donation_date else ''
             }
-        receipts[receipt_num]['items'].append({
+        receipts[receipt_num]['line_items'].append({
             'type': 'Donation',
             'description': donation.purpose or 'General',
             'amount': donation.amount

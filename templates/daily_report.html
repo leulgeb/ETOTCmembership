@@ -77,7 +77,7 @@
                             <small class="text-muted">{{ receipt.member_id }}</small>
                         </td>
                         <td>
-                            {% for item in receipt.items %}
+                            {% for item in receipt.line_items %}
                             <span class="badge {% if item.type == 'Contribution' %}bg-primary{% else %}bg-info{% endif %}">
                                 {{ item.type }}
                             </span>
