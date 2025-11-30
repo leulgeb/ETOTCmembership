@@ -1,15 +1,16 @@
 # ETOTC Church - Contribution Management System
 
 ## Overview
-A comprehensive Flask web application for ETOTC Church to manage monthly member contributions and additional donations. The system features admin and member portals with auto-generated IDs, receipt tracking, payment management, and CSV export capabilities.
+A comprehensive Flask web application for ETOTC Church to manage monthly member contributions and additional donations. The system features admin/cashier portals with role-based authentication, receipt tracking, bulk payment processing, automatic email receipts, and year completion certificates.
 
 ## Project Architecture
 
 ### Technology Stack
-- **Backend**: Flask (Python 3.11)
+- **Backend**: Flask (Python 3.11) with Flask-Mail, Flask-SQLAlchemy
 - **Frontend**: Bootstrap 5, Jinja2 templates
-- **Data Storage**: JSON file (data.json)
-- **Session Management**: Flask sessions with secret key
+- **Database**: PostgreSQL (via DATABASE_URL), JSON fallback for legacy data
+- **Email**: Flask-Mail with SMTP configuration
+- **Session Management**: Flask sessions with secure secret key
 
 ### File Structure
 ```
@@ -75,6 +76,10 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 ```
 
 ## Recent Changes
+- **November 30, 2025**: Added automatic email receipt sending after every payment
+- **November 30, 2025**: Bulk payments now generate ONE receipt for all months in a single transaction
+- **November 30, 2025**: Added year completion detection and certificate generation when all 12 months are paid
+- **November 30, 2025**: Configured Flask-Mail with SMTP environment variables for email functionality
 - **November 14, 2025**: Made member names clickable in admin home view for easier navigation to member details
 - **November 14, 2025**: Imported to Replit environment, configured workflow for Flask app on port 5000, set up deployment with Gunicorn, added .gitignore for Python, configured secure environment variables (ADMIN_PASSWORD, SESSION_SECRET)
 - **October 18, 2025**: Initial project setup with Flask application, authentication system, admin and member dashboards, and sample data
