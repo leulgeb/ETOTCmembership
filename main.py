@@ -1803,10 +1803,9 @@ def admin_correction(member_id, year, month):
 @app.route('/admin/reports/daily')
 @admin_required
 def daily_report():
-    """Daily report showing contributions by admin/cashier"""
+    """Daily report showing transactions grouped by receipt"""
     from datetime import timedelta
     
-    # Get date range from query params
     report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     try:
         target_date = datetime.strptime(report_date, '%Y-%m-%d')
@@ -1816,73 +1815,69 @@ def daily_report():
     start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_day = start_of_day + timedelta(days=1)
     
-    # Get contributions for the day
     contributions = Contribution.query.filter(
         Contribution.payment_date >= start_of_day,
         Contribution.payment_date < end_of_day,
         Contribution.status == PaymentStatus.PAID
     ).all()
     
-    # Get donations for the day
     donations = Donation.query.filter(
         Donation.donation_date >= start_of_day,
         Donation.donation_date < end_of_day
     ).all()
     
-    # Group by processor
-    by_processor = {}
-    total_contributions = 0
-    total_donations = 0
+    receipts = {}
+    total_amount = 0
     
     for contrib in contributions:
-        processor_name = contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown'
-        if processor_name not in by_processor:
-            by_processor[processor_name] = {
-                'contributions': [],
-                'donations': [],
-                'contribution_total': 0,
-                'donation_total': 0
+        receipt_num = contrib.receipt_number or 'No Receipt'
+        if receipt_num not in receipts:
+            receipts[receipt_num] = {
+                'receipt_number': receipt_num,
+                'member': contrib.member.full_name if contrib.member else 'Unknown',
+                'member_id': contrib.member.member_id if contrib.member else 'N/A',
+                'items': [],
+                'total': 0,
+                'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
+                'processed_by': contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown',
+                'time': contrib.payment_date.strftime('%H:%M') if contrib.payment_date else ''
             }
-        by_processor[processor_name]['contributions'].append({
-            'member': contrib.member.full_name if contrib.member else 'Unknown',
-            'member_id': contrib.member.member_id if contrib.member else 'N/A',
-            'month': contrib.month,
-            'year': contrib.year,
-            'amount': contrib.amount,
-            'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
-            'receipt': contrib.receipt_number
+        receipts[receipt_num]['items'].append({
+            'type': 'Contribution',
+            'description': f"{contrib.month} {contrib.year}",
+            'amount': contrib.amount
         })
-        by_processor[processor_name]['contribution_total'] += contrib.amount
-        total_contributions += contrib.amount
+        receipts[receipt_num]['total'] += contrib.amount
+        total_amount += contrib.amount
     
     for donation in donations:
-        processor_name = donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown'
-        if processor_name not in by_processor:
-            by_processor[processor_name] = {
-                'contributions': [],
-                'donations': [],
-                'contribution_total': 0,
-                'donation_total': 0
+        receipt_num = donation.receipt_number or 'No Receipt'
+        if receipt_num not in receipts:
+            receipts[receipt_num] = {
+                'receipt_number': receipt_num,
+                'member': donation.member.full_name if donation.member else 'Unknown',
+                'member_id': donation.member.member_id if donation.member else 'N/A',
+                'items': [],
+                'total': 0,
+                'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
+                'processed_by': donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown',
+                'time': donation.donation_date.strftime('%H:%M') if donation.donation_date else ''
             }
-        by_processor[processor_name]['donations'].append({
-            'member': donation.member.full_name if donation.member else 'Unknown',
-            'member_id': donation.member.member_id if donation.member else 'N/A',
-            'purpose': donation.purpose,
-            'amount': donation.amount,
-            'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
-            'receipt': donation.receipt_number
+        receipts[receipt_num]['items'].append({
+            'type': 'Donation',
+            'description': donation.purpose or 'General',
+            'amount': donation.amount
         })
-        by_processor[processor_name]['donation_total'] += donation.amount
-        total_donations += donation.amount
+        receipts[receipt_num]['total'] += donation.amount
+        total_amount += donation.amount
+    
+    receipt_list = sorted(receipts.values(), key=lambda x: x['receipt_number'], reverse=True)
     
     return render_template('daily_report.html',
                          report_date=target_date.strftime('%Y-%m-%d'),
-                         by_processor=by_processor,
-                         total_contributions=total_contributions,
-                         total_donations=total_donations,
-                         grand_total=total_contributions + total_donations,
-                         contribution_count=len(contributions),
-                         donation_count=len(donations))
+                         receipts=receipt_list,
+                         total_amount=total_amount,
+                         receipt_count=len(receipt_list))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
