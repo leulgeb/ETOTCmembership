@@ -67,6 +67,13 @@ def get_next_member_id():
     db.session.commit()
     return member_id
 
+def get_next_member_id_preview():
+    """Preview next member ID without incrementing counter"""
+    counter = SequenceCounter.query.filter_by(counter_name='member_id').first()
+    if not counter:
+        return "CH001"
+    return f"CH{counter.counter_value:03d}"
+
 def get_next_receipt_number():
     """Generate next receipt number using database sequence counter"""
     counter = SequenceCounter.query.filter_by(counter_name='receipt_number').first()
@@ -510,82 +517,85 @@ def admin_home():
 @admin_required
 def add_member():
     """Add new member with auto-generated ID"""
-    data = load_data()
+    suggested_id = get_next_member_id_preview()
     
     if request.method == 'POST':
         try:
             # Get form data
             custom_id = request.form.get('custom_id', '').strip().upper()
             first_name = request.form.get('first_name', '').strip()
-            middle_name = request.form.get('middle_name', '').strip()
+            middle_name = request.form.get('middle_name', '').strip() or None
             last_name = request.form.get('last_name', '').strip()
             phone = request.form.get('phone', '').strip()
             email = request.form.get('email', '').strip()
             password = request.form.get('password', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
             
-            # Combine name parts
-            name_parts = [first_name, middle_name, last_name] if middle_name else [first_name, last_name]
-            name = ' '.join(name_parts)
-            
             # Validation
             if not all([first_name, last_name, phone, email, password, monthly_payment]):
                 flash('All required fields must be filled.', 'danger')
-                return render_template('add_member.html', suggested_id=generate_member_id(data))
+                return render_template('add_member.html', suggested_id=suggested_id)
             
             try:
                 monthly_amount = float(monthly_payment)
                 if monthly_amount < MINIMUM_MONTHLY_PAYMENT:
                     flash(f'Monthly payment must be at least ${MINIMUM_MONTHLY_PAYMENT}.', 'danger')
-                    return render_template('add_member.html', suggested_id=generate_member_id(data))
+                    return render_template('add_member.html', suggested_id=suggested_id)
             except ValueError:
                 flash('Monthly payment must be a valid number.', 'danger')
-                return render_template('add_member.html', suggested_id=generate_member_id(data))
+                return render_template('add_member.html', suggested_id=suggested_id)
             
             # Generate or use custom ID
             if custom_id:
-                if any(m['id'] == custom_id for m in data['members']):
+                if Member.query.filter_by(member_id=custom_id).first():
                     flash('This Member ID already exists. Please use a different ID.', 'danger')
-                    return render_template('add_member.html', suggested_id=generate_member_id(data))
+                    return render_template('add_member.html', suggested_id=suggested_id)
                 member_id = custom_id
             else:
-                member_id = generate_member_id(data)
+                member_id = get_next_member_id()
             
-            # Create member
-            current_year = str(datetime.now().year)
-            new_member = {
-                'id': member_id,
-                'name': name,
-                'email': email,
-                'phone': phone,
-                'password_hash': generate_password_hash(password),
-                'monthly_payment': monthly_amount,
-                'contributions': {
-                    current_year: initialize_year_contributions(current_year)
-                },
-                'donations': [],
-                'transactions': []
-            }
+            # Create member in database
+            new_member = Member(
+                member_id=member_id,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,
+                password_hash=generate_password_hash(password),
+                monthly_payment=monthly_amount
+            )
+            db.session.add(new_member)
+            db.session.commit()
             
-            data['members'].append(new_member)
-            save_data(data)
+            # Initialize contributions for current year
+            current_year = datetime.now().year
+            for month in MONTHS:
+                contribution = Contribution(
+                    member_id=new_member.id,
+                    year=current_year,
+                    month=month,
+                    status=PaymentStatus.UNPAID,
+                    amount=0
+                )
+                db.session.add(contribution)
+            db.session.commit()
             
-            flash(f'Member {name} added successfully with ID {member_id}!', 'success')
+            flash(f'Member {new_member.full_name} added successfully with ID {member_id}!', 'success')
             return redirect(url_for('admin_home'))
             
         except Exception as e:
+            db.session.rollback()
             flash(f'Error adding member: {str(e)}', 'danger')
-            return render_template('add_member.html', suggested_id=generate_member_id(data))
+            return render_template('add_member.html', suggested_id=suggested_id)
     
-    suggested_id = generate_member_id(data)
     return render_template('add_member.html', suggested_id=suggested_id)
 
 @app.route('/admin/edit-member/<member_id>', methods=['GET', 'POST'])
 @admin_required
 def edit_member(member_id):
     """Edit member information"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
@@ -595,24 +605,22 @@ def edit_member(member_id):
         try:
             new_id = request.form.get('member_id', '').strip().upper()
             first_name = request.form.get('first_name', '').strip()
-            middle_name = request.form.get('middle_name', '').strip()
+            middle_name = request.form.get('middle_name', '').strip() or None
             last_name = request.form.get('last_name', '').strip()
             phone = request.form.get('phone', '').strip()
             email = request.form.get('email', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
-            
-            # Combine name parts
-            name_parts = [first_name, middle_name, last_name] if middle_name else [first_name, last_name]
-            name = ' '.join(name_parts)
             
             if not all([new_id, first_name, last_name, phone, email, monthly_payment]):
                 flash('All required fields must be filled.', 'danger')
                 return render_template('edit_member.html', member=member)
             
             # Check if ID is being changed and if new ID already exists
-            if new_id != member_id and any(m['id'] == new_id for m in data['members']):
-                flash('This Member ID already exists. Please use a different ID.', 'danger')
-                return render_template('edit_member.html', member=member)
+            if new_id != member_id:
+                existing = Member.query.filter_by(member_id=new_id).first()
+                if existing:
+                    flash('This Member ID already exists. Please use a different ID.', 'danger')
+                    return render_template('edit_member.html', member=member)
             
             try:
                 monthly_amount = float(monthly_payment)
@@ -623,17 +631,20 @@ def edit_member(member_id):
                 flash('Monthly payment must be a valid number.', 'danger')
                 return render_template('edit_member.html', member=member)
             
-            member['id'] = new_id
-            member['name'] = name
-            member['phone'] = phone
-            member['email'] = email
-            member['monthly_payment'] = monthly_amount
+            member.member_id = new_id
+            member.first_name = first_name
+            member.middle_name = middle_name
+            member.last_name = last_name
+            member.phone = phone
+            member.email = email
+            member.monthly_payment = monthly_amount
             
-            save_data(data)
+            db.session.commit()
             flash(f'Member information updated successfully!', 'success')
             return redirect(url_for('admin_home'))
             
         except Exception as e:
+            db.session.rollback()
             flash(f'Error updating member: {str(e)}', 'danger')
             return render_template('edit_member.html', member=member)
     
@@ -642,48 +653,104 @@ def edit_member(member_id):
 @app.route('/admin/delete-member/<member_id>')
 @admin_required
 def delete_member(member_id):
-    """Delete member"""
-    data = load_data()
-    data['members'] = [m for m in data['members'] if m['id'] != member_id]
-    save_data(data)
-    flash('Member deleted successfully!', 'success')
+    """Delete member (soft delete)"""
+    member = Member.query.filter_by(member_id=member_id).first()
+    if member:
+        member.is_active = False
+        db.session.commit()
+        flash('Member deleted successfully!', 'success')
+    else:
+        flash('Member not found.', 'danger')
     return redirect(url_for('admin_home'))
 
 @app.route('/admin/member-details/<member_id>')
 @admin_required
 def member_details(member_id):
     """View member details with 12-month breakdown"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    current_year = str(datetime.now().year)
-    selected_year = request.args.get('year', current_year)
+    current_year = datetime.now().year
+    selected_year = int(request.args.get('year', current_year))
     
-    # Ensure year exists and normalize contributions
-    if selected_year not in member['contributions']:
-        member['contributions'][selected_year] = initialize_year_contributions(selected_year)
-        save_data(data)
+    # Get contributions for selected year
+    contributions_list = Contribution.query.filter_by(
+        member_id=member.id, 
+        year=selected_year
+    ).all()
     
-    contributions = member['contributions'][selected_year]
-    normalize_year_contributions(contributions)
-    available_years = sorted(member['contributions'].keys(), reverse=True)
+    # If no contributions for year, create them
+    if not contributions_list:
+        for month in MONTHS:
+            contribution = Contribution(
+                member_id=member.id,
+                year=selected_year,
+                month=month,
+                status=PaymentStatus.UNPAID,
+                amount=0
+            )
+            db.session.add(contribution)
+        db.session.commit()
+        contributions_list = Contribution.query.filter_by(
+            member_id=member.id,
+            year=selected_year
+        ).all()
     
-    # Calculate stats using safe .get() accessors
+    # Convert to dict for template compatibility
+    contributions = {}
+    for c in contributions_list:
+        contributions[c.month] = {
+            'status': 'Paid' if c.status == PaymentStatus.PAID else 'Unpaid',
+            'amount': c.amount or 0,
+            'date': c.payment_date.strftime('%Y-%m-%d') if c.payment_date else '',
+            'receipt': c.receipt_number or '',
+            'payment_method': c.payment_method.value if c.payment_method else None,
+            'processed_by': c.processed_by_user.full_name if c.processed_by_user else None
+        }
+    
+    # Ensure all 12 months exist
+    for month in MONTHS:
+        if month not in contributions:
+            contributions[month] = {
+                'status': 'Unpaid',
+                'amount': 0,
+                'date': '',
+                'receipt': ''
+            }
+    
+    # Get available years for this member
+    years = db.session.query(db.distinct(Contribution.year)).filter_by(
+        member_id=member.id
+    ).all()
+    available_years = sorted([str(y[0]) for y in years], reverse=True)
+    if str(current_year) not in available_years:
+        available_years.insert(0, str(current_year))
+    
+    # Calculate stats
     paid_months = sum(1 for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     total_paid = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     
     # Get receipt data from session if available (after payment)
     receipt_data = session.pop('receipt_data', None)
     
+    # Convert member to dict-like object for template compatibility
+    member_dict = {
+        'id': member.member_id,
+        'name': member.full_name,
+        'email': member.email,
+        'phone': member.phone,
+        'monthly_payment': member.monthly_payment,
+        'db_id': member.id
+    }
+    
     return render_template('member_details.html', 
-                         member=member,
+                         member=member_dict,
                          contributions=contributions,
                          months=MONTHS,
-                         selected_year=selected_year,
+                         selected_year=str(selected_year),
                          available_years=available_years,
                          paid_months=paid_months,
                          total_paid=total_paid,
@@ -692,9 +759,9 @@ def member_details(member_id):
 @app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
 @staff_required
 def admin_pay_month(member_id, year, month):
-    """Admin processes a monthly payment for a member"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    """Admin processes a monthly payment for a member with payment method tracking"""
+    current_user = get_current_user()
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
@@ -705,74 +772,106 @@ def admin_pay_month(member_id, year, month):
         flash('Invalid month.', 'danger')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
-    # Ensure year exists and normalize contributions
-    if year not in member['contributions']:
-        member['contributions'][year] = initialize_year_contributions(year)
+    year_int = int(year)
     
-    contributions = member['contributions'][year]
-    normalize_year_contributions(contributions)
+    # Get or create contribution record
+    contribution = Contribution.query.filter_by(
+        member_id=member.id,
+        year=year_int,
+        month=month
+    ).first()
+    
+    if not contribution:
+        contribution = Contribution(
+            member_id=member.id,
+            year=year_int,
+            month=month,
+            status=PaymentStatus.UNPAID,
+            amount=0
+        )
+        db.session.add(contribution)
     
     # Check if already paid
-    if contributions[month]['status'] == 'Paid':
+    if contribution.status == PaymentStatus.PAID:
         flash('This month has already been paid.', 'warning')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
+    # Get payment method from form
+    payment_method_str = request.form.get('payment_method', 'cash')
+    payment_method = PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH
+    payment_comment = request.form.get('payment_comment', '').strip()
+    
     # Process payment
-    receipt_number = generate_receipt_number(data)
-    payment_date = datetime.now().strftime('%Y-%m-%d')
+    receipt_number = get_next_receipt_number()
+    payment_date = datetime.now()
     
-    contributions[month] = {
-        'status': 'Paid',
-        'amount': member['monthly_payment'],
-        'date': payment_date,
-        'receipt': receipt_number
-    }
+    contribution.status = PaymentStatus.PAID
+    contribution.amount = member.monthly_payment
+    contribution.payment_date = payment_date
+    contribution.receipt_number = receipt_number
+    contribution.payment_method = payment_method
+    contribution.payment_comment = payment_comment
+    contribution.processed_by_id = current_user.id
     
-    # Add to transactions
-    if 'transactions' not in member:
-        member['transactions'] = []
-    
-    transaction = {
-        'type': 'contribution',
-        'month': month,
-        'amount': member['monthly_payment'],
-        'date': payment_date,
-        'receipt': receipt_number
-    }
-    member['transactions'].append(transaction)
-    
-    save_data(data)
+    db.session.commit()
     
     # Check paid months count after payment and auto-generate next year's sheet
-    paid_count = count_paid_months(contributions)
+    paid_count = Contribution.query.filter_by(
+        member_id=member.id,
+        year=year_int,
+        status=PaymentStatus.PAID
+    ).count()
+    
     if paid_count >= 11:
-        new_year = ensure_next_year_sheet(member, year)
-        if new_year:
-            save_data(data)  # Save again with new year sheet
-            flash(f'Next year ({new_year}) contribution sheet has been created!', 'info')
+        # Create next year's contributions if they don't exist
+        next_year = year_int + 1
+        existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
+        if not existing:
+            for m in MONTHS:
+                new_contrib = Contribution(
+                    member_id=member.id,
+                    year=next_year,
+                    month=m,
+                    status=PaymentStatus.UNPAID,
+                    amount=0
+                )
+                db.session.add(new_contrib)
+            db.session.commit()
+            flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
     
     # Check if year is now complete
-    is_year_complete = check_year_complete(contributions)
+    is_year_complete = paid_count == 12
     year_sheet_html = None
     
     if is_year_complete:
-        year_sheet_html = generate_year_completion_sheet(member, year, contributions)
-        flash(f'🎉 Congratulations! {member["name"]} has completed all contributions for {year}!', 'success')
+        # Build contributions dict for certificate
+        contributions_dict = {}
+        contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+        for c in contribs:
+            contributions_dict[c.month] = {
+                'amount': c.amount,
+                'receipt': c.receipt_number or ''
+            }
+        member_dict = {'name': member.full_name, 'id': member.member_id}
+        year_sheet_html = generate_year_completion_sheet(member_dict, year, contributions_dict)
+        flash(f'Congratulations! {member.full_name} has completed all contributions for {year}!', 'success')
     
     # Store receipt data in session for display
     receipt_data = {
         'receipt_number': receipt_number,
-        'date': payment_date,
-        'member_name': member['name'],
-        'member_id': member['id'],
-        'member_email': member.get('email', ''),
+        'date': payment_date.strftime('%Y-%m-%d'),
+        'member_name': member.full_name,
+        'member_id': member.member_id,
+        'member_email': member.email or '',
         'payments': [{
             'month': month,
-            'amount': member['monthly_payment']
+            'amount': member.monthly_payment
         }],
-        'total': member['monthly_payment'],
+        'total': member.monthly_payment,
         'year': year,
-        'is_year_complete': is_year_complete
+        'is_year_complete': is_year_complete,
+        'payment_method': payment_method.value,
+        'processed_by': current_user.full_name or current_user.username
     }
     session['receipt_data'] = receipt_data
     
@@ -781,17 +880,16 @@ def admin_pay_month(member_id, year, month):
         session['year_sheet'] = year_sheet_html
     
     # Send email automatically
-    member_email = member.get('email')
-    if member_email:
+    if member.email:
         email_sent = send_receipt_email(
-            member_email, 
-            member['name'], 
+            member.email, 
+            member.full_name, 
             receipt_data,
             is_year_complete,
             year_sheet_html
         )
         if email_sent:
-            flash(f'Receipt emailed to {member_email}', 'info')
+            flash(f'Receipt emailed to {member.email}', 'info')
     
     flash(f'Payment processed successfully for {month}! Receipt: {receipt_number}', 'success')
     return redirect(url_for('member_details', member_id=member_id, year=year))
@@ -801,8 +899,8 @@ def admin_pay_month(member_id, year, month):
 @staff_required
 def admin_bulk_pay(member_id, year):
     """Admin processes bulk payments for multiple months with ONE receipt"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    current_user = get_current_user()
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
@@ -815,18 +913,13 @@ def admin_bulk_pay(member_id, year):
         flash('Please select at least one month to pay.', 'warning')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
-    # Ensure year exists and normalize contributions
-    if year not in member['contributions']:
-        member['contributions'][year] = initialize_year_contributions(year)
+    # Get payment method from form
+    payment_method_str = request.form.get('payment_method', 'cash')
+    payment_method = PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH
+    payment_comment = request.form.get('payment_comment', '').strip()
     
-    contributions = member['contributions'][year]
-    normalize_year_contributions(contributions)
-    
-    # Add transactions list if not exists
-    if 'transactions' not in member:
-        member['transactions'] = []
-    
-    payment_date = datetime.now().strftime('%Y-%m-%d')
+    year_int = int(year)
+    payment_date = datetime.now()
     processed_payments = []
     skipped_months = []
     
@@ -835,68 +928,104 @@ def admin_bulk_pay(member_id, year):
     for month in selected_months:
         if month not in MONTHS:
             continue
-        if contributions[month]['status'] == 'Paid':
+        contrib = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year_int,
+            month=month
+        ).first()
+        if contrib and contrib.status == PaymentStatus.PAID:
             skipped_months.append(month)
             continue
         valid_months.append(month)
     
     if valid_months:
         # Generate ONE receipt for all months in this transaction
-        receipt_number = generate_receipt_number(data)
-        total_amount = len(valid_months) * member['monthly_payment']
+        receipt_number = get_next_receipt_number()
+        total_amount = len(valid_months) * member.monthly_payment
         
         for month in valid_months:
-            contributions[month] = {
-                'status': 'Paid',
-                'amount': member['monthly_payment'],
-                'date': payment_date,
-                'receipt': receipt_number  # Same receipt for all months
-            }
+            # Get or create contribution record
+            contribution = Contribution.query.filter_by(
+                member_id=member.id,
+                year=year_int,
+                month=month
+            ).first()
             
-            # Add transaction
-            transaction = {
-                'type': 'contribution',
-                'month': month,
-                'amount': member['monthly_payment'],
-                'date': payment_date,
-                'receipt': receipt_number
-            }
-            member['transactions'].append(transaction)
+            if not contribution:
+                contribution = Contribution(
+                    member_id=member.id,
+                    year=year_int,
+                    month=month
+                )
+                db.session.add(contribution)
+            
+            contribution.status = PaymentStatus.PAID
+            contribution.amount = member.monthly_payment
+            contribution.payment_date = payment_date
+            contribution.receipt_number = receipt_number
+            contribution.payment_method = payment_method
+            contribution.payment_comment = payment_comment
+            contribution.processed_by_id = current_user.id
             
             processed_payments.append({
                 'month': month,
-                'amount': member['monthly_payment']
+                'amount': member.monthly_payment
             })
         
-        save_data(data)
+        db.session.commit()
         
         # Check paid months count after payment and auto-generate next year's sheet
-        paid_count = count_paid_months(contributions)
+        paid_count = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year_int,
+            status=PaymentStatus.PAID
+        ).count()
+        
         if paid_count >= 11:
-            new_year = ensure_next_year_sheet(member, year)
-            if new_year:
-                save_data(data)  # Save again with new year sheet
-                flash(f'Next year ({new_year}) contribution sheet has been created!', 'info')
+            next_year = year_int + 1
+            existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
+            if not existing:
+                for m in MONTHS:
+                    new_contrib = Contribution(
+                        member_id=member.id,
+                        year=next_year,
+                        month=m,
+                        status=PaymentStatus.UNPAID,
+                        amount=0
+                    )
+                    db.session.add(new_contrib)
+                db.session.commit()
+                flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
         
         # Check if year is now complete
-        is_year_complete = check_year_complete(contributions)
+        is_year_complete = paid_count == 12
         year_sheet_html = None
         
         if is_year_complete:
-            year_sheet_html = generate_year_completion_sheet(member, year, contributions)
-            flash(f'🎉 Congratulations! {member["name"]} has completed all contributions for {year}!', 'success')
+            contributions_dict = {}
+            contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+            for c in contribs:
+                contributions_dict[c.month] = {
+                    'amount': c.amount,
+                    'receipt': c.receipt_number or ''
+                }
+            member_dict = {'name': member.full_name, 'id': member.member_id}
+            year_sheet_html = generate_year_completion_sheet(member_dict, year, contributions_dict)
+            flash(f'Congratulations! {member.full_name} has completed all contributions for {year}!', 'success')
         
         # Store receipt data in session for display
         receipt_data = {
             'receipt_number': receipt_number,
-            'date': payment_date,
-            'member_name': member['name'],
-            'member_id': member['id'],
-            'member_email': member.get('email', ''),
+            'date': payment_date.strftime('%Y-%m-%d'),
+            'member_name': member.full_name,
+            'member_id': member.member_id,
+            'member_email': member.email or '',
             'payments': processed_payments,
             'total': total_amount,
             'year': year,
-            'is_year_complete': is_year_complete
+            'is_year_complete': is_year_complete,
+            'payment_method': payment_method.value,
+            'processed_by': current_user.full_name or current_user.username
         }
         session['receipt_data'] = receipt_data
         
@@ -905,17 +1034,16 @@ def admin_bulk_pay(member_id, year):
             session['year_sheet'] = year_sheet_html
         
         # Send email automatically
-        member_email = member.get('email')
-        if member_email:
+        if member.email:
             email_sent = send_receipt_email(
-                member_email, 
-                member['name'], 
+                member.email, 
+                member.full_name, 
                 receipt_data,
                 is_year_complete,
                 year_sheet_html
             )
             if email_sent:
-                flash(f'Receipt emailed to {member_email}', 'info')
+                flash(f'Receipt emailed to {member.email}', 'info')
         
         months_str = ', '.join([p['month'] for p in processed_payments])
         flash(f'Payment processed! Receipt {receipt_number} for {months_str}', 'success')
@@ -933,45 +1061,92 @@ def admin_bulk_pay(member_id, year):
 @staff_required
 def admin_member_transactions(member_id):
     """View all transactions/receipts for a member"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    # Collect all transactions grouped by receipt
+    # Collect all transactions grouped by receipt from contributions
     receipts = {}
-    for transaction in member.get('transactions', []):
-        receipt_num = transaction.get('receipt', '')
+    contributions = Contribution.query.filter(
+        Contribution.member_id == member.id,
+        Contribution.status == PaymentStatus.PAID,
+        Contribution.receipt_number.isnot(None)
+    ).all()
+    
+    for contrib in contributions:
+        receipt_num = contrib.receipt_number
         if receipt_num:
             if receipt_num not in receipts:
                 receipts[receipt_num] = {
                     'receipt_number': receipt_num,
-                    'date': transaction['date'],
+                    'date': contrib.payment_date.strftime('%Y-%m-%d') if contrib.payment_date else '',
                     'payments': [],
-                    'total': 0
+                    'total': 0,
+                    'payment_method': contrib.payment_method.value if contrib.payment_method else 'cash',
+                    'processed_by': contrib.processed_by_user.full_name if contrib.processed_by_user else None
                 }
             receipts[receipt_num]['payments'].append({
-                'type': transaction.get('type', 'contribution'),
-                'month': transaction.get('month', ''),
-                'amount': transaction['amount']
+                'type': 'contribution',
+                'month': contrib.month,
+                'amount': contrib.amount
             })
-            receipts[receipt_num]['total'] += transaction['amount']
+            receipts[receipt_num]['total'] += contrib.amount
+    
+    # Add donations
+    donations = Donation.query.filter(
+        Donation.member_id == member.id,
+        Donation.receipt_number.isnot(None)
+    ).all()
+    
+    for donation in donations:
+        receipt_num = donation.receipt_number
+        if receipt_num:
+            if receipt_num not in receipts:
+                receipts[receipt_num] = {
+                    'receipt_number': receipt_num,
+                    'date': donation.donation_date.strftime('%Y-%m-%d') if donation.donation_date else '',
+                    'payments': [],
+                    'total': 0,
+                    'payment_method': donation.payment_method.value if donation.payment_method else 'cash',
+                    'processed_by': donation.processed_by_user.full_name if donation.processed_by_user else None
+                }
+            receipts[receipt_num]['payments'].append({
+                'type': 'donation',
+                'reason': donation.purpose or '',
+                'amount': donation.amount
+            })
+            receipts[receipt_num]['total'] += donation.amount
     
     # Convert to list and sort by date (newest first)
     receipt_list = sorted(receipts.values(), key=lambda x: x['date'], reverse=True)
     
     # Get completed years
     completed_years = []
-    for year, contributions in member.get('contributions', {}).items():
-        if check_year_complete(contributions):
-            total = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS)
-            completed_years.append({'year': year, 'total': total})
+    years = db.session.query(db.distinct(Contribution.year)).filter_by(member_id=member.id).all()
+    for (year,) in years:
+        paid_count = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year,
+            status=PaymentStatus.PAID
+        ).count()
+        if paid_count == 12:
+            total = db.session.query(db.func.sum(Contribution.amount)).filter_by(
+                member_id=member.id,
+                year=year,
+                status=PaymentStatus.PAID
+            ).scalar() or 0
+            completed_years.append({'year': str(year), 'total': total})
     completed_years.sort(key=lambda x: x['year'], reverse=True)
     
+    member_dict = {
+        'id': member.member_id,
+        'name': member.full_name
+    }
+    
     return render_template('admin_member_transactions.html',
-                          member=member,
+                          member=member_dict,
                           receipts=receipt_list,
                           completed_years=completed_years)
 
@@ -979,26 +1154,50 @@ def admin_member_transactions(member_id):
 @staff_required
 def view_receipt(member_id, receipt_number):
     """View/reprint a specific receipt"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    # Find transactions for this receipt
+    # Find contributions for this receipt
     payments = []
     receipt_date = ''
-    for transaction in member.get('transactions', []):
-        if transaction.get('receipt') == receipt_number:
-            payments.append({
-                'type': transaction.get('type', 'contribution'),
-                'month': transaction.get('month', ''),
-                'reason': transaction.get('reason', ''),
-                'amount': transaction['amount']
-            })
-            if not receipt_date:
-                receipt_date = transaction['date']
+    payment_method = None
+    processed_by = None
+    
+    contributions = Contribution.query.filter_by(
+        member_id=member.id,
+        receipt_number=receipt_number
+    ).all()
+    
+    for contrib in contributions:
+        payments.append({
+            'type': 'contribution',
+            'month': contrib.month,
+            'amount': contrib.amount
+        })
+        if not receipt_date and contrib.payment_date:
+            receipt_date = contrib.payment_date.strftime('%Y-%m-%d')
+            payment_method = contrib.payment_method.value if contrib.payment_method else 'cash'
+            processed_by = contrib.processed_by_user.full_name if contrib.processed_by_user else None
+    
+    # Also check donations
+    donations = Donation.query.filter_by(
+        member_id=member.id,
+        receipt_number=receipt_number
+    ).all()
+    
+    for donation in donations:
+        payments.append({
+            'type': 'donation',
+            'reason': donation.purpose or '',
+            'amount': donation.amount
+        })
+        if not receipt_date and donation.donation_date:
+            receipt_date = donation.donation_date.strftime('%Y-%m-%d')
+            payment_method = donation.payment_method.value if donation.payment_method else 'cash'
+            processed_by = donation.processed_by_user.full_name if donation.processed_by_user else None
     
     if not payments:
         flash('Receipt not found.', 'danger')
@@ -1009,43 +1208,60 @@ def view_receipt(member_id, receipt_number):
     receipt_data = {
         'receipt_number': receipt_number,
         'date': receipt_date,
-        'member_name': member['name'],
-        'member_id': member['id'],
-        'member_email': member.get('email', ''),
+        'member_name': member.full_name,
+        'member_id': member.member_id,
+        'member_email': member.email or '',
         'payments': payments,
-        'total': total
+        'total': total,
+        'payment_method': payment_method,
+        'processed_by': processed_by
     }
     
+    member_dict = {'id': member.member_id, 'name': member.full_name}
+    
     return render_template('view_receipt.html',
-                          member=member,
+                          member=member_dict,
                           receipt=receipt_data)
 
 @app.route('/admin/member/<member_id>/year-certificate/<year>')
 @staff_required
 def view_year_certificate(member_id, year):
     """View/print year completion certificate"""
-    data = load_data()
-    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    member = Member.query.filter_by(member_id=member_id).first()
     
     if not member:
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    if year not in member.get('contributions', {}):
-        flash('Year not found.', 'danger')
-        return redirect(url_for('admin_member_transactions', member_id=member_id))
+    year_int = int(year)
     
-    contributions = member['contributions'][year]
+    # Check if year is complete
+    paid_count = Contribution.query.filter_by(
+        member_id=member.id,
+        year=year_int,
+        status=PaymentStatus.PAID
+    ).count()
     
-    if not check_year_complete(contributions):
+    if paid_count != 12:
         flash('Year is not complete yet.', 'warning')
         return redirect(url_for('admin_member_transactions', member_id=member_id))
     
+    # Build contributions dict for certificate
+    contributions = {}
+    contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+    for c in contribs:
+        contributions[c.month] = {
+            'amount': c.amount,
+            'receipt': c.receipt_number or ''
+        }
+    
+    member_dict = {'name': member.full_name, 'id': member.member_id}
+    
     # Generate the certificate HTML
-    certificate_html = generate_year_completion_sheet(member, year, contributions)
+    certificate_html = generate_year_completion_sheet(member_dict, year, contributions)
     
     return render_template('view_certificate.html',
-                          member=member,
+                          member=member_dict,
                           year=year,
                           certificate_html=certificate_html)
 
@@ -1358,6 +1574,315 @@ def member_transactions():
     return render_template('member_transactions.html',
                          member=member,
                          transactions=transactions)
+
+# =============================================================================
+# CASHIER MANAGEMENT (Admin Only)
+# =============================================================================
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """Manage admin and cashier users"""
+    users = User.query.filter_by(is_active=True).order_by(User.role, User.username).all()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@admin_required
+def add_user():
+    """Add new admin or cashier user"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip().lower()
+        password = request.form.get('password', '').strip()
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        role = request.form.get('role', 'cashier')
+        
+        if not all([username, password, full_name]):
+            flash('Username, password, and full name are required.', 'danger')
+            return render_template('add_user.html')
+        
+        # Check if username exists
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists.', 'danger')
+            return render_template('add_user.html')
+        
+        try:
+            user_role = UserRole.ADMIN if role == 'admin' else UserRole.CASHIER
+            new_user = User(
+                username=username,
+                password_hash=generate_password_hash(password),
+                role=user_role,
+                full_name=full_name,
+                email=email
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash(f'{user_role.value.capitalize()} "{username}" created successfully!', 'success')
+            return redirect(url_for('admin_users'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating user: {str(e)}', 'danger')
+    
+    return render_template('add_user.html')
+
+@app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_user(user_id):
+    """Edit admin or cashier user"""
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        role = request.form.get('role', 'cashier')
+        new_password = request.form.get('password', '').strip()
+        
+        if not full_name:
+            flash('Full name is required.', 'danger')
+            return render_template('edit_user.html', user=user)
+        
+        try:
+            user.full_name = full_name
+            user.email = email
+            user.role = UserRole.ADMIN if role == 'admin' else UserRole.CASHIER
+            
+            if new_password:
+                user.password_hash = generate_password_hash(new_password)
+            
+            db.session.commit()
+            flash('User updated successfully!', 'success')
+            return redirect(url_for('admin_users'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating user: {str(e)}', 'danger')
+    
+    return render_template('edit_user.html', user=user)
+
+@app.route('/admin/users/delete/<int:user_id>')
+@admin_required
+def delete_user(user_id):
+    """Delete (deactivate) admin or cashier user"""
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    # Prevent deleting the current user
+    if user.id == session.get('user_id'):
+        flash('You cannot delete your own account.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    user.is_active = False
+    db.session.commit()
+    flash(f'User "{user.username}" has been deactivated.', 'success')
+    return redirect(url_for('admin_users'))
+
+# =============================================================================
+# ADMIN CORRECTIONS WITH CHANGE LOGGING
+# =============================================================================
+
+@app.route('/admin/correction/<member_id>/<int:year>/<month>', methods=['GET', 'POST'])
+@admin_required
+def admin_correction(member_id, year, month):
+    """Admin correction of a contribution with mandatory comment"""
+    member = Member.query.filter_by(member_id=member_id).first()
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    contribution = Contribution.query.filter_by(
+        member_id=member.id,
+        year=year,
+        month=month
+    ).first()
+    
+    if not contribution:
+        flash('Contribution record not found.', 'danger')
+        return redirect(url_for('member_details', member_id=member_id, year=str(year)))
+    
+    current_user = get_current_user()
+    
+    if request.method == 'POST':
+        new_amount = request.form.get('amount', '').strip()
+        new_status = request.form.get('status', contribution.status.value)
+        new_payment_method = request.form.get('payment_method', '')
+        correction_comment = request.form.get('comment', '').strip()
+        
+        if not correction_comment:
+            flash('A comment explaining the correction is required.', 'danger')
+            return render_template('admin_correction.html', 
+                                 member=member, 
+                                 contribution=contribution,
+                                 year=year,
+                                 month=month,
+                                 payment_methods=PaymentMethod)
+        
+        try:
+            # Log changes
+            changes_made = []
+            
+            if new_amount:
+                new_amount_float = float(new_amount)
+                if new_amount_float != contribution.amount:
+                    log = ChangeLog(
+                        contribution_id=contribution.id,
+                        changed_by_id=current_user.id,
+                        change_type='amount_correction',
+                        old_value=str(contribution.amount),
+                        new_value=str(new_amount_float),
+                        comment=correction_comment
+                    )
+                    db.session.add(log)
+                    contribution.amount = new_amount_float
+                    changes_made.append('amount')
+            
+            if new_status:
+                new_status_enum = PaymentStatus(new_status)
+                if new_status_enum != contribution.status:
+                    log = ChangeLog(
+                        contribution_id=contribution.id,
+                        changed_by_id=current_user.id,
+                        change_type='status_change',
+                        old_value=contribution.status.value,
+                        new_value=new_status_enum.value,
+                        comment=correction_comment
+                    )
+                    db.session.add(log)
+                    contribution.status = new_status_enum
+                    changes_made.append('status')
+            
+            if new_payment_method and contribution.payment_method:
+                new_method_enum = PaymentMethod(new_payment_method)
+                if new_method_enum != contribution.payment_method:
+                    log = ChangeLog(
+                        contribution_id=contribution.id,
+                        changed_by_id=current_user.id,
+                        change_type='payment_method_change',
+                        old_value=contribution.payment_method.value,
+                        new_value=new_method_enum.value,
+                        comment=correction_comment
+                    )
+                    db.session.add(log)
+                    contribution.payment_method = new_method_enum
+                    changes_made.append('payment method')
+            
+            if changes_made:
+                db.session.commit()
+                flash(f'Correction applied: {", ".join(changes_made)} updated. Change logged.', 'success')
+            else:
+                flash('No changes were made.', 'info')
+            
+            return redirect(url_for('member_details', member_id=member_id, year=str(year)))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error applying correction: {str(e)}', 'danger')
+    
+    # Get change history for this contribution
+    change_history = ChangeLog.query.filter_by(
+        contribution_id=contribution.id
+    ).order_by(ChangeLog.changed_at.desc()).all()
+    
+    return render_template('admin_correction.html', 
+                         member=member, 
+                         contribution=contribution,
+                         year=year,
+                         month=month,
+                         payment_methods=PaymentMethod,
+                         change_history=change_history)
+
+# =============================================================================
+# DAILY REPORTS
+# =============================================================================
+
+@app.route('/admin/reports/daily')
+@admin_required
+def daily_report():
+    """Daily report showing contributions by admin/cashier"""
+    from datetime import timedelta
+    
+    # Get date range from query params
+    report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    try:
+        target_date = datetime.strptime(report_date, '%Y-%m-%d')
+    except ValueError:
+        target_date = datetime.now()
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+    
+    # Get contributions for the day
+    contributions = Contribution.query.filter(
+        Contribution.payment_date >= start_of_day,
+        Contribution.payment_date < end_of_day,
+        Contribution.status == PaymentStatus.PAID
+    ).all()
+    
+    # Get donations for the day
+    donations = Donation.query.filter(
+        Donation.donation_date >= start_of_day,
+        Donation.donation_date < end_of_day
+    ).all()
+    
+    # Group by processor
+    by_processor = {}
+    total_contributions = 0
+    total_donations = 0
+    
+    for contrib in contributions:
+        processor_name = contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown'
+        if processor_name not in by_processor:
+            by_processor[processor_name] = {
+                'contributions': [],
+                'donations': [],
+                'contribution_total': 0,
+                'donation_total': 0
+            }
+        by_processor[processor_name]['contributions'].append({
+            'member': contrib.member.full_name if contrib.member else 'Unknown',
+            'member_id': contrib.member.member_id if contrib.member else 'N/A',
+            'month': contrib.month,
+            'year': contrib.year,
+            'amount': contrib.amount,
+            'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
+            'receipt': contrib.receipt_number
+        })
+        by_processor[processor_name]['contribution_total'] += contrib.amount
+        total_contributions += contrib.amount
+    
+    for donation in donations:
+        processor_name = donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown'
+        if processor_name not in by_processor:
+            by_processor[processor_name] = {
+                'contributions': [],
+                'donations': [],
+                'contribution_total': 0,
+                'donation_total': 0
+            }
+        by_processor[processor_name]['donations'].append({
+            'member': donation.member.full_name if donation.member else 'Unknown',
+            'member_id': donation.member.member_id if donation.member else 'N/A',
+            'purpose': donation.purpose,
+            'amount': donation.amount,
+            'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
+            'receipt': donation.receipt_number
+        })
+        by_processor[processor_name]['donation_total'] += donation.amount
+        total_donations += donation.amount
+    
+    return render_template('daily_report.html',
+                         report_date=target_date.strftime('%Y-%m-%d'),
+                         by_processor=by_processor,
+                         total_contributions=total_contributions,
+                         total_donations=total_donations,
+                         grand_total=total_contributions + total_donations,
+                         contribution_count=len(contributions),
+                         donation_count=len(donations))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

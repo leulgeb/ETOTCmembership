@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Report - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Daily Report</h2>
+        <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="date" class="form-label">Report Date</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ report_date }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(grand_total) }}</h3>
+                    <p class="mb-0">Total Collections</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_contributions) }}</h3>
+                    <p class="mb-0">Contributions ({{ contribution_count }})</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_donations) }}</h3>
+                    <p class="mb-0">Donations ({{ donation_count }})</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ by_processor|length }}</h3>
+                    <p class="mb-0">Processors Active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if by_processor %}
+    {% for processor, data in by_processor.items() %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between">
+            <h5 class="mb-0">{{ processor }}</h5>
+            <span>Total: ${{ "%.2f"|format(data.contribution_total + data.donation_total) }}</span>
+        </div>
+        <div class="card-body">
+            {% if data.contributions %}
+            <h6 class="text-primary">Contributions (${{ "%.2f"|format(data.contribution_total) }})</h6>
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Member ID</th>
+                        <th>Month</th>
+                        <th>Year</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in data.contributions %}
+                    <tr>
+                        <td>{{ c.member }}</td>
+                        <td>{{ c.member_id }}</td>
+                        <td>{{ c.month }}</td>
+                        <td>{{ c.year }}</td>
+                        <td>${{ "%.2f"|format(c.amount) }}</td>
+                        <td><span class="badge bg-secondary">{{ c.payment_method }}</span></td>
+                        <td><small>{{ c.receipt }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            {% if data.donations %}
+            <h6 class="text-info mt-3">Donations (${{ "%.2f"|format(data.donation_total) }})</h6>
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Member ID</th>
+                        <th>Purpose</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in data.donations %}
+                    <tr>
+                        <td>{{ d.member }}</td>
+                        <td>{{ d.member_id }}</td>
+                        <td>{{ d.purpose or '-' }}</td>
+                        <td>${{ "%.2f"|format(d.amount) }}</td>
+                        <td><span class="badge bg-secondary">{{ d.payment_method }}</span></td>
+                        <td><small>{{ d.receipt }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+        <h5>No transactions for {{ report_date }}</h5>
+        <p>No contributions or donations were processed on this date.</p>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+    </div>
+</div>
+{% endblock %}

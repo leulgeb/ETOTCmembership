@@ -206,6 +206,80 @@
             "receipt": "RCPT-2025-0005"
           },
           "March": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0024"
+          },
+          "April": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0024"
+          },
+          "May": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0024"
+          },
+          "June": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0025"
+          },
+          "July": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0024"
+          },
+          "August": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0024"
+          },
+          "September": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0025"
+          },
+          "October": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0025"
+          },
+          "November": {
+            "status": "Paid",
+            "amount": 75.0,
+            "date": "2025-11-30",
+            "receipt": "RCPT-2025-0025"
+          },
+          "December": {
+            "status": "Unpaid",
+            "amount": 0,
+            "date": "",
+            "receipt": ""
+          }
+        },
+        "2026": {
+          "January": {
+            "status": "Unpaid",
+            "amount": 0,
+            "date": "",
+            "receipt": ""
+          },
+          "February": {
+            "status": "Unpaid",
+            "amount": 0,
+            "date": "",
+            "receipt": ""
+          },
+          "March": {
             "status": "Unpaid",
             "amount": 0,
             "date": "",
@@ -309,6 +383,69 @@
           "reason": "Easter Celebration",
           "date": "2025-03-25",
           "receipt": "RCPT-2025-0012"
+        },
+        {
+          "type": "contribution",
+          "month": "March",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0024"
+        },
+        {
+          "type": "contribution",
+          "month": "April",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0024"
+        },
+        {
+          "type": "contribution",
+          "month": "May",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0024"
+        },
+        {
+          "type": "contribution",
+          "month": "July",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0024"
+        },
+        {
+          "type": "contribution",
+          "month": "August",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0024"
+        },
+        {
+          "type": "contribution",
+          "month": "June",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0025"
+        },
+        {
+          "type": "contribution",
+          "month": "September",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0025"
+        },
+        {
+          "type": "contribution",
+          "month": "October",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0025"
+        },
+        {
+          "type": "contribution",
+          "month": "November",
+          "amount": 75.0,
+          "date": "2025-11-30",
+          "receipt": "RCPT-2025-0025"
         }
       ],
       "password_hash": "scrypt:32768:8:1$gQVfJxTkfiEDovbJ$e65d4fa54621edbdfc89a2c30ba6f6099e0bfd5086b758867b50833232ccb481a422b7c70a45c700cc2c47d4448afca7e3f5398b2f79fc30ba978b20ae94d8c6"
@@ -617,5 +754,5 @@
     }
   ],
   "next_member_id": 6,
-  "next_receipt_number": 24
+  "next_receipt_number": 26
 }

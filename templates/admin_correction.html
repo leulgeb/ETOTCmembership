@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Correction - {{ member.full_name }} - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Admin Correction</h2>
+        <a href="{{ url_for('member_details', member_id=member.member_id, year=year) }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Member
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Correct Contribution: {{ month }} {{ year }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Member:</strong> {{ member.full_name }} ({{ member.member_id }})
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Paid" {% if contribution.status.value == 'Paid' %}selected{% endif %}>Paid</option>
+                                <option value="Unpaid" {% if contribution.status.value == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount ($)</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                                   value="{{ contribution.amount or 0 }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="payment_method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="payment_method" name="payment_method">
+                                <option value="">-- No Change --</option>
+                                {% for method in payment_methods %}
+                                <option value="{{ method.value }}" 
+                                        {% if contribution.payment_method and contribution.payment_method.value == method.value %}selected{% endif %}>
+                                    {{ method.value|title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Correction Reason (Required) *</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="3" required
+                                      placeholder="Explain the reason for this correction..."></textarea>
+                            <small class="text-muted">This comment will be logged for audit purposes.</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">Apply Correction</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Change History</h5>
+                </div>
+                <div class="card-body">
+                    {% if change_history %}
+                    <div class="list-group">
+                        {% for log in change_history %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ log.change_type|replace('_', ' ')|title }}</strong>
+                                <small class="text-muted">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="text-danger">{{ log.old_value }}</span> 
+                                &rarr; 
+                                <span class="text-success">{{ log.new_value }}</span>
+                            </p>
+                            <small class="text-muted">
+                                By: {{ log.changed_by_user.full_name if log.changed_by_user else 'Unknown' }}<br>
+                                Reason: {{ log.comment }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No corrections have been made to this contribution.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
