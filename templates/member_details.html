@@ -8,94 +8,320 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-person-circle"></i> {{ member.name }}</h2>
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="bi bi-person-circle"></i> {{ member.name }}
+                            <button class="btn btn-sm btn-outline-secondary ms-2" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#memberInfoCollapse" 
+                                    aria-expanded="false" aria-controls="memberInfoCollapse">
+                                <i class="bi bi-chevron-down"></i> Details
+                            </button>
+                        </h2>
+                    </div>
                     <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Members
                     </a>
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6 class="text-muted">Member Information</h6>
-                                <p class="mb-1"><strong>ID:</strong> {{ member.id }}</p>
-                                <p class="mb-1"><strong>Email:</strong> {{ member.email }}</p>
-                                <p class="mb-1"><strong>Phone:</strong> {{ member.phone }}</p>
-                                <p class="mb-0"><strong>Monthly:</strong> ${{ "%.2f"|format(member.monthly_payment) }}</p>
+                <div class="collapse" id="memberInfoCollapse">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-muted"><i class="bi bi-info-circle"></i> Member Information</h6>
+                                    <p class="mb-1"><strong>ID:</strong> {{ member.id }}</p>
+                                    <p class="mb-1"><strong>Email:</strong> {{ member.email }}</p>
+                                    <p class="mb-1"><strong>Phone:</strong> {{ member.phone }}</p>
+                                    <p class="mb-0"><strong>Monthly:</strong> ${{ "%.2f"|format(member.monthly_payment) }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white">
-                            <div class="card-body">
-                                <h6>Total Paid ({{ selected_year }})</h6>
-                                <h2>${{ "%.2f"|format(total_paid) }}</h2>
-                                <p class="mb-0">{{ paid_months }} of 12 months paid</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-info text-white">
-                            <div class="card-body">
-                                <h6>Year Selection</h6>
-                                <form method="GET" id="yearForm">
-                                    <select name="year" class="form-select" onchange="document.getElementById('yearForm').submit()">
-                                        {% for year in available_years %}
-                                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </form>
+                        <div class="col-md-6">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-cash-stack"></i> Total Paid ({{ selected_year }})</h6>
+                                    <h2>${{ "%.2f"|format(total_paid) }}</h2>
+                                    <p class="mb-0">{{ paid_months }} of 12 months paid</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <h4 class="mb-3">Monthly Contribution Breakdown - {{ selected_year }}</h4>
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Month</th>
-                                <th>Status</th>
-                                <th>Amount</th>
-                                <th>Payment Date</th>
-                                <th>Receipt #</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for month in months %}
-                            {% set contrib = contributions[month] %}
-                            <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
-                                <td><strong>{{ month }}</strong></td>
-                                <td>
-                                    <span class="status-badge-{{ contrib.status.lower() }}">
-                                        {{ contrib.status }}
-                                    </span>
-                                </td>
-                                <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
-                                <td>{{ contrib.date if contrib.date else '-' }}</td>
-                                <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
-                                <td>
-                                    {% if contrib.status == 'Unpaid' %}
-                                    <form method="POST" action="{{ url_for('admin_pay_month', member_id=member.id, year=selected_year, month=month) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-success" 
-                                                onclick="return confirm('Process payment of ${{ member.monthly_payment }} for {{ month }}?')">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Monthly Contributions - {{ selected_year }}</h4>
+                    <div class="d-flex align-items-center gap-3">
+                        <form method="GET" id="yearForm" class="d-flex align-items-center">
+                            <label class="me-2 text-muted">Year:</label>
+                            <select name="year" class="form-select form-select-sm" style="width: auto;" onchange="document.getElementById('yearForm').submit()">
+                                {% for year in available_years %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('admin_bulk_pay', member_id=member.id, year=selected_year) }}" id="bulkPayForm">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" title="Select All Unpaid">
+                                    </th>
+                                    <th>Month</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Payment Date</th>
+                                    <th>Receipt #</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in months %}
+                                {% set contrib = contributions[month] %}
+                                <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
+                                    <td>
+                                        {% if contrib.status == 'Unpaid' %}
+                                        <input type="checkbox" name="months" value="{{ month }}" class="form-check-input month-checkbox">
+                                        {% else %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ month }}</strong></td>
+                                    <td>
+                                        <span class="status-badge-{{ contrib.status.lower() }}">
+                                            {{ contrib.status }}
+                                        </span>
+                                    </td>
+                                    <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
+                                    <td>{{ contrib.date if contrib.date else '-' }}</td>
+                                    <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                                    <td>
+                                        {% if contrib.status == 'Unpaid' %}
+                                        <button type="button" class="btn btn-sm btn-success pay-single-btn" 
+                                                data-month="{{ month }}"
+                                                data-amount="{{ member.monthly_payment }}">
                                             <i class="bi bi-cash-coin"></i> Pay
                                         </button>
-                                    </form>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                        {% else %}
+                                        <i class="bi bi-check-lg text-success" title="Paid"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <span class="text-muted">Selected: <strong id="selectedCount">0</strong> month(s)</span>
+                            <span class="ms-3 text-muted">Total: <strong id="selectedTotal">$0.00</strong></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="bulkPayBtn" disabled>
+                            <i class="bi bi-cash-stack"></i> Pay Selected Months
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="receiptModalLabel">
+                    <i class="bi bi-receipt"></i> Payment Receipt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+                    <i class="bi bi-printer"></i> Print Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmPayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cash-coin"></i> Confirm Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Process payment of <strong id="confirmAmount"></strong> for <strong id="confirmMonth"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" id="singlePayForm" style="display: inline;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg"></i> Confirm Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const monthlyPayment = {{ member.monthly_payment }};
+    const memberId = "{{ member.id }}";
+    const selectedYear = "{{ selected_year }}";
+    
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.month-checkbox');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        updateSelectedInfo();
+    });
+
+    document.querySelectorAll('.month-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedInfo);
+    });
+
+    function updateSelectedInfo() {
+        const checked = document.querySelectorAll('.month-checkbox:checked');
+        const count = checked.length;
+        const total = count * monthlyPayment;
+        
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('selectedTotal').textContent = '$' + total.toFixed(2);
+        document.getElementById('bulkPayBtn').disabled = count === 0;
+    }
+
+    document.querySelectorAll('.pay-single-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const month = this.dataset.month;
+            const amount = this.dataset.amount;
+            
+            document.getElementById('confirmMonth').textContent = month;
+            document.getElementById('confirmAmount').textContent = '$' + parseFloat(amount).toFixed(2);
+            document.getElementById('singlePayForm').action = `/admin/pay-month/${memberId}/${selectedYear}/${month}`;
+            
+            new bootstrap.Modal(document.getElementById('confirmPayModal')).show();
+        });
+    });
+
+    {% if receipt_data %}
+    document.addEventListener('DOMContentLoaded', function() {
+        showReceipt({{ receipt_data | tojson }});
+    });
+    {% endif %}
+
+    function showReceipt(data) {
+        const content = `
+            <div id="printableReceipt" style="padding: 20px; font-family: 'Segoe UI', Arial, sans-serif;">
+                <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #2c3e50;">ETOTC Church</h2>
+                    <p style="margin: 5px 0; color: #666;">Contribution Receipt</p>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div>
+                        <strong>Receipt Number:</strong><br>
+                        <span style="font-size: 1.2em; color: #27ae60;">${data.receipt_numbers.join(', ')}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Date:</strong><br>
+                        ${data.date}
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-top: 0;">Member Information</h5>
+                    <p style="margin: 5px 0;"><strong>Name:</strong> ${data.member_name}</p>
+                    <p style="margin: 5px 0;"><strong>Member ID:</strong> ${data.member_id}</p>
+                </div>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background: #2c3e50; color: white;">
+                            <th style="padding: 10px; text-align: left;">Month</th>
+                            <th style="padding: 10px; text-align: left;">Receipt #</th>
+                            <th style="padding: 10px; text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.payments.map(p => `
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <td style="padding: 10px;">${p.month}</td>
+                                <td style="padding: 10px;">${p.receipt}</td>
+                                <td style="padding: 10px; text-align: right;">$${p.amount.toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f8f9fa; font-weight: bold;">
+                            <td colspan="2" style="padding: 10px;">Total</td>
+                            <td style="padding: 10px; text-align: right;">$${data.total.toFixed(2)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div style="text-align: center; color: #666; font-size: 0.9em; border-top: 1px solid #ddd; padding-top: 15px;">
+                    <p style="margin: 5px 0;">Thank you for your contribution!</p>
+                    <p style="margin: 5px 0;">God bless you.</p>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('receiptContent').innerHTML = content;
+        new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+
+    function printReceipt() {
+        const printContent = document.getElementById('printableReceipt').innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>ETOTC Church - Payment Receipt</title>
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; }
+                    @media print {
+                        body { margin: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${printContent}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    }
+
+    document.getElementById('bulkPayForm').addEventListener('submit', function(e) {
+        const checked = document.querySelectorAll('.month-checkbox:checked');
+        if (checked.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one month to pay.');
+            return false;
+        }
+        
+        const months = Array.from(checked).map(cb => cb.value).join(', ');
+        const total = checked.length * monthlyPayment;
+        
+        if (!confirm(`Process payment of $${total.toFixed(2)} for ${months}?`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+</script>
 {% endblock %}

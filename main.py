@@ -443,6 +443,9 @@ def member_details(member_id):
     paid_months = sum(1 for month in MONTHS if contributions[month]['status'] == 'Paid')
     total_paid = sum(contributions[month]['amount'] for month in MONTHS if contributions[month]['status'] == 'Paid')
     
+    # Get receipt data from session if available (after payment)
+    receipt_data = session.pop('receipt_data', None)
+    
     return render_template('member_details.html', 
                          member=member,
                          contributions=contributions,
@@ -450,10 +453,11 @@ def member_details(member_id):
                          selected_year=selected_year,
                          available_years=available_years,
                          paid_months=paid_months,
-                         total_paid=total_paid)
+                         total_paid=total_paid,
+                         receipt_data=receipt_data)
 
 @app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
-@admin_required
+@staff_required
 def admin_pay_month(member_id, year, month):
     """Admin processes a monthly payment for a member"""
     data = load_data()
@@ -505,7 +509,121 @@ def admin_pay_month(member_id, year, month):
     
     save_data(data)
     
+    # Store receipt data in session for display
+    receipt_data = {
+        'receipt_numbers': [receipt_number],
+        'date': payment_date,
+        'member_name': member['name'],
+        'member_id': member['id'],
+        'payments': [{
+            'month': month,
+            'receipt': receipt_number,
+            'amount': member['monthly_payment']
+        }],
+        'total': member['monthly_payment']
+    }
+    session['receipt_data'] = receipt_data
+    
     flash(f'Payment processed successfully for {month}! Receipt: {receipt_number}', 'success')
+    return redirect(url_for('member_details', member_id=member_id, year=year))
+
+
+@app.route('/admin/bulk-pay/<member_id>/<year>', methods=['POST'])
+@staff_required
+def admin_bulk_pay(member_id, year):
+    """Admin processes bulk payments for multiple months"""
+    data = load_data()
+    member = next((m for m in data['members'] if m['id'] == member_id), None)
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    # Get selected months from form
+    selected_months = request.form.getlist('months')
+    
+    if not selected_months:
+        flash('Please select at least one month to pay.', 'warning')
+        return redirect(url_for('member_details', member_id=member_id, year=year))
+    
+    # Ensure year exists
+    if year not in member['contributions']:
+        member['contributions'][year] = initialize_year_contributions(year)
+    
+    contributions = member['contributions'][year]
+    
+    # Add transactions list if not exists
+    if 'transactions' not in member:
+        member['transactions'] = []
+    
+    payment_date = datetime.now().strftime('%Y-%m-%d')
+    processed_payments = []
+    receipt_numbers = []
+    skipped_months = []
+    
+    for month in selected_months:
+        # Validate month
+        if month not in MONTHS:
+            continue
+        
+        # Skip if already paid
+        if contributions[month]['status'] == 'Paid':
+            skipped_months.append(month)
+            continue
+        
+        # Generate receipt for this payment
+        receipt_number = generate_receipt_number(data)
+        receipt_numbers.append(receipt_number)
+        
+        contributions[month] = {
+            'status': 'Paid',
+            'amount': member['monthly_payment'],
+            'date': payment_date,
+            'receipt': receipt_number
+        }
+        
+        # Add transaction
+        transaction = {
+            'type': 'contribution',
+            'month': month,
+            'amount': member['monthly_payment'],
+            'date': payment_date,
+            'receipt': receipt_number
+        }
+        member['transactions'].append(transaction)
+        
+        processed_payments.append({
+            'month': month,
+            'receipt': receipt_number,
+            'amount': member['monthly_payment']
+        })
+    
+    save_data(data)
+    
+    if processed_payments:
+        total_amount = len(processed_payments) * member['monthly_payment']
+        
+        # Store receipt data in session for display
+        receipt_data = {
+            'receipt_numbers': receipt_numbers,
+            'date': payment_date,
+            'member_name': member['name'],
+            'member_id': member['id'],
+            'payments': processed_payments,
+            'total': total_amount
+        }
+        session['receipt_data'] = receipt_data
+        
+        months_str = ', '.join([p['month'] for p in processed_payments])
+        flash(f'Bulk payment processed successfully for {len(processed_payments)} month(s): {months_str}', 'success')
+        
+        # Notify about skipped months if any
+        if skipped_months:
+            skipped_str = ', '.join(skipped_months)
+            flash(f'Skipped {len(skipped_months)} already paid month(s): {skipped_str}', 'info')
+    else:
+        flash('No payments were processed. All selected months were already paid.', 'warning')
+    
     return redirect(url_for('member_details', member_id=member_id, year=year))
 
 @app.route('/admin/donations')
