@@ -15,7 +15,9 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 
 ### Database Models (models.py)
 - **User**: Admin and Cashier staff accounts with role-based access
-- **Member**: Church members with monthly payment amounts
+- **Member**: Church members with full profile (name, address, baptismal name, marital status)
+- **Spouse**: Spouse information for married members
+- **Child**: Children living with members
 - **Contribution**: Monthly payment records with payment method tracking
 - **Donation**: Additional one-time donations
 - **ChangeLog**: Audit log for admin corrections
@@ -83,6 +85,10 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 1, 2025**: Enhanced member registration form with full church membership fields
+- **December 1, 2025**: Added spouse and children information for married members
+- **December 1, 2025**: Conditional spouse section - only shows when "Married" is selected
+- **December 1, 2025**: Fixed receipt 404 error when clicking on previous transactions
 - **December 1, 2025**: Added non-member transaction feature for guests/visitors
 - **December 1, 2025**: Daily report now shows month ranges (e.g., "January to March 2024")
 - **December 1, 2025**: Daily report displays payment method breakdown (Cash, Zelle totals)

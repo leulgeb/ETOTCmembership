@@ -621,12 +621,14 @@ def add_member():
             db.session.add(new_member)
             db.session.flush()
             
-            # Add spouse if married
+            # Add spouse if married and spouse info provided
             if marital_status == MaritalStatus.MARRIED:
                 spouse_first_name = request.form.get('spouse_first_name', '').strip()
+                spouse_last_name = request.form.get('spouse_last_name', '').strip()
+                
+                # Only create spouse record if at least first name is provided
                 if spouse_first_name:
                     spouse_father_name = request.form.get('spouse_father_name', '').strip() or None
-                    spouse_last_name = request.form.get('spouse_last_name', '').strip() or None
                     spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
                     spouse_dob_str = request.form.get('spouse_date_of_birth', '').strip()
                     spouse_gender_str = request.form.get('spouse_gender', '').strip()
@@ -650,7 +652,7 @@ def add_member():
                         member_id=new_member.id,
                         first_name=spouse_first_name,
                         father_name=spouse_father_name,
-                        last_name=spouse_last_name,
+                        last_name=spouse_last_name or None,
                         baptismal_name=spouse_baptismal_name,
                         date_of_birth=spouse_dob,
                         gender=spouse_gender,
@@ -659,10 +661,10 @@ def add_member():
                     )
                     db.session.add(spouse)
                 
-                # Add children
+                # Add children - only if full name is provided (minimum required field)
                 for i in range(1, 11):
                     child_name = request.form.get(f'child_name_{i}', '').strip()
-                    if child_name:
+                    if child_name and len(child_name) >= 2:  # Require at least 2 characters for valid name
                         child_baptismal = request.form.get(f'child_baptismal_{i}', '').strip() or None
                         child_dob_str = request.form.get(f'child_dob_{i}', '').strip()
                         child_gender_str = request.form.get(f'child_gender_{i}', '').strip()
