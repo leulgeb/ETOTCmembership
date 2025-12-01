@@ -7,7 +7,7 @@ import csv
 from datetime import datetime
 from functools import wraps
 from io import StringIO, BytesIO
-from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, UserRole, PaymentMethod, PaymentStatus
+from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus, MaritalStatus, Gender
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -534,19 +534,29 @@ def add_member():
     
     if request.method == 'POST':
         try:
-            # Get form data
+            # Get basic form data
             custom_id = request.form.get('custom_id', '').strip().upper()
             first_name = request.form.get('first_name', '').strip()
+            father_name = request.form.get('father_name', '').strip() or None
             middle_name = request.form.get('middle_name', '').strip() or None
             last_name = request.form.get('last_name', '').strip()
+            baptismal_name = request.form.get('baptismal_name', '').strip() or None
+            date_of_birth_str = request.form.get('date_of_birth', '').strip()
+            gender_str = request.form.get('gender', '').strip()
+            address = request.form.get('address', '').strip() or None
+            city = request.form.get('city', '').strip() or None
+            state = request.form.get('state', '').strip() or 'WA'
+            zip_code = request.form.get('zip_code', '').strip() or None
             phone = request.form.get('phone', '').strip()
-            email = request.form.get('email', '').strip()
+            email = request.form.get('email', '').strip() or None
+            confession_name = request.form.get('confession_name', '').strip() or None
+            marital_status_str = request.form.get('marital_status', 'single').strip()
             password = request.form.get('password', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
             
             # Validation
-            if not all([first_name, last_name, phone, email, password, monthly_payment]):
-                flash('All required fields must be filled.', 'danger')
+            if not all([first_name, last_name, phone, password, monthly_payment]):
+                flash('First name, last name, phone, password, and monthly payment are required.', 'danger')
                 return render_template('add_member.html', suggested_id=suggested_id)
             
             try:
@@ -557,6 +567,26 @@ def add_member():
             except ValueError:
                 flash('Monthly payment must be a valid number.', 'danger')
                 return render_template('add_member.html', suggested_id=suggested_id)
+            
+            # Parse date of birth
+            date_of_birth = None
+            if date_of_birth_str:
+                try:
+                    date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            # Parse gender
+            gender = None
+            if gender_str == 'male':
+                gender = Gender.MALE
+            elif gender_str == 'female':
+                gender = Gender.FEMALE
+            
+            # Parse marital status
+            marital_status = MaritalStatus.SINGLE
+            if marital_status_str == 'married':
+                marital_status = MaritalStatus.MARRIED
             
             # Generate or use custom ID
             if custom_id:
@@ -571,14 +601,94 @@ def add_member():
             new_member = Member(
                 member_id=member_id,
                 first_name=first_name,
+                father_name=father_name,
                 middle_name=middle_name,
                 last_name=last_name,
+                baptismal_name=baptismal_name,
+                date_of_birth=date_of_birth,
+                gender=gender,
+                address=address,
+                city=city,
+                state=state,
+                zip_code=zip_code,
                 email=email,
                 phone=phone,
+                confession_name=confession_name,
+                marital_status=marital_status,
                 password_hash=generate_password_hash(password),
                 monthly_payment=monthly_amount
             )
             db.session.add(new_member)
+            db.session.flush()
+            
+            # Add spouse if married
+            if marital_status == MaritalStatus.MARRIED:
+                spouse_first_name = request.form.get('spouse_first_name', '').strip()
+                if spouse_first_name:
+                    spouse_father_name = request.form.get('spouse_father_name', '').strip() or None
+                    spouse_last_name = request.form.get('spouse_last_name', '').strip() or None
+                    spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
+                    spouse_dob_str = request.form.get('spouse_date_of_birth', '').strip()
+                    spouse_gender_str = request.form.get('spouse_gender', '').strip()
+                    spouse_phone = request.form.get('spouse_phone', '').strip() or None
+                    spouse_email = request.form.get('spouse_email', '').strip() or None
+                    
+                    spouse_dob = None
+                    if spouse_dob_str:
+                        try:
+                            spouse_dob = datetime.strptime(spouse_dob_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            pass
+                    
+                    spouse_gender = None
+                    if spouse_gender_str == 'male':
+                        spouse_gender = Gender.MALE
+                    elif spouse_gender_str == 'female':
+                        spouse_gender = Gender.FEMALE
+                    
+                    spouse = Spouse(
+                        member_id=new_member.id,
+                        first_name=spouse_first_name,
+                        father_name=spouse_father_name,
+                        last_name=spouse_last_name,
+                        baptismal_name=spouse_baptismal_name,
+                        date_of_birth=spouse_dob,
+                        gender=spouse_gender,
+                        phone=spouse_phone,
+                        email=spouse_email
+                    )
+                    db.session.add(spouse)
+                
+                # Add children
+                for i in range(1, 11):
+                    child_name = request.form.get(f'child_name_{i}', '').strip()
+                    if child_name:
+                        child_baptismal = request.form.get(f'child_baptismal_{i}', '').strip() or None
+                        child_dob_str = request.form.get(f'child_dob_{i}', '').strip()
+                        child_gender_str = request.form.get(f'child_gender_{i}', '').strip()
+                        
+                        child_dob = None
+                        if child_dob_str:
+                            try:
+                                child_dob = datetime.strptime(child_dob_str, '%Y-%m-%d').date()
+                            except ValueError:
+                                pass
+                        
+                        child_gender = None
+                        if child_gender_str == 'male':
+                            child_gender = Gender.MALE
+                        elif child_gender_str == 'female':
+                            child_gender = Gender.FEMALE
+                        
+                        child = Child(
+                            member_id=new_member.id,
+                            full_name=child_name,
+                            baptismal_name=child_baptismal,
+                            date_of_birth=child_dob,
+                            gender=child_gender
+                        )
+                        db.session.add(child)
+            
             db.session.commit()
             
             # Initialize contributions for current year

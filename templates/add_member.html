@@ -4,66 +4,192 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-lg-10">
         <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus"></i> New Member Registration</h4>
+            </div>
             <div class="card-body p-4">
-                <h2 class="mb-4"><i class="bi bi-person-plus"></i> Add New Member</h2>
-                
-                <form method="POST">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
+                <form method="POST" id="memberForm">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
                             <label for="custom_id" class="form-label">Member ID</label>
                             <input type="text" class="form-control" id="custom_id" name="custom_id" 
-                                   placeholder="Leave blank for auto-generation: {{ suggested_id }}">
-                            <small class="text-muted">Auto-generated: {{ suggested_id }} (or enter custom ID)</small>
+                                   placeholder="{{ suggested_id }}">
+                            <small class="text-muted">Auto: {{ suggested_id }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="monthly_payment" class="form-label">Monthly Payment *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="monthly_payment" name="monthly_payment" 
+                                       step="0.01" min="30" value="30" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
                         </div>
                     </div>
+
+                    <h5 class="border-bottom pb-2 mb-3 text-primary"><i class="bi bi-person"></i> Personal Information</h5>
                     
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
                             <label for="first_name" class="form-label">First Name *</label>
                             <input type="text" class="form-control" id="first_name" name="first_name" required>
                         </div>
-                        
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3">
+                            <label for="father_name" class="form-label">Father's Name</label>
+                            <input type="text" class="form-control" id="father_name" name="father_name">
+                        </div>
+                        <div class="col-md-3">
                             <label for="middle_name" class="form-label">Middle Name</label>
                             <input type="text" class="form-control" id="middle_name" name="middle_name">
                         </div>
-                        
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3">
                             <label for="last_name" class="form-label">Last Name *</label>
                             <input type="text" class="form-control" id="last_name" name="last_name" required>
                         </div>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
+                            <input type="text" class="form-control" id="baptismal_name" name="baptismal_name">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select class="form-select" id="gender" name="gender">
+                                <option value="">Select...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="address" name="address">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" value="WA">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="zip_code" class="form-label">Zip Code</label>
+                            <input type="text" class="form-control" id="zip_code" name="zip_code">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
                             <label for="phone" class="form-label">Phone Number *</label>
                             <input type="tel" class="form-control" id="phone" name="phone" required>
                         </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="col-md-4">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="confession_name" class="form-label">Confession Name</label>
+                            <input type="text" class="form-control" id="confession_name" name="confession_name">
                         </div>
                     </div>
+
+                    <h5 class="border-bottom pb-2 mb-3 text-primary"><i class="bi bi-heart"></i> Marital Status</h5>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">Password *</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="monthly_payment" class="form-label">Monthly Payment * (Min: $30)</label>
-                            <input type="number" class="form-control" id="monthly_payment" name="monthly_payment" 
-                                   step="0.01" min="30" required>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="marital_status" id="single" value="single" checked>
+                                <label class="form-check-label" for="single">Single</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="marital_status" id="married" value="married">
+                                <label class="form-check-label" for="married">Married</label>
+                            </div>
                         </div>
                     </div>
-                    
+
+                    <div id="spouseSection" style="display: none;">
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-people"></i> Spouse Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="spouse_first_name" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="spouse_first_name" name="spouse_first_name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="spouse_father_name" class="form-label">Father's Name</label>
+                                        <input type="text" class="form-control" id="spouse_father_name" name="spouse_father_name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="spouse_last_name" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="spouse_last_name" name="spouse_last_name">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="spouse_baptismal_name" class="form-label">Baptismal (Christian) Name</label>
+                                        <input type="text" class="form-control" id="spouse_baptismal_name" name="spouse_baptismal_name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="spouse_date_of_birth" class="form-label">Date of Birth</label>
+                                        <input type="date" class="form-control" id="spouse_date_of_birth" name="spouse_date_of_birth">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="spouse_gender" class="form-label">Gender</label>
+                                        <select class="form-select" id="spouse_gender" name="spouse_gender">
+                                            <option value="">Select...</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="spouse_phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="spouse_phone" name="spouse_phone">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="spouse_email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="spouse_email" name="spouse_email">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="bi bi-people-fill"></i> Children (living with you)</h6>
+                                <button type="button" class="btn btn-sm btn-light" id="addChildBtn">
+                                    <i class="bi bi-plus-circle"></i> Add Child
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="childrenContainer">
+                                </div>
+                                <p class="text-muted small mb-0" id="noChildrenMsg">Click "Add Child" to add children information.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Add Member
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Register Member
                         </button>
                         <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Cancel
@@ -74,4 +200,80 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const marriedRadio = document.getElementById('married');
+    const singleRadio = document.getElementById('single');
+    const spouseSection = document.getElementById('spouseSection');
+    const addChildBtn = document.getElementById('addChildBtn');
+    const childrenContainer = document.getElementById('childrenContainer');
+    const noChildrenMsg = document.getElementById('noChildrenMsg');
+    let childCount = 0;
+
+    function toggleSpouseSection() {
+        if (marriedRadio.checked) {
+            spouseSection.style.display = 'block';
+        } else {
+            spouseSection.style.display = 'none';
+        }
+    }
+
+    marriedRadio.addEventListener('change', toggleSpouseSection);
+    singleRadio.addEventListener('change', toggleSpouseSection);
+
+    function addChildRow() {
+        childCount++;
+        noChildrenMsg.style.display = 'none';
+        
+        const childRow = document.createElement('div');
+        childRow.className = 'row mb-3 child-row';
+        childRow.id = 'child_' + childCount;
+        childRow.innerHTML = `
+            <div class="col-md-1 d-flex align-items-center">
+                <span class="badge bg-primary">${childCount}</span>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control form-control-sm" name="child_name_${childCount}" placeholder="Full Name">
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control form-control-sm" name="child_baptismal_${childCount}" placeholder="Baptismal Name">
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control form-control-sm" name="child_dob_${childCount}">
+            </div>
+            <div class="col-md-2">
+                <select class="form-select form-select-sm" name="child_gender_${childCount}">
+                    <option value="">Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-child" data-child="${childCount}">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        childrenContainer.appendChild(childRow);
+    }
+
+    addChildBtn.addEventListener('click', function() {
+        if (childCount < 10) {
+            addChildRow();
+        }
+    });
+
+    childrenContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-child')) {
+            const btn = e.target.closest('.remove-child');
+            const childId = btn.getAttribute('data-child');
+            document.getElementById('child_' + childId).remove();
+            if (childrenContainer.children.length === 0) {
+                noChildrenMsg.style.display = 'block';
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -42,6 +42,14 @@ class User(db.Model):
     donations_processed = relationship('Donation', back_populates='processed_by_user', foreign_keys='Donation.processed_by_id')
     change_logs = relationship('ChangeLog', back_populates='changed_by_user')
 
+class MaritalStatus(enum.Enum):
+    SINGLE = "single"
+    MARRIED = "married"
+
+class Gender(enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+
 class Member(db.Model):
     """Church members"""
     __tablename__ = 'members'
@@ -49,10 +57,20 @@ class Member(db.Model):
     id = db.Column(Integer, primary_key=True)
     member_id = db.Column(String(20), unique=True, nullable=False)  # CH001, CH002, etc.
     first_name = db.Column(String(100), nullable=False)
-    middle_name = db.Column(String(100))
+    father_name = db.Column(String(100))
     last_name = db.Column(String(100), nullable=False)
+    middle_name = db.Column(String(100))
+    baptismal_name = db.Column(String(100))
+    date_of_birth = db.Column(db.Date)
+    gender = db.Column(Enum(Gender))
+    address = db.Column(String(200))
+    city = db.Column(String(100))
+    state = db.Column(String(50), default='WA')
+    zip_code = db.Column(String(20))
     email = db.Column(String(200))
     phone = db.Column(String(50))
+    confession_name = db.Column(String(100))
+    marital_status = db.Column(Enum(MaritalStatus), default=MaritalStatus.SINGLE)
     password_hash = db.Column(String(255), nullable=False)
     monthly_payment = db.Column(Float, nullable=False, default=30.0)
     created_at = db.Column(DateTime, default=datetime.utcnow)
@@ -61,13 +79,57 @@ class Member(db.Model):
     # Relationships
     contributions = relationship('Contribution', back_populates='member', cascade='all, delete-orphan')
     donations = relationship('Donation', back_populates='member', cascade='all, delete-orphan')
+    spouse = relationship('Spouse', back_populates='member', uselist=False, cascade='all, delete-orphan')
+    children = relationship('Child', back_populates='member', cascade='all, delete-orphan')
     
     @property
     def full_name(self):
-        """Generate full name from first, middle, last"""
-        if self.middle_name:
-            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        """Generate full name from first, father's name, last"""
+        if self.father_name:
+            return f"{self.first_name} {self.father_name} {self.last_name}"
         return f"{self.first_name} {self.last_name}"
+
+
+class Spouse(db.Model):
+    """Spouse information for married members"""
+    __tablename__ = 'spouses'
+    
+    id = db.Column(Integer, primary_key=True)
+    member_id = db.Column(Integer, ForeignKey('members.id'), nullable=False, unique=True)
+    first_name = db.Column(String(100), nullable=False)
+    father_name = db.Column(String(100))
+    last_name = db.Column(String(100))
+    baptismal_name = db.Column(String(100))
+    date_of_birth = db.Column(db.Date)
+    gender = db.Column(Enum(Gender))
+    phone = db.Column(String(50))
+    email = db.Column(String(200))
+    created_at = db.Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    member = relationship('Member', back_populates='spouse')
+    
+    @property
+    def full_name(self):
+        if self.father_name:
+            return f"{self.first_name} {self.father_name} {self.last_name or ''}"
+        return f"{self.first_name} {self.last_name or ''}"
+
+
+class Child(db.Model):
+    """Children information for members"""
+    __tablename__ = 'children'
+    
+    id = db.Column(Integer, primary_key=True)
+    member_id = db.Column(Integer, ForeignKey('members.id'), nullable=False)
+    full_name = db.Column(String(200), nullable=False)
+    baptismal_name = db.Column(String(100))
+    date_of_birth = db.Column(db.Date)
+    gender = db.Column(Enum(Gender))
+    created_at = db.Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    member = relationship('Member', back_populates='children')
 
 class Contribution(db.Model):
     """Monthly contributions"""
