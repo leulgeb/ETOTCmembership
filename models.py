@@ -42,14 +42,6 @@ class User(db.Model):
     donations_processed = relationship('Donation', back_populates='processed_by_user', foreign_keys='Donation.processed_by_id')
     change_logs = relationship('ChangeLog', back_populates='changed_by_user')
 
-class MaritalStatus(enum.Enum):
-    SINGLE = "single"
-    MARRIED = "married"
-
-class Gender(enum.Enum):
-    MALE = "male"
-    FEMALE = "female"
-
 class Member(db.Model):
     """Church members"""
     __tablename__ = 'members'
@@ -62,7 +54,7 @@ class Member(db.Model):
     middle_name = db.Column(String(100))
     baptismal_name = db.Column(String(100))
     date_of_birth = db.Column(db.Date)
-    gender = db.Column(Enum(Gender))
+    gender = db.Column(String(20))
     address = db.Column(String(200))
     city = db.Column(String(100))
     state = db.Column(String(50), default='WA')
@@ -70,7 +62,7 @@ class Member(db.Model):
     email = db.Column(String(200))
     phone = db.Column(String(50))
     confession_name = db.Column(String(100))
-    marital_status = db.Column(Enum(MaritalStatus), default=MaritalStatus.SINGLE)
+    marital_status = db.Column(String(20), default='single')
     password_hash = db.Column(String(255), nullable=False)
     monthly_payment = db.Column(Float, nullable=False, default=30.0)
     created_at = db.Column(DateTime, default=datetime.utcnow)
@@ -101,7 +93,7 @@ class Spouse(db.Model):
     last_name = db.Column(String(100))
     baptismal_name = db.Column(String(100))
     date_of_birth = db.Column(db.Date)
-    gender = db.Column(Enum(Gender))
+    gender = db.Column(String(20))
     phone = db.Column(String(50))
     email = db.Column(String(200))
     created_at = db.Column(DateTime, default=datetime.utcnow)
@@ -125,7 +117,7 @@ class Child(db.Model):
     full_name = db.Column(String(200), nullable=False)
     baptismal_name = db.Column(String(100))
     date_of_birth = db.Column(db.Date)
-    gender = db.Column(Enum(Gender))
+    gender = db.Column(String(20))
     created_at = db.Column(DateTime, default=datetime.utcnow)
     
     # Relationships

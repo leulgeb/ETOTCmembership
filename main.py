@@ -7,7 +7,7 @@ import csv
 from datetime import datetime
 from functools import wraps
 from io import StringIO, BytesIO
-from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus, MaritalStatus, Gender
+from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -576,17 +576,9 @@ def add_member():
                 except ValueError:
                     pass
             
-            # Parse gender
-            gender = None
-            if gender_str == 'male':
-                gender = Gender.MALE
-            elif gender_str == 'female':
-                gender = Gender.FEMALE
-            
-            # Parse marital status
-            marital_status = MaritalStatus.SINGLE
-            if marital_status_str == 'married':
-                marital_status = MaritalStatus.MARRIED
+            # Parse gender and marital status (use simple strings)
+            gender = gender_str if gender_str in ['male', 'female'] else None
+            marital_status = marital_status_str if marital_status_str in ['single', 'married'] else 'single'
             
             # Generate or use custom ID
             if custom_id:
@@ -622,7 +614,7 @@ def add_member():
             db.session.flush()
             
             # Add spouse if married and spouse info provided
-            if marital_status == MaritalStatus.MARRIED:
+            if marital_status == 'married':
                 spouse_first_name = request.form.get('spouse_first_name', '').strip()
                 spouse_last_name = request.form.get('spouse_last_name', '').strip()
                 
@@ -642,11 +634,7 @@ def add_member():
                         except ValueError:
                             pass
                     
-                    spouse_gender = None
-                    if spouse_gender_str == 'male':
-                        spouse_gender = Gender.MALE
-                    elif spouse_gender_str == 'female':
-                        spouse_gender = Gender.FEMALE
+                    spouse_gender = spouse_gender_str if spouse_gender_str in ['male', 'female'] else None
                     
                     spouse = Spouse(
                         member_id=new_member.id,
@@ -676,11 +664,7 @@ def add_member():
                             except ValueError:
                                 pass
                         
-                        child_gender = None
-                        if child_gender_str == 'male':
-                            child_gender = Gender.MALE
-                        elif child_gender_str == 'female':
-                            child_gender = Gender.FEMALE
+                        child_gender = child_gender_str if child_gender_str in ['male', 'female'] else None
                         
                         child = Child(
                             member_id=new_member.id,
