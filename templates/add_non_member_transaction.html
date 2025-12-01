@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Add Non-Member Transaction - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Add Non-Member Transaction</h2>
+                <a href="{{ url_for('non_member_transactions') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-plus"></i> Guest/Visitor Transaction</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email (Optional)</label>
+                                <input type="email" class="form-control" id="email" name="email">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone (Optional)</label>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           step="0.01" min="0.01" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="purpose" class="form-label">Purpose</label>
+                                <select class="form-select" id="purpose" name="purpose">
+                                    <option value="Donation">Donation</option>
+                                    <option value="Tithe">Tithe</option>
+                                    <option value="Offering">Offering</option>
+                                    <option value="Building Fund">Building Fund</option>
+                                    <option value="Mission">Mission</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="payment_method" class="form-label">Payment Method</label>
+                                <select class="form-select" id="payment_method" name="payment_method">
+                                    <option value="cash">Cash</option>
+                                    <option value="zelle">Zelle</option>
+                                    <option value="venmo">Venmo</option>
+                                    <option value="credit_card">Credit Card</option>
+                                    <option value="other">Other (Check, Money Order)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="payment_comment" class="form-label">Comment (Optional)</label>
+                                <input type="text" class="form-control" id="payment_comment" name="payment_comment" 
+                                       placeholder="e.g., Check #123, Zelle ID">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Record Transaction
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

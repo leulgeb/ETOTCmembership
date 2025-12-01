@@ -147,3 +147,30 @@ class SequenceCounter(db.Model):
     counter_name = db.Column(String(50), unique=True, nullable=False)
     counter_value = db.Column(Integer, nullable=False, default=1)
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class NonMemberTransaction(db.Model):
+    """Transactions for non-members (guests, visitors)"""
+    __tablename__ = 'non_member_transactions'
+    
+    id = db.Column(Integer, primary_key=True)
+    first_name = db.Column(String(100), nullable=False)
+    last_name = db.Column(String(100), nullable=False)
+    email = db.Column(String(200))
+    phone = db.Column(String(50))
+    amount = db.Column(Float, nullable=False)
+    purpose = db.Column(String(200))  # Donation, Tithe, Offering, etc.
+    transaction_date = db.Column(DateTime, nullable=False, default=datetime.utcnow)
+    receipt_number = db.Column(String(50), unique=True)
+    payment_method = db.Column(Enum(PaymentMethod))
+    payment_comment = db.Column(Text)
+    processed_by_id = db.Column(Integer, ForeignKey('users.id'))
+    created_at = db.Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    processed_by_user = relationship('User', backref='non_member_transactions_processed')
+    
+    @property
+    def full_name(self):
+        """Generate full name from first and last"""
+        return f"{self.first_name} {self.last_name}"

@@ -86,6 +86,13 @@
                     </div>
                 </div>
 
+                {% if not previous_year_complete %}
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Year Locked:</strong> You must complete all 12 months of {{ selected_year|int - 1 }} before making payments for {{ selected_year }}.
+                </div>
+                {% endif %}
+
                 <form method="POST" action="{{ url_for('admin_bulk_pay', member_id=member.id, year=selected_year) }}" id="bulkPayForm">
                     <div class="table-responsive">
                         <table class="table table-bordered">
@@ -126,7 +133,8 @@
                                         {% if contrib.status == 'Unpaid' %}
                                         <button type="button" class="btn btn-sm btn-success pay-single-btn" 
                                                 data-month="{{ month }}"
-                                                data-amount="{{ member.monthly_payment }}">
+                                                data-amount="{{ member.monthly_payment }}"
+                                                {% if not previous_year_complete %}disabled{% endif %}>
                                             <i class="bi bi-cash-coin"></i> Pay
                                         </button>
                                         {% else %}
@@ -243,6 +251,7 @@
     const monthlyPayment = {{ member.monthly_payment }};
     const memberId = "{{ member.id }}";
     const selectedYear = "{{ selected_year }}";
+    const previousYearComplete = {{ 'true' if previous_year_complete else 'false' }};
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 
                     'July', 'August', 'September', 'October', 'November', 'December'];
     
@@ -252,46 +261,13 @@
     
     function updateCheckboxStates() {
         const checkboxes = getCheckboxes();
-        let foundFirstUnchecked = false;
-        let lastCheckedIndex = -1;
         
-        checkboxes.forEach((cb, index) => {
-            if (cb.checked) {
-                lastCheckedIndex = index;
-            }
-        });
-        
-        checkboxes.forEach((cb, index) => {
-            if (cb.checked) {
-                cb.disabled = false;
-            } else if (index === 0 || index === lastCheckedIndex + 1) {
-                cb.disabled = false;
-            } else if (lastCheckedIndex === -1 && index === 0) {
-                cb.disabled = false;
-            } else {
-                cb.disabled = true;
-            }
-        });
-        
-        if (checkboxes.length > 0 && !checkboxes[0].checked) {
-            checkboxes[0].disabled = false;
+        if (!previousYearComplete) {
+            checkboxes.forEach(cb => cb.disabled = true);
+            document.getElementById('selectAll').disabled = true;
+            document.getElementById('bulkPayBtn').disabled = true;
+            return;
         }
-        
-        checkboxes.forEach((cb, index) => {
-            if (!cb.checked && index <= lastCheckedIndex) {
-                cb.disabled = true;
-            }
-        });
-        
-        let canSelect = true;
-        checkboxes.forEach((cb, index) => {
-            if (cb.checked) {
-                cb.disabled = false;
-            } else {
-                cb.disabled = !canSelect;
-                if (canSelect) canSelect = false;
-            }
-        });
         
         let lastSelected = -1;
         for (let i = checkboxes.length - 1; i >= 0; i--) {

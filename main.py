@@ -7,7 +7,7 @@ import csv
 from datetime import datetime
 from functools import wraps
 from io import StringIO, BytesIO
-from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, UserRole, PaymentMethod, PaymentStatus
+from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, UserRole, PaymentMethod, PaymentStatus
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -83,6 +83,19 @@ def get_next_receipt_number():
     
     current_year = datetime.now().year
     receipt = f"RCPT-{current_year}-{counter.counter_value:04d}"
+    counter.counter_value += 1
+    db.session.commit()
+    return receipt
+
+def get_next_nonmember_receipt_number():
+    """Generate next receipt number for non-member transactions with NM prefix"""
+    counter = SequenceCounter.query.filter_by(counter_name='nonmember_receipt_number').first()
+    if not counter:
+        counter = SequenceCounter(counter_name='nonmember_receipt_number', counter_value=1)
+        db.session.add(counter)
+    
+    current_year = datetime.now().year
+    receipt = f"NM-{current_year}-{counter.counter_value:04d}"
     counter.counter_value += 1
     db.session.commit()
     return receipt
@@ -664,7 +677,7 @@ def delete_member(member_id):
     return redirect(url_for('admin_home'))
 
 @app.route('/admin/member-details/<member_id>')
-@admin_required
+@staff_required
 def member_details(member_id):
     """View member details with 12-month breakdown"""
     member = Member.query.filter_by(member_id=member_id).first()
@@ -733,6 +746,23 @@ def member_details(member_id):
     paid_months = sum(1 for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     total_paid = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     
+    # Check if previous year is fully paid (for disabling checkboxes on new years)
+    previous_year = selected_year - 1
+    previous_year_exists = Contribution.query.filter(
+        Contribution.member_id == member.id,
+        Contribution.year == previous_year
+    ).count() > 0
+    
+    if previous_year_exists:
+        previous_year_paid = Contribution.query.filter(
+            Contribution.member_id == member.id,
+            Contribution.year == previous_year,
+            Contribution.status == PaymentStatus.PAID
+        ).count()
+        previous_year_complete = previous_year_paid >= 12
+    else:
+        previous_year_complete = True
+    
     # Get receipt data from session if available (after payment)
     receipt_data = session.pop('receipt_data', None)
     
@@ -754,7 +784,8 @@ def member_details(member_id):
                          available_years=available_years,
                          paid_months=paid_months,
                          total_paid=total_paid,
-                         receipt_data=receipt_data)
+                         receipt_data=receipt_data,
+                         previous_year_complete=previous_year_complete)
 
 @app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
 @staff_required
@@ -1800,10 +1831,25 @@ def admin_correction(member_id, year, month):
 # DAILY REPORTS
 # =============================================================================
 
+def get_month_range_display(months_list, year):
+    """Convert list of months to range display like 'January to March 2024'"""
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    
+    if not months_list:
+        return ""
+    
+    sorted_months = sorted(months_list, key=lambda m: month_order.index(m) if m in month_order else 0)
+    
+    if len(sorted_months) == 1:
+        return f"{sorted_months[0]} {year}"
+    else:
+        return f"{sorted_months[0]} to {sorted_months[-1]} {year}"
+
 @app.route('/admin/reports/daily')
 @admin_required
 def daily_report():
-    """Daily report showing transactions grouped by receipt"""
+    """Daily report showing transactions grouped by receipt with payment method breakdown"""
     from datetime import timedelta
     
     report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
@@ -1826,8 +1872,14 @@ def daily_report():
         Donation.donation_date < end_of_day
     ).all()
     
+    non_member_txns = NonMemberTransaction.query.filter(
+        NonMemberTransaction.transaction_date >= start_of_day,
+        NonMemberTransaction.transaction_date < end_of_day
+    ).all()
+    
     receipts = {}
     total_amount = 0
+    totals_by_method = {'cash': 0, 'zelle': 0, 'venmo': 0, 'credit_card': 0, 'other': 0}
     
     for contrib in contributions:
         receipt_num = contrib.receipt_number or 'No Receipt'
@@ -1836,40 +1888,65 @@ def daily_report():
                 'receipt_number': receipt_num,
                 'member': contrib.member.full_name if contrib.member else 'Unknown',
                 'member_id': contrib.member.member_id if contrib.member else 'N/A',
-                'line_items': [],
+                'is_member': True,
+                'months': [],
+                'year': contrib.year,
                 'total': 0,
                 'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
                 'processed_by': contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown',
-                'time': contrib.payment_date.strftime('%H:%M') if contrib.payment_date else ''
+                'time': contrib.payment_date.strftime('%H:%M') if contrib.payment_date else '',
+                'description': ''
             }
-        receipts[receipt_num]['line_items'].append({
-            'type': 'Contribution',
-            'description': f"{contrib.month} {contrib.year}",
-            'amount': contrib.amount
-        })
+        receipts[receipt_num]['months'].append(contrib.month)
         receipts[receipt_num]['total'] += contrib.amount
         total_amount += contrib.amount
+        if contrib.payment_method:
+            totals_by_method[contrib.payment_method.value] = totals_by_method.get(contrib.payment_method.value, 0) + contrib.amount
+    
+    for receipt_num, receipt_data in receipts.items():
+        if receipt_data.get('months'):
+            receipt_data['description'] = get_month_range_display(receipt_data['months'], receipt_data['year'])
     
     for donation in donations:
-        receipt_num = donation.receipt_number or 'No Receipt'
+        receipt_num = donation.receipt_number or f'DON-{donation.id}'
         if receipt_num not in receipts:
             receipts[receipt_num] = {
                 'receipt_number': receipt_num,
                 'member': donation.member.full_name if donation.member else 'Unknown',
                 'member_id': donation.member.member_id if donation.member else 'N/A',
-                'line_items': [],
+                'is_member': True,
+                'months': [],
+                'year': None,
                 'total': 0,
                 'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
                 'processed_by': donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown',
-                'time': donation.donation_date.strftime('%H:%M') if donation.donation_date else ''
+                'time': donation.donation_date.strftime('%H:%M') if donation.donation_date else '',
+                'description': f"Donation: {donation.purpose or 'General'}"
             }
-        receipts[receipt_num]['line_items'].append({
-            'type': 'Donation',
-            'description': donation.purpose or 'General',
-            'amount': donation.amount
-        })
         receipts[receipt_num]['total'] += donation.amount
         total_amount += donation.amount
+        if donation.payment_method:
+            totals_by_method[donation.payment_method.value] = totals_by_method.get(donation.payment_method.value, 0) + donation.amount
+    
+    for txn in non_member_txns:
+        receipt_num = txn.receipt_number or f'NM-{txn.id}'
+        receipts[receipt_num] = {
+            'receipt_number': receipt_num,
+            'member': txn.full_name,
+            'member_id': 'Non-Member',
+            'is_member': False,
+            'txn_id': txn.id,
+            'months': [],
+            'year': None,
+            'total': txn.amount,
+            'payment_method': txn.payment_method.value if txn.payment_method else 'N/A',
+            'processed_by': txn.processed_by_user.full_name if txn.processed_by_user else 'Unknown',
+            'time': txn.transaction_date.strftime('%H:%M') if txn.transaction_date else '',
+            'description': txn.purpose or 'General'
+        }
+        total_amount += txn.amount
+        if txn.payment_method:
+            totals_by_method[txn.payment_method.value] = totals_by_method.get(txn.payment_method.value, 0) + txn.amount
     
     receipt_list = sorted(receipts.values(), key=lambda x: x['receipt_number'], reverse=True)
     
@@ -1877,7 +1954,123 @@ def daily_report():
                          report_date=target_date.strftime('%Y-%m-%d'),
                          receipts=receipt_list,
                          total_amount=total_amount,
+                         totals_by_method=totals_by_method,
                          receipt_count=len(receipt_list))
+
+# =============================================================================
+# NON-MEMBER TRANSACTIONS
+# =============================================================================
+
+@app.route('/admin/non-member-transactions')
+@staff_required
+def non_member_transactions():
+    """List all non-member transactions"""
+    transactions = NonMemberTransaction.query.order_by(NonMemberTransaction.transaction_date.desc()).all()
+    return render_template('non_member_transactions.html', transactions=transactions)
+
+def sanitize_input(text, max_length=200):
+    """Sanitize user input by limiting length and escaping HTML entities"""
+    if not text:
+        return text
+    from markupsafe import escape
+    text = str(text)[:max_length]
+    text = str(escape(text))
+    text = text.strip()
+    return text if text else None
+
+@app.route('/admin/non-member-transaction/add', methods=['GET', 'POST'])
+@staff_required
+def add_non_member_transaction():
+    """Add a new non-member transaction"""
+    current_user = get_current_user()
+    
+    if request.method == 'POST':
+        try:
+            first_name = sanitize_input(request.form.get('first_name', ''), 100)
+            last_name = sanitize_input(request.form.get('last_name', ''), 100)
+            email = sanitize_input(request.form.get('email', ''), 200) or None
+            phone = sanitize_input(request.form.get('phone', ''), 50) or None
+            amount = float(request.form.get('amount', 0))
+            purpose = sanitize_input(request.form.get('purpose', ''), 200) or 'General'
+            payment_method = request.form.get('payment_method', 'cash')
+            payment_comment = sanitize_input(request.form.get('payment_comment', ''), 500) or None
+            
+            if not first_name or not last_name:
+                flash('First name and last name are required.', 'danger')
+                return render_template('add_non_member_transaction.html', payment_methods=PaymentMethod)
+            
+            if len(first_name) < 2 or len(last_name) < 2:
+                flash('First name and last name must be at least 2 characters.', 'danger')
+                return render_template('add_non_member_transaction.html', payment_methods=PaymentMethod)
+            
+            if amount <= 0:
+                flash('Amount must be greater than 0.', 'danger')
+                return render_template('add_non_member_transaction.html', payment_methods=PaymentMethod)
+            
+            receipt_number = get_next_nonmember_receipt_number()
+            
+            txn = NonMemberTransaction(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,
+                amount=amount,
+                purpose=purpose,
+                transaction_date=datetime.utcnow(),
+                receipt_number=receipt_number,
+                payment_method=PaymentMethod(payment_method),
+                payment_comment=payment_comment,
+                processed_by_id=current_user.id if current_user else None
+            )
+            db.session.add(txn)
+            db.session.commit()
+            
+            flash(f'Transaction recorded for {first_name} {last_name}. Receipt: {receipt_number}', 'success')
+            
+            session['non_member_receipt_data'] = {
+                'receipt_number': receipt_number,
+                'name': f"{first_name} {last_name}",
+                'amount': amount,
+                'purpose': purpose,
+                'payment_method': payment_method.capitalize(),
+                'date': datetime.now().strftime('%Y-%m-%d %H:%M')
+            }
+            
+            return redirect(url_for('non_member_transactions'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding transaction: {str(e)}', 'danger')
+    
+    return render_template('add_non_member_transaction.html', payment_methods=PaymentMethod)
+
+@app.route('/admin/non-member-transaction/<int:txn_id>/receipt')
+@staff_required
+def view_non_member_receipt(txn_id):
+    """View receipt for non-member transaction"""
+    txn = db.session.get(NonMemberTransaction, txn_id)
+    if not txn:
+        flash('Transaction not found.', 'danger')
+        return redirect(url_for('non_member_transactions'))
+    
+    receipt_data = {
+        'receipt_number': txn.receipt_number,
+        'name': txn.full_name,
+        'email': txn.email,
+        'phone': txn.phone,
+        'is_member': False,
+        'line_items': [{
+            'description': txn.purpose or 'General',
+            'amount': txn.amount
+        }],
+        'total': txn.amount,
+        'payment_method': txn.payment_method.value if txn.payment_method else 'N/A',
+        'payment_comment': txn.payment_comment,
+        'date': txn.transaction_date.strftime('%Y-%m-%d %H:%M') if txn.transaction_date else '',
+        'processed_by': txn.processed_by_user.full_name if txn.processed_by_user else 'Unknown'
+    }
+    
+    return render_template('view_non_member_receipt.html', receipt=receipt_data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

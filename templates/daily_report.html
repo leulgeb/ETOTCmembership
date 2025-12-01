@@ -26,7 +26,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h3>${{ "%.2f"|format(total_amount) }}</h3>
@@ -34,11 +34,37 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <h3>{{ receipt_count }}</h3>
                     <p class="mb-0">Receipts Issued</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">By Payment Method</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row small">
+                        {% if totals_by_method.cash > 0 %}
+                        <div class="col-6"><strong>Cash:</strong> ${{ "%.2f"|format(totals_by_method.cash) }}</div>
+                        {% endif %}
+                        {% if totals_by_method.zelle > 0 %}
+                        <div class="col-6"><strong>Zelle:</strong> ${{ "%.2f"|format(totals_by_method.zelle) }}</div>
+                        {% endif %}
+                        {% if totals_by_method.venmo > 0 %}
+                        <div class="col-6"><strong>Venmo:</strong> ${{ "%.2f"|format(totals_by_method.venmo) }}</div>
+                        {% endif %}
+                        {% if totals_by_method.credit_card > 0 %}
+                        <div class="col-6"><strong>Card:</strong> ${{ "%.2f"|format(totals_by_method.credit_card) }}</div>
+                        {% endif %}
+                        {% if totals_by_method.other > 0 %}
+                        <div class="col-6"><strong>Other:</strong> ${{ "%.2f"|format(totals_by_method.other) }}</div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,7 +81,7 @@
                     <tr>
                         <th>Receipt #</th>
                         <th>Time</th>
-                        <th>Member</th>
+                        <th>Name</th>
                         <th>Description</th>
                         <th>Method</th>
                         <th>Processed By</th>
@@ -66,25 +92,37 @@
                     {% for receipt in receipts %}
                     <tr>
                         <td>
+                            {% if receipt.is_member %}
                             <a href="{{ url_for('view_receipt', member_id=receipt.member_id, receipt_number=receipt.receipt_number) }}" 
                                class="text-decoration-none">
                                 <strong>{{ receipt.receipt_number }}</strong>
                             </a>
+                            {% else %}
+                            <a href="{{ url_for('view_non_member_receipt', txn_id=receipt.txn_id) }}" 
+                               class="text-decoration-none">
+                                <strong>{{ receipt.receipt_number }}</strong>
+                            </a>
+                            {% endif %}
                         </td>
                         <td>{{ receipt.time }}</td>
                         <td>
-                            {{ receipt.member }}<br>
-                            <small class="text-muted">{{ receipt.member_id }}</small>
+                            {{ receipt.member }}
+                            <br>
+                            <small class="{% if receipt.is_member %}text-muted{% else %}text-warning{% endif %}">
+                                {% if receipt.is_member %}{{ receipt.member_id }}{% else %}Guest{% endif %}
+                            </small>
                         </td>
+                        <td>{{ receipt.description }}</td>
                         <td>
-                            {% for item in receipt.line_items %}
-                            <span class="badge {% if item.type == 'Contribution' %}bg-primary{% else %}bg-info{% endif %}">
-                                {{ item.type }}
+                            <span class="badge 
+                                {% if receipt.payment_method == 'cash' %}bg-success
+                                {% elif receipt.payment_method == 'zelle' %}bg-primary
+                                {% elif receipt.payment_method == 'venmo' %}bg-info
+                                {% elif receipt.payment_method == 'credit_card' %}bg-warning text-dark
+                                {% else %}bg-secondary{% endif %}">
+                                {{ receipt.payment_method|title|replace('_', ' ') }}
                             </span>
-                            {{ item.description }}{% if not loop.last %}<br>{% endif %}
-                            {% endfor %}
                         </td>
-                        <td><span class="badge bg-secondary">{{ receipt.payment_method|title }}</span></td>
                         <td>{{ receipt.processed_by }}</td>
                         <td class="text-end"><strong>${{ "%.2f"|format(receipt.total) }}</strong></td>
                     </tr>
@@ -102,7 +140,7 @@
     {% else %}
     <div class="alert alert-info">
         <h5>No transactions for {{ report_date }}</h5>
-        <p>No contributions or donations were processed on this date.</p>
+        <p>No contributions, donations, or non-member transactions were processed on this date.</p>
     </div>
     {% endif %}
 

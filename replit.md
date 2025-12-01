@@ -19,6 +19,7 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Contribution**: Monthly payment records with payment method tracking
 - **Donation**: Additional one-time donations
 - **ChangeLog**: Audit log for admin corrections
+- **NonMemberTransaction**: Transactions for guests/visitors (not church members)
 
 ### File Structure
 ```
@@ -37,7 +38,10 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 │   ├── add_user.html      # Add new user form
 │   ├── edit_user.html     # Edit user form
 │   ├── admin_correction.html # Admin correction with change history
-│   ├── daily_report.html  # Daily collections report
+│   ├── daily_report.html  # Daily collections report with payment method breakdown
+│   ├── non_member_transactions.html  # Non-member transaction list
+│   ├── add_non_member_transaction.html  # Add non-member transaction form
+│   ├── view_non_member_receipt.html  # View non-member transaction receipt
 │   └── ...                # Other templates
 └── static/
     └── css/               # Static assets (Bootstrap CDN used)
@@ -79,6 +83,12 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 1, 2025**: Added non-member transaction feature for guests/visitors
+- **December 1, 2025**: Daily report now shows month ranges (e.g., "January to March 2024")
+- **December 1, 2025**: Daily report displays payment method breakdown (Cash, Zelle totals)
+- **December 1, 2025**: New year payments require previous year to be fully completed
+- **December 1, 2025**: Fixed cashier access to member details page
+- **December 1, 2025**: Added input sanitization for security
 - **November 30, 2025**: Added role-based navigation with Admin/Cashier badges
 - **November 30, 2025**: Added admin correction feature with mandatory comments and change log
 - **November 30, 2025**: Added daily reports showing contributions grouped by processor

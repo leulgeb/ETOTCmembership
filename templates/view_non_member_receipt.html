@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt {{ receipt.receipt_number }} - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Receipt</h2>
+                <a href="{{ url_for('non_member_transactions') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+
+            <div class="card" id="receipt-card">
+                <div class="card-header bg-dark text-white text-center">
+                    <h4 class="mb-0">ETOTC Church</h4>
+                    <small>Payment Receipt</small>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Receipt #:</strong></p>
+                            <p class="h5 text-primary">{{ receipt.receipt_number }}</p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <p class="mb-1"><strong>Date:</strong></p>
+                            <p>{{ receipt.date }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h5>Guest Information</h5>
+                        <p class="mb-1"><strong>Name:</strong> {{ receipt.name }}</p>
+                        {% if receipt.email %}
+                        <p class="mb-1"><strong>Email:</strong> {{ receipt.email }}</p>
+                        {% endif %}
+                        {% if receipt.phone %}
+                        <p class="mb-1"><strong>Phone:</strong> {{ receipt.phone }}</p>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <table class="table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in receipt.line_items %}
+                            <tr>
+                                <td>{{ item.description }}</td>
+                                <td class="text-end">${{ "%.2f"|format(item.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <th>Total</th>
+                                <th class="text-end">${{ "%.2f"|format(receipt.total) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Payment Method:</strong></p>
+                            <span class="badge bg-secondary">{{ receipt.payment_method|title|replace('_', ' ') }}</span>
+                            {% if receipt.payment_comment %}
+                            <br><small class="text-muted">{{ receipt.payment_comment }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <p class="mb-1"><strong>Processed By:</strong></p>
+                            <p>{{ receipt.processed_by }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="text-center text-muted">
+                        <small>Thank you for your generous contribution!</small>
+                        <br>
+                        <small>God bless you abundantly.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4 d-print-none">
+                <button onclick="window.print()" class="btn btn-primary btn-lg">
+                    <i class="bi bi-printer"></i> Print Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .d-print-none { display: none !important; }
+    .navbar, footer { display: none !important; }
+    .container { max-width: 100% !important; }
+    .card { border: 1px solid #000 !important; }
+}
+</style>
+{% endblock %}

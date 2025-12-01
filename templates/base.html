@@ -102,6 +102,11 @@
                                 <i class="bi bi-gift"></i> Donations
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('non_member_transactions') }}">
+                                <i class="bi bi-person-dash"></i> Non-Member
+                            </a>
+                        </li>
                         {% if session.user_role == 'admin' %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
