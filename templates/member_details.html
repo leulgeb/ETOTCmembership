@@ -133,6 +133,7 @@
                                         {% if contrib.status == 'Unpaid' %}
                                         <button type="button" class="btn btn-sm btn-success pay-single-btn" 
                                                 data-month="{{ month }}"
+                                                data-month-index="{{ loop.index0 }}"
                                                 data-amount="{{ member.monthly_payment }}"
                                                 {% if not previous_year_complete %}disabled{% endif %}>
                                             <i class="bi bi-cash-coin"></i> Pay
@@ -259,6 +260,37 @@
         return Array.from(document.querySelectorAll('.month-checkbox'));
     }
     
+    function isMonthPaid(monthIndex) {
+        const checkboxes = getCheckboxes();
+        // If there are no checkboxes for earlier months (all paid), they're paid
+        if (monthIndex > 0) {
+            const prevCheckbox = checkboxes[monthIndex - 1];
+            if (prevCheckbox) {
+                // If checkbox exists, the month is unpaid
+                return false;
+            } else {
+                // If no checkbox, the month is paid
+                return true;
+            }
+        }
+        return true;
+    }
+    
+    function updatePayButtonStates() {
+        const payButtons = document.querySelectorAll('.pay-single-btn');
+        payButtons.forEach(btn => {
+            const monthIndex = parseInt(btn.getAttribute('data-month-index'));
+            let shouldDisable = !previousYearComplete;
+            
+            // For months after January, check if previous month is paid
+            if (monthIndex > 0 && !shouldDisable) {
+                shouldDisable = !isMonthPaid(monthIndex);
+            }
+            
+            btn.disabled = shouldDisable;
+        });
+    }
+    
     function updateCheckboxStates() {
         const checkboxes = getCheckboxes();
         
@@ -266,28 +298,28 @@
             checkboxes.forEach(cb => cb.disabled = true);
             document.getElementById('selectAll').disabled = true;
             document.getElementById('bulkPayBtn').disabled = true;
-            return;
-        }
-        
-        let lastSelected = -1;
-        for (let i = checkboxes.length - 1; i >= 0; i--) {
-            if (checkboxes[i].checked) {
-                lastSelected = i;
-                break;
+        } else {
+            let lastSelected = -1;
+            for (let i = checkboxes.length - 1; i >= 0; i--) {
+                if (checkboxes[i].checked) {
+                    lastSelected = i;
+                    break;
+                }
             }
+            
+            checkboxes.forEach((cb, index) => {
+                if (cb.checked) {
+                    cb.disabled = false;
+                } else if (lastSelected === -1 && index === 0) {
+                    cb.disabled = false;
+                } else if (index === lastSelected + 1) {
+                    cb.disabled = false;
+                } else {
+                    cb.disabled = true;
+                }
+            });
         }
-        
-        checkboxes.forEach((cb, index) => {
-            if (cb.checked) {
-                cb.disabled = false;
-            } else if (lastSelected === -1 && index === 0) {
-                cb.disabled = false;
-            } else if (index === lastSelected + 1) {
-                cb.disabled = false;
-            } else {
-                cb.disabled = true;
-            }
-        });
+        updatePayButtonStates();
     }
     
     document.getElementById('selectAll').addEventListener('change', function() {
@@ -313,6 +345,7 @@
     
     document.addEventListener('DOMContentLoaded', function() {
         updateCheckboxStates();
+        updatePayButtonStates();
     });
 
     function updateSelectedInfo() {
