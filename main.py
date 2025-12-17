@@ -478,6 +478,9 @@ def login():
             return redirect(url_for('admin_home'))
         else:
             flash('Invalid credentials. Please try again.', 'danger')
+    else:
+        # Clear session on GET request to show clean login page
+        session.clear()
     
     return render_template('login.html')
 
@@ -492,6 +495,8 @@ def member_login():
         member = Member.query.filter_by(member_id=member_id).first()
         
         if member and member.is_active and check_password_hash(member.password_hash, password):
+            # Clear session before setting new session data
+            session.clear()
             session['member_id'] = member.id
             session['member_code'] = member.member_id
             session['member_name'] = member.full_name
@@ -499,6 +504,9 @@ def member_login():
             return redirect(url_for('member_dashboard'))
         else:
             flash('Invalid Member ID or Password. Please try again.', 'danger')
+    else:
+        # Clear session on GET request to show clean login page
+        session.clear()
     
     return render_template('member_login.html')
 
