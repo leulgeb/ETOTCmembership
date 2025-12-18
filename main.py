@@ -453,6 +453,10 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Admin/Cashier login"""
+    # If already logged in, redirect to dashboard
+    if session.get('is_staff'):
+        return redirect(url_for('admin_home'))
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -478,15 +482,16 @@ def login():
             return redirect(url_for('admin_home'))
         else:
             flash('Invalid credentials. Please try again.', 'danger')
-    else:
-        # Clear session on GET request to show clean login page
-        session.clear()
     
     return render_template('login.html')
 
 @app.route('/member-login', methods=['GET', 'POST'])
 def member_login():
     """Member login with ID and password"""
+    # If already logged in, redirect to dashboard
+    if session.get('member_id'):
+        return redirect(url_for('member_dashboard'))
+    
     if request.method == 'POST':
         member_id = request.form.get('member_id', '').strip().upper()
         password = request.form.get('password')
@@ -504,9 +509,6 @@ def member_login():
             return redirect(url_for('member_dashboard'))
         else:
             flash('Invalid Member ID or Password. Please try again.', 'danger')
-    else:
-        # Clear session on GET request to show clean login page
-        session.clear()
     
     return render_template('member_login.html')
 
