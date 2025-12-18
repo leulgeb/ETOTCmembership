@@ -12,6 +12,13 @@ from models import db, User, Member, Contribution, Donation, ChangeLog, Sequence
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
 
+# Session configuration
+from datetime import timedelta
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 # Email configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
@@ -469,12 +476,12 @@ def login():
             session.clear()
             
             # Set session variables
+            session.permanent = True
             session['user_id'] = user.id
             session['username'] = user.username
             session['user_role'] = user.role.value
             session['user_name'] = user.full_name or user.username
             session['is_staff'] = True
-            session.permanent = True
             session.modified = True
             
             role_display = "Admin" if user.role == UserRole.ADMIN else "Cashier"
@@ -502,9 +509,11 @@ def member_login():
         if member and member.is_active and check_password_hash(member.password_hash, password):
             # Clear session before setting new session data
             session.clear()
+            session.permanent = True
             session['member_id'] = member.id
             session['member_code'] = member.member_id
             session['member_name'] = member.full_name
+            session.modified = True
             flash(f'Welcome, {member.full_name}!', 'success')
             return redirect(url_for('member_dashboard'))
         else:
