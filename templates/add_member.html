@@ -307,6 +307,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     marriedRadio.addEventListener('change', toggleSpouseSection);
     singleRadio.addEventListener('change', toggleSpouseSection);
+    
+    // Initial toggle based on form data (for error cases)
+    toggleSpouseSection();
 
     function addChildRow() {
         childCount++;

@@ -721,10 +721,7 @@ def add_member():
             friendly_error = 'Error adding member. Please check the highlighted fields.'
             
             # Check for specific error patterns
-            if 'gender' in error_str.lower():
-                error_fields.append('spouse_gender')
-                friendly_error = 'Invalid gender selection for spouse. Please select Male or Female.'
-            elif 'date_of_birth' in error_str.lower() or 'dob' in error_str.lower():
+            if 'date_of_birth' in error_str.lower() or 'dob' in error_str.lower():
                 error_fields.append('spouse_date_of_birth')
                 friendly_error = 'Invalid date format. Please use YYYY-MM-DD format.'
             elif 'phone' in error_str.lower():
