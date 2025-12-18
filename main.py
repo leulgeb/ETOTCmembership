@@ -720,23 +720,30 @@ def add_member():
             error_fields = []
             friendly_error = 'Unable to save member information. Please verify all fields are filled correctly.'
             
-            # For database errors, identify which field is problematic but don't give technical format messages
+            # For database errors, identify which field is problematic and give specific messages
             # System-provided inputs (dates, selects) are formatted correctly by the browser
             if 'spouse' in error_str.lower():
                 if 'first_name' in error_str.lower():
                     error_fields.append('spouse_first_name')
+                    friendly_error = 'There is an issue with the Spouse First Name. Please check and try again.'
                 elif 'last_name' in error_str.lower():
                     error_fields.append('spouse_last_name')
+                    friendly_error = 'There is an issue with the Spouse Last Name. Please check and try again.'
                 elif 'father_name' in error_str.lower():
                     error_fields.append('spouse_father_name')
+                    friendly_error = 'There is an issue with the Spouse Father\'s Name. Please check and try again.'
                 elif 'phone' in error_str.lower():
                     error_fields.append('spouse_phone')
+                    friendly_error = 'There is an issue with the Spouse Phone Number. Please check and try again.'
                 elif 'email' in error_str.lower():
                     error_fields.append('spouse_email')
+                    friendly_error = 'There is an issue with the Spouse Email. Please check and try again.'
                 elif 'date' in error_str.lower():
                     error_fields.append('spouse_date_of_birth')
+                    friendly_error = 'There is an issue with the Spouse Date of Birth. Please check and try again.'
                 elif 'baptismal' in error_str.lower():
                     error_fields.append('spouse_baptismal_name')
+                    friendly_error = 'There is an issue with the Spouse Baptismal Name. Please check and try again.'
             
             flash(friendly_error, 'danger')
             
