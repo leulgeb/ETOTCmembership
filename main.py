@@ -714,8 +714,39 @@ def add_member():
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error adding member: {str(e)}', 'danger')
-            return render_template('add_member.html', suggested_id=suggested_id)
+            
+            # Build error message and identify problematic fields
+            error_str = str(e)
+            error_fields = []
+            friendly_error = 'Error adding member. Please check the highlighted fields.'
+            
+            # Check for specific error patterns
+            if 'gender' in error_str.lower():
+                error_fields.append('spouse_gender')
+                friendly_error = 'Invalid gender selection for spouse. Please select Male or Female.'
+            elif 'date_of_birth' in error_str.lower() or 'dob' in error_str.lower():
+                error_fields.append('spouse_date_of_birth')
+                friendly_error = 'Invalid date format. Please use YYYY-MM-DD format.'
+            elif 'phone' in error_str.lower():
+                error_fields.append('spouse_phone')
+                friendly_error = 'Invalid phone number format.'
+            elif 'email' in error_str.lower():
+                error_fields.append('spouse_email')
+                friendly_error = 'Invalid email format.'
+            elif 'last_name' in error_str.lower():
+                error_fields.append('spouse_last_name')
+                friendly_error = 'Invalid spouse last name.'
+            elif 'first_name' in error_str.lower():
+                error_fields.append('spouse_first_name')
+                friendly_error = 'Invalid spouse first name.'
+            
+            flash(friendly_error, 'danger')
+            
+            # Pass form data and error fields back to template
+            return render_template('add_member.html', 
+                                 suggested_id=suggested_id,
+                                 form_data=request.form,
+                                 error_fields=error_fields)
     
     return render_template('add_member.html', suggested_id=suggested_id)
 

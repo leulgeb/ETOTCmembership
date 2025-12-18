@@ -148,43 +148,43 @@
                                 <div class="row mb-3">
                                     <div class="col-md-4">
                                         <label for="spouse_first_name" class="form-label">First Name</label>
-                                        <input type="text" class="form-control" id="spouse_first_name" name="spouse_first_name">
+                                        <input type="text" class="form-control error-field-check" id="spouse_first_name" name="spouse_first_name" value="{{ request.form.get('spouse_first_name', '') }}" {% if 'spouse_first_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="spouse_father_name" class="form-label">Father's Name</label>
-                                        <input type="text" class="form-control" id="spouse_father_name" name="spouse_father_name">
+                                        <input type="text" class="form-control error-field-check" id="spouse_father_name" name="spouse_father_name" value="{{ request.form.get('spouse_father_name', '') }}" {% if 'spouse_father_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="spouse_last_name" class="form-label">Last Name</label>
-                                        <input type="text" class="form-control" id="spouse_last_name" name="spouse_last_name">
+                                        <input type="text" class="form-control error-field-check" id="spouse_last_name" name="spouse_last_name" value="{{ request.form.get('spouse_last_name', '') }}" {% if 'spouse_last_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-md-4">
                                         <label for="spouse_baptismal_name" class="form-label">Baptismal (Christian) Name</label>
-                                        <input type="text" class="form-control" id="spouse_baptismal_name" name="spouse_baptismal_name">
+                                        <input type="text" class="form-control error-field-check" id="spouse_baptismal_name" name="spouse_baptismal_name" value="{{ request.form.get('spouse_baptismal_name', '') }}" {% if 'spouse_baptismal_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="spouse_date_of_birth" class="form-label">Date of Birth</label>
-                                        <input type="date" class="form-control" id="spouse_date_of_birth" name="spouse_date_of_birth">
+                                        <input type="date" class="form-control error-field-check" id="spouse_date_of_birth" name="spouse_date_of_birth" value="{{ request.form.get('spouse_date_of_birth', '') }}" {% if 'spouse_date_of_birth' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="spouse_gender" class="form-label">Gender</label>
-                                        <select class="form-select" id="spouse_gender" name="spouse_gender">
+                                        <select class="form-select error-field-check" id="spouse_gender" name="spouse_gender" {% if 'spouse_gender' in error_fields %}data-has-error="true"{% endif %}>
                                             <option value="">Select...</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
+                                            <option value="male" {% if request.form.get('spouse_gender') == 'male' %}selected{% endif %}>Male</option>
+                                            <option value="female" {% if request.form.get('spouse_gender') == 'female' %}selected{% endif %}>Female</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label for="spouse_phone" class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" id="spouse_phone" name="spouse_phone">
+                                        <input type="tel" class="form-control error-field-check" id="spouse_phone" name="spouse_phone" value="{{ request.form.get('spouse_phone', '') }}" {% if 'spouse_phone' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="spouse_email" class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="spouse_email" name="spouse_email">
+                                        <input type="email" class="form-control error-field-check" id="spouse_email" name="spouse_email" value="{{ request.form.get('spouse_email', '') }}" {% if 'spouse_email' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                 </div>
                             </div>
@@ -277,6 +277,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial highlight on page load
     highlightMissingFields();
+    
+    // Highlight error fields from form submission
+    document.querySelectorAll('[data-has-error="true"]').forEach(field => {
+        field.classList.add('missing-field');
+    });
+    
+    // Remove error highlight when user starts typing/changing
+    document.querySelectorAll('.error-field-check').forEach(field => {
+        field.addEventListener('input', function() {
+            if (this.value) {
+                this.classList.remove('missing-field');
+            }
+        });
+        field.addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('missing-field');
+            }
+        });
+    });
 
     function toggleSpouseSection() {
         if (marriedRadio.checked) {
