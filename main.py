@@ -723,13 +723,7 @@ def add_member():
             # For database errors, identify which field is problematic and give specific messages
             # System-provided inputs (dates, selects) are formatted correctly by the browser
             if 'spouse' in error_str.lower():
-                if 'first_name' in error_str.lower():
-                    error_fields.append('spouse_first_name')
-                    friendly_error = 'There is an issue with the Spouse First Name. Please check and try again.'
-                elif 'last_name' in error_str.lower():
-                    error_fields.append('spouse_last_name')
-                    friendly_error = 'There is an issue with the Spouse Last Name. Please check and try again.'
-                elif 'father_name' in error_str.lower():
+                if 'father_name' in error_str.lower():
                     error_fields.append('spouse_father_name')
                     friendly_error = 'There is an issue with the Spouse Father\'s Name. Please check and try again.'
                 elif 'phone' in error_str.lower():
