@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
 import csv
+import re
 from datetime import datetime
 from functools import wraps
 from io import StringIO, BytesIO
@@ -106,6 +107,15 @@ def get_next_nonmember_receipt_number():
     counter.counter_value += 1
     db.session.commit()
     return receipt
+
+def is_valid_phone(phone_number):
+    """Check if phone number is a valid 10-digit number"""
+    if not phone_number:
+        return True  # Empty phone is okay
+    # Remove all non-digit characters
+    digits_only = re.sub(r'\D', '', phone_number)
+    # Check if it's exactly 10 digits
+    return len(digits_only) == 10
 
 def load_data():
     """Load data from JSON file with error handling"""
@@ -725,8 +735,11 @@ def add_member():
             # NOTE: Do NOT check for spouse name errors (first_name, last_name, father_name)
             if 'spouse' in error_str.lower():
                 if 'phone' in error_str.lower():
-                    error_fields.append('spouse_phone')
-                    friendly_error = 'There is an issue with the Spouse Phone Number. Please check and try again.'
+                    # Only show error if phone is NOT valid 10-digit number
+                    spouse_phone = request.form.get('spouse_phone', '').strip() or None
+                    if spouse_phone and not is_valid_phone(spouse_phone):
+                        error_fields.append('spouse_phone')
+                        friendly_error = 'There is an issue with the Spouse Phone Number. Please check and try again.'
                 elif 'email' in error_str.lower():
                     error_fields.append('spouse_email')
                     friendly_error = 'There is an issue with the Spouse Email. Please check and try again.'
