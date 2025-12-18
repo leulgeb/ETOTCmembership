@@ -1040,6 +1040,87 @@ def admin_pay_month(member_id, year, month):
     flash(f'Payment processed successfully for {month}! Receipt: {receipt_number}', 'success')
     return redirect(url_for('member_details', member_id=member_id, year=year))
 
+@app.route('/admin/add-donation/<member_id>', methods=['POST'])
+@staff_required
+def admin_add_donation(member_id):
+    """Admin processes a donation/special payment"""
+    current_user = get_current_user()
+    member = Member.query.filter_by(member_id=member_id).first()
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    try:
+        donation_reason = request.form.get('donation_reason', '').strip()
+        amount_str = request.form.get('donation_amount', '').strip()
+        payment_method_str = request.form.get('donation_payment_method', 'cash')
+        payment_comment = request.form.get('donation_comment', '').strip()
+        
+        if not donation_reason or not amount_str:
+            flash('Payment type and amount are required.', 'danger')
+            return redirect(url_for('member_details', member_id=member_id))
+        
+        try:
+            amount = float(amount_str)
+            if amount <= 0:
+                flash('Amount must be greater than zero.', 'danger')
+                return redirect(url_for('member_details', member_id=member_id))
+        except ValueError:
+            flash('Invalid amount.', 'danger')
+            return redirect(url_for('member_details', member_id=member_id))
+        
+        # Create donation record
+        donation = Donation(
+            member_id=member.id,
+            amount=amount,
+            purpose=donation_reason.title(),
+            payment_date=datetime.now(),
+            payment_method=PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH,
+            payment_comment=payment_comment,
+            processed_by_id=current_user.id,
+            receipt_number=get_next_receipt_number()
+        )
+        db.session.add(donation)
+        db.session.commit()
+        
+        # Store receipt data in session for display
+        receipt_data = {
+            'receipt_number': donation.receipt_number,
+            'date': donation.payment_date.strftime('%Y-%m-%d'),
+            'member_name': member.full_name,
+            'member_id': member.member_id,
+            'member_email': member.email or '',
+            'payments': [{
+                'type': 'donation',
+                'reason': donation.purpose,
+                'amount': donation.amount
+            }],
+            'total': donation.amount,
+            'payment_method': donation.payment_method.value,
+            'processed_by': current_user.full_name or current_user.username,
+            'payment_reason': donation_reason
+        }
+        session['receipt_data'] = receipt_data
+        
+        # Send email automatically
+        if member.email:
+            email_sent = send_receipt_email(
+                member.email,
+                member.full_name,
+                receipt_data,
+                False,
+                None
+            )
+            if email_sent:
+                flash(f'Receipt emailed to {member.email}', 'info')
+        
+        flash(f'Donation processed successfully! Receipt: {donation.receipt_number}', 'success')
+        return redirect(url_for('member_details', member_id=member_id))
+        
+    except Exception as e:
+        flash(f'Error processing donation: {str(e)}', 'danger')
+        return redirect(url_for('member_details', member_id=member_id))
 
 @app.route('/admin/bulk-pay/<member_id>/<year>', methods=['POST'])
 @staff_required

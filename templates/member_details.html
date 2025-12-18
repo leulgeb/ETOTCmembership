@@ -189,6 +189,61 @@
     </div>
 </div>
 
+<!-- Donations/Other Payments Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-gift"></i> Other Payments (Donations/Special)</h4>
+                
+                <form method="POST" action="{{ url_for('admin_add_donation', member_id=member.id) }}" id="donationForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Payment Type *</label>
+                            <select name="donation_reason" class="form-select" id="donationReason" required onchange="updateDonationForm()">
+                                <option value="">-- Select Type --</option>
+                                <option value="baptism">Baptism</option>
+                                <option value="fithat">Fithat</option>
+                                <option value="sunday_offering">Sunday Offering</option>
+                                <option value="donation">Donation</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Amount *</label>
+                            <input type="number" name="donation_amount" class="form-control" id="donationAmount" placeholder="0.00" step="0.01" min="0.01" required disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Payment Method *</label>
+                            <select name="donation_payment_method" class="form-select" id="donationPayMethod" required disabled>
+                                <option value="cash">Cash</option>
+                                <option value="zelle">Zelle</option>
+                                <option value="venmo">Venmo</option>
+                                <option value="credit_card">Credit Card</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Comment (Optional)</label>
+                            <input type="text" name="donation_comment" class="form-control" id="donationComment" placeholder="e.g., Check #123" disabled>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="reset" class="btn btn-secondary" onclick="resetDonationForm()">
+                                <i class="bi bi-arrow-counterclockwise"></i> Clear
+                            </button>
+                            <button type="submit" class="btn btn-success" id="submitDonationBtn" disabled>
+                                <i class="bi bi-cash-stack"></i> Process Donation
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -357,6 +412,41 @@
         document.getElementById('selectedTotal').textContent = '$' + total.toFixed(2);
         document.getElementById('bulkPayBtn').disabled = count === 0;
     }
+    
+    function updateDonationForm() {
+        const reason = document.getElementById('donationReason').value;
+        const amountField = document.getElementById('donationAmount');
+        const methodField = document.getElementById('donationPayMethod');
+        const commentField = document.getElementById('donationComment');
+        const submitBtn = document.getElementById('submitDonationBtn');
+        
+        if (reason) {
+            amountField.disabled = false;
+            methodField.disabled = false;
+            commentField.disabled = false;
+        } else {
+            amountField.disabled = true;
+            methodField.disabled = true;
+            commentField.disabled = true;
+            amountField.value = '';
+            submitBtn.disabled = true;
+        }
+    }
+    
+    function resetDonationForm() {
+        document.getElementById('donationForm').reset();
+        document.getElementById('donationAmount').disabled = true;
+        document.getElementById('donationPayMethod').disabled = true;
+        document.getElementById('donationComment').disabled = true;
+        document.getElementById('submitDonationBtn').disabled = true;
+    }
+    
+    document.getElementById('donationAmount').addEventListener('input', function() {
+        const submitBtn = document.getElementById('submitDonationBtn');
+        const reason = document.getElementById('donationReason').value;
+        const amount = parseFloat(this.value);
+        submitBtn.disabled = !reason || !amount || amount <= 0;
+    });
 
     document.querySelectorAll('.pay-single-btn').forEach(btn => {
         btn.addEventListener('click', function() {
