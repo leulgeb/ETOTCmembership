@@ -718,24 +718,25 @@ def add_member():
             # Build error message and identify problematic fields
             error_str = str(e)
             error_fields = []
-            friendly_error = 'Error adding member. Please check the highlighted fields.'
+            friendly_error = 'Unable to save member information. Please verify all fields are filled correctly.'
             
-            # Check for specific error patterns
-            if 'date_of_birth' in error_str.lower() or 'dob' in error_str.lower():
-                error_fields.append('spouse_date_of_birth')
-                friendly_error = 'Invalid date format. Please use YYYY-MM-DD format.'
-            elif 'phone' in error_str.lower():
-                error_fields.append('spouse_phone')
-                friendly_error = 'Invalid phone number format.'
-            elif 'email' in error_str.lower():
-                error_fields.append('spouse_email')
-                friendly_error = 'Invalid email format.'
-            elif 'last_name' in error_str.lower():
-                error_fields.append('spouse_last_name')
-                friendly_error = 'Invalid spouse last name.'
-            elif 'first_name' in error_str.lower():
-                error_fields.append('spouse_first_name')
-                friendly_error = 'Invalid spouse first name.'
+            # For database errors, identify which field is problematic but don't give technical format messages
+            # System-provided inputs (dates, selects) are formatted correctly by the browser
+            if 'spouse' in error_str.lower():
+                if 'first_name' in error_str.lower():
+                    error_fields.append('spouse_first_name')
+                elif 'last_name' in error_str.lower():
+                    error_fields.append('spouse_last_name')
+                elif 'father_name' in error_str.lower():
+                    error_fields.append('spouse_father_name')
+                elif 'phone' in error_str.lower():
+                    error_fields.append('spouse_phone')
+                elif 'email' in error_str.lower():
+                    error_fields.append('spouse_email')
+                elif 'date' in error_str.lower():
+                    error_fields.append('spouse_date_of_birth')
+                elif 'baptismal' in error_str.lower():
+                    error_fields.append('spouse_baptismal_name')
             
             flash(friendly_error, 'danger')
             
