@@ -391,6 +391,7 @@
                 <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
                     <h2 style="margin: 0; font-size: 18px; font-weight: bold;">ETOTC CHURCH</h2>
                     <p style="margin: 5px 0 0 0; font-size: 12px;">Contribution Receipt</p>
+                    <p style="margin: 5px 0 0 0; font-size: 11px;">EIN: 91-1699080</p>
                 </div>
                 
                 <!-- Receipt Number (Top Right) -->
@@ -423,8 +424,8 @@
                 
                 <!-- For (Type) Section -->
                 <div style="margin-bottom: 15px; clear: both;">
-                    <label style="font-weight: bold; font-size: 12px; margin-bottom: 8px; display: block;">For</label>
-                    <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 12px;">
+                    <label style="font-weight: bold; font-size: 12px; margin-right: 15px; display: inline-block;">For</label>
+                    <div style="display: inline-flex; gap: 20px; font-size: 12px;">
                         <div>
                             <input type="checkbox" ${paymentType === 'monthly' ? 'checked' : ''} disabled style="margin-right: 5px;">
                             <label style="vertical-align: middle;">Monthly Contribution</label>
@@ -434,14 +435,12 @@
                             <label style="vertical-align: middle;">Baptism</label>
                         </div>
                         <div>
-                            <input type="checkbox" disabled style="margin-right: 5px;">
-                            <label style="vertical-align: middle;">Other:</label>
-                        </div>
-                    </div>
-                    <div style="margin-top: 8px; display: flex; gap: 15px; font-size: 12px;">
-                        <div>
                             <input type="checkbox" ${paymentType === 'donation' ? 'checked' : ''} disabled style="margin-right: 5px;">
                             <label style="vertical-align: middle;">Donation</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" disabled style="margin-right: 5px;">
+                            <label style="vertical-align: middle;">Other:</label>
                         </div>
                     </div>
                 </div>
@@ -469,21 +468,11 @@
                     <strong>Months Paid:</strong> ${data.payments.map(p => p.month).join(', ')}
                 </div>
                 
-                <!-- Received By / Signature -->
-                <div style="display: flex; gap: 30px; margin-top: 20px;">
-                    <div style="flex: 1;">
-                        <div style="margin-bottom: 20px;">
-                            <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 5px;">Received By</label>
-                            <div style="border-bottom: 1px solid #333; padding: 5px; min-height: 20px; font-size: 12px;">
-                                ${data.processed_by || ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div style="flex: 1;">
-                        <div>
-                            <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 5px;">Signature</label>
-                            <div style="border-bottom: 1px solid #333; padding: 30px 5px;"></div>
-                        </div>
+                <!-- Received By -->
+                <div style="margin-top: 20px;">
+                    <label style="font-weight: bold; font-size: 12px; display: block; margin-bottom: 5px;">Received By</label>
+                    <div style="border-bottom: 1px solid #333; padding: 5px; min-height: 20px; font-size: 12px;">
+                        ${data.processed_by || ''}
                     </div>
                 </div>
                 
