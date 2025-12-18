@@ -378,6 +378,16 @@
     {% endif %}
 
     function showReceipt(data) {
+        // Determine payment reason based on payment types
+        let paymentReason = 'membership';
+        const hasDonation = data.payments.some(p => !p.month);
+        if (hasDonation) {
+            const allDonations = data.payments.every(p => !p.month);
+            if (allDonations) {
+                paymentReason = 'donation';
+            }
+        }
+        
         const content = `
             <div id="printableReceipt" style="padding: 20px; font-family: 'Segoe UI', Arial, sans-serif;">
                 <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
@@ -425,6 +435,18 @@
                         </tr>
                     </tfoot>
                 </table>
+                
+                <div style="margin-bottom: 15px; font-size: 12px; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
+                    <strong style="display: block; margin-bottom: 8px;">For:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <label><input type="checkbox" ${paymentReason === 'membership' ? 'checked' : ''} disabled> Membership</label>
+                        <label><input type="checkbox" ${paymentReason === 'baptism' ? 'checked' : ''} disabled> Baptism</label>
+                        <label><input type="checkbox" ${paymentReason === 'fithat' ? 'checked' : ''} disabled> Fithat</label>
+                        <label><input type="checkbox" ${paymentReason === 'sunday_offering' ? 'checked' : ''} disabled> Sunday Offering</label>
+                        <label><input type="checkbox" ${paymentReason === 'donation' ? 'checked' : ''} disabled> Donation</label>
+                        <label><input type="checkbox" ${paymentReason === 'other' ? 'checked' : ''} disabled> Other</label>
+                    </div>
+                </div>
                 
                 <div style="margin-bottom: 15px; font-size: 12px;">
                     <p style="margin: 5px 0;"><strong>Payment Method:</strong> ${data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash'}</p>

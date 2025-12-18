@@ -1340,6 +1340,24 @@ def view_receipt(member_id, receipt_number):
     
     total = sum(p['amount'] for p in payments)
     
+    # Determine payment reason
+    payment_reason = 'membership'  # Default to membership
+    has_donation = any(p['type'] == 'donation' for p in payments)
+    
+    if has_donation:
+        # Check if all payments are donations
+        all_donations = all(p['type'] == 'donation' for p in payments)
+        if all_donations:
+            donation_reasons = [p.get('reason', '').lower() for p in payments if p.get('reason')]
+            if 'baptism' in donation_reasons:
+                payment_reason = 'baptism'
+            elif 'fithat' in donation_reasons:
+                payment_reason = 'fithat'
+            elif 'sunday offering' in donation_reasons or 'sunday' in donation_reasons:
+                payment_reason = 'sunday_offering'
+            else:
+                payment_reason = 'donation'
+    
     receipt_data = {
         'receipt_number': receipt_number,
         'date': receipt_date,
@@ -1349,7 +1367,8 @@ def view_receipt(member_id, receipt_number):
         'payments': payments,
         'total': total,
         'payment_method': payment_method,
-        'processed_by': processed_by
+        'processed_by': processed_by,
+        'payment_reason': payment_reason
     }
     
     member_dict = {'id': member.member_id, 'name': member.full_name}

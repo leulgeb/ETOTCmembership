@@ -8,7 +8,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
-                    <a href="{{ url_for('member_details', member_id=member.member_id) }}" class="btn btn-secondary">
+                    <a href="{{ url_for('member_details', member_id=member.id) }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Member
                     </a>
                     <button onclick="window.print()" class="btn btn-primary">
@@ -70,6 +70,18 @@
                             </tr>
                         </tfoot>
                     </table>
+                    
+                    <div style="margin-bottom: 15px; font-size: 12px; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
+                        <strong style="display: block; margin-bottom: 8px;">For:</strong>
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'membership' %}checked{% endif %} disabled> Membership</label>
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'baptism' %}checked{% endif %} disabled> Baptism</label>
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'fithat' %}checked{% endif %} disabled> Fithat</label>
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'sunday_offering' %}checked{% endif %} disabled> Sunday Offering</label>
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'donation' %}checked{% endif %} disabled> Donation</label>
+                            <label><input type="checkbox" {% if receipt.payment_reason == 'other' %}checked{% endif %} disabled> Other</label>
+                        </div>
+                    </div>
                     
                     <div style="margin-bottom: 15px; font-size: 12px;">
                         <p style="margin: 5px 0;"><strong>Payment Method:</strong> {% if receipt.payment_method %}{{ receipt.payment_method|capitalize }}{% else %}Cash{% endif %}</p>
