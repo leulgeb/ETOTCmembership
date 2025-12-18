@@ -3,6 +3,24 @@
 {% block title %}Add Member - ETOTC{% endblock %}
 
 {% block content %}
+<style>
+    .missing-field {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5;
+    }
+    .missing-field:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+    .missing-indicator {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .required-indicator {
+        color: #dc3545;
+        margin-left: 2px;
+    }
+</style>
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="card">
@@ -15,20 +33,20 @@
                         <div class="col-md-4">
                             <label for="custom_id" class="form-label">Member ID</label>
                             <input type="text" class="form-control" id="custom_id" name="custom_id" 
-                                   placeholder="{{ suggested_id }}">
+                                   placeholder="{{ suggested_id }}" value="{{ request.form.get('custom_id', '') }}">
                             <small class="text-muted">Auto: {{ suggested_id }}</small>
                         </div>
                         <div class="col-md-4">
-                            <label for="monthly_payment" class="form-label">Monthly Payment *</label>
+                            <label for="monthly_payment" class="form-label">Monthly Payment <span class="required-indicator">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="monthly_payment" name="monthly_payment" 
-                                       step="0.01" min="30" value="30" required>
+                                <input type="number" class="form-control required-field" id="monthly_payment" name="monthly_payment" 
+                                       step="0.01" min="30" value="{{ request.form.get('monthly_payment', '30') }}" required>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <label for="password" class="form-label">Password *</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
+                            <input type="password" class="form-control required-field" id="password" name="password" required>
                         </div>
                     </div>
 
@@ -36,38 +54,38 @@
                     
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <label for="first_name" class="form-label">First Name *</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            <label for="first_name" class="form-label">First Name <span class="required-indicator">*</span></label>
+                            <input type="text" class="form-control required-field" id="first_name" name="first_name" value="{{ request.form.get('first_name', '') }}" required>
                         </div>
                         <div class="col-md-3">
                             <label for="father_name" class="form-label">Father's Name</label>
-                            <input type="text" class="form-control" id="father_name" name="father_name">
+                            <input type="text" class="form-control" id="father_name" name="father_name" value="{{ request.form.get('father_name', '') }}">
                         </div>
                         <div class="col-md-3">
                             <label for="middle_name" class="form-label">Middle Name</label>
-                            <input type="text" class="form-control" id="middle_name" name="middle_name">
+                            <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ request.form.get('middle_name', '') }}">
                         </div>
                         <div class="col-md-3">
-                            <label for="last_name" class="form-label">Last Name *</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            <label for="last_name" class="form-label">Last Name <span class="required-indicator">*</span></label>
+                            <input type="text" class="form-control required-field" id="last_name" name="last_name" value="{{ request.form.get('last_name', '') }}" required>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
-                            <input type="text" class="form-control" id="baptismal_name" name="baptismal_name">
+                            <input type="text" class="form-control" id="baptismal_name" name="baptismal_name" value="{{ request.form.get('baptismal_name', '') }}">
                         </div>
                         <div class="col-md-4">
                             <label for="date_of_birth" class="form-label">Date of Birth</label>
-                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ request.form.get('date_of_birth', '') }}">
                         </div>
                         <div class="col-md-4">
                             <label for="gender" class="form-label">Gender</label>
                             <select class="form-select" id="gender" name="gender">
                                 <option value="">Select...</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
+                                <option value="male" {% if request.form.get('gender') == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if request.form.get('gender') == 'female' %}selected{% endif %}>Female</option>
                             </select>
                         </div>
                     </div>
@@ -75,34 +93,34 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="address" class="form-label">Address</label>
-                            <input type="text" class="form-control" id="address" name="address">
+                            <input type="text" class="form-control" id="address" name="address" value="{{ request.form.get('address', '') }}">
                         </div>
                         <div class="col-md-2">
                             <label for="city" class="form-label">City</label>
-                            <input type="text" class="form-control" id="city" name="city">
+                            <input type="text" class="form-control" id="city" name="city" value="{{ request.form.get('city', '') }}">
                         </div>
                         <div class="col-md-2">
                             <label for="state" class="form-label">State</label>
-                            <input type="text" class="form-control" id="state" name="state" value="WA">
+                            <input type="text" class="form-control" id="state" name="state" value="{{ request.form.get('state', 'WA') }}">
                         </div>
                         <div class="col-md-2">
                             <label for="zip_code" class="form-label">Zip Code</label>
-                            <input type="text" class="form-control" id="zip_code" name="zip_code">
+                            <input type="text" class="form-control" id="zip_code" name="zip_code" value="{{ request.form.get('zip_code', '') }}">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label for="phone" class="form-label">Phone Number *</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                            <label for="phone" class="form-label">Phone Number <span class="required-indicator">*</span></label>
+                            <input type="tel" class="form-control required-field" id="phone" name="phone" value="{{ request.form.get('phone', '') }}" required>
                         </div>
                         <div class="col-md-4">
                             <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email">
+                            <input type="email" class="form-control" id="email" name="email" value="{{ request.form.get('email', '') }}">
                         </div>
                         <div class="col-md-4">
                             <label for="confession_name" class="form-label">Confession Name</label>
-                            <input type="text" class="form-control" id="confession_name" name="confession_name">
+                            <input type="text" class="form-control" id="confession_name" name="confession_name" value="{{ request.form.get('confession_name', '') }}">
                         </div>
                     </div>
 
@@ -111,11 +129,11 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="marital_status" id="single" value="single" checked>
+                                <input class="form-check-input" type="radio" name="marital_status" id="single" value="single" {% if request.form.get('marital_status', 'single') == 'single' %}checked{% endif %}>
                                 <label class="form-check-label" for="single">Single</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="marital_status" id="married" value="married">
+                                <input class="form-check-input" type="radio" name="marital_status" id="married" value="married" {% if request.form.get('marital_status') == 'married' %}checked{% endif %}>
                                 <label class="form-check-label" for="married">Married</label>
                             </div>
                         </div>
@@ -210,6 +228,55 @@ document.addEventListener('DOMContentLoaded', function() {
     const childrenContainer = document.getElementById('childrenContainer');
     const noChildrenMsg = document.getElementById('noChildrenMsg');
     let childCount = 0;
+
+    // Highlight missing required fields on load
+    function highlightMissingFields() {
+        const requiredFields = document.querySelectorAll('.required-field');
+        requiredFields.forEach(field => {
+            if (!field.value || (field.type === 'number' && parseFloat(field.value) <= 0)) {
+                field.classList.add('missing-field');
+            } else {
+                field.classList.remove('missing-field');
+            }
+        });
+    }
+
+    // Check and highlight missing fields on form submission
+    document.getElementById('memberForm').addEventListener('submit', function(e) {
+        const requiredFields = document.querySelectorAll('.required-field');
+        let hasErrors = false;
+        
+        requiredFields.forEach(field => {
+            if (!field.value || (field.type === 'number' && parseFloat(field.value) <= 0)) {
+                field.classList.add('missing-field');
+                hasErrors = true;
+            } else {
+                field.classList.remove('missing-field');
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+            alert('Please fill in all required fields (marked with *)');
+        }
+    });
+
+    // Remove red highlight when user starts typing
+    document.querySelectorAll('.required-field').forEach(field => {
+        field.addEventListener('input', function() {
+            if (this.value) {
+                this.classList.remove('missing-field');
+            }
+        });
+        field.addEventListener('change', function() {
+            if (this.value && (this.type !== 'number' || parseFloat(this.value) > 0)) {
+                this.classList.remove('missing-field');
+            }
+        });
+    });
+
+    // Initial highlight on page load
+    highlightMissingFields();
 
     function toggleSpouseSection() {
         if (marriedRadio.checked) {
