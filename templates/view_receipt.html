@@ -16,7 +16,7 @@
                     </button>
                 </div>
 
-                <div id="printableReceipt" style="padding: 40px; font-family: 'Segoe UI', Arial, sans-serif; background-color: white; margin: 20px;">
+                <div id="printableReceipt" style="padding: 40px; font-family: 'Segoe UI', Arial, sans-serif; background-color: white; margin: 60px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
                         <div style="flex: 1;"></div>
                         <div style="text-align: center; flex: 1;">
@@ -108,12 +108,29 @@
 
 <style>
 @media print {
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    @page {
+        margin: 0.75in !important;
+    }
     .d-print-none {
         display: none !important;
     }
     .card {
         border: none !important;
         box-shadow: none !important;
+    }
+    .row {
+        margin: 0 !important;
+    }
+    .col-md-8 {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    #printableReceipt {
+        margin: 0 !important;
     }
 }
 </style>
