@@ -18,6 +18,7 @@ class PaymentMethod(enum.Enum):
     ZELLE = "zelle"
     VENMO = "venmo"
     CREDIT_CARD = "credit_card"
+    CHEQUE = "cheque"
     OTHER = "other"
 
 class PaymentStatus(enum.Enum):

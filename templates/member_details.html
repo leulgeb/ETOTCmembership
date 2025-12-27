@@ -162,17 +162,18 @@
                     <div class="row mt-3">
                         <div class="col-md-4">
                             <label class="form-label">Payment Method</label>
-                            <select name="payment_method" class="form-select">
+                            <select name="payment_method" class="form-select" id="bulkPayMethod">
                                 <option value="cash">Cash</option>
                                 <option value="zelle">Zelle</option>
                                 <option value="venmo">Venmo</option>
                                 <option value="credit_card">Credit Card</option>
+                                <option value="cheque">Cheque</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Comment (Optional)</label>
-                            <input type="text" name="payment_comment" class="form-control" placeholder="e.g., Check #123">
+                            <label class="form-label">Comment <span id="bulkCommentRequired" style="color: red; display: none;">*</span></label>
+                            <input type="text" name="payment_comment" class="form-control" id="bulkPayComment" placeholder="e.g., Check #123">
                         </div>
                         <div class="col-md-4 d-flex flex-column justify-content-end">
                             <div class="d-flex align-items-center gap-3">
@@ -215,16 +216,17 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Payment Method *</label>
-                            <select name="donation_payment_method" class="form-select" id="donationPayMethod" required disabled>
+                            <select name="donation_payment_method" class="form-select" id="donationPayMethod" required disabled onchange="updateDonationCommentRequired()">
                                 <option value="cash">Cash</option>
                                 <option value="zelle">Zelle</option>
                                 <option value="venmo">Venmo</option>
                                 <option value="credit_card">Credit Card</option>
+                                <option value="cheque">Cheque</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Comment (Optional)</label>
+                            <label class="form-label">Comment <span id="donationCommentRequired" style="color: red; display: none;">*</span></label>
                             <input type="text" name="donation_comment" class="form-control" id="donationComment" placeholder="e.g., Check #123" disabled>
                         </div>
                     </div>
@@ -277,17 +279,18 @@
                     <p>Process payment of <strong id="confirmAmount"></strong> for <strong id="confirmMonth"></strong>?</p>
                     <div class="mb-3">
                         <label class="form-label">Payment Method</label>
-                        <select name="payment_method" class="form-select">
+                        <select name="payment_method" class="form-select" id="singlePayMethod" onchange="updateSingleCommentRequired()">
                             <option value="cash">Cash</option>
                             <option value="zelle">Zelle</option>
                             <option value="venmo">Venmo</option>
                             <option value="credit_card">Credit Card</option>
+                            <option value="cheque">Cheque</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Comment (Optional)</label>
-                        <input type="text" name="payment_comment" class="form-control" placeholder="e.g., Check #123">
+                        <label class="form-label">Comment <span id="singleCommentRequired" style="color: red; display: none;">*</span></label>
+                        <input type="text" name="payment_comment" class="form-control" id="singlePayComment" placeholder="e.g., Check #123">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -445,7 +448,88 @@
         const submitBtn = document.getElementById('submitDonationBtn');
         const reason = document.getElementById('donationReason').value;
         const amount = parseFloat(this.value);
-        submitBtn.disabled = !reason || !amount || amount <= 0;
+        const paymentMethod = document.getElementById('donationPayMethod').value;
+        const comment = document.getElementById('donationComment').value.trim();
+        const isValid = reason && amount && amount > 0 && !(paymentMethod === 'cheque' && !comment);
+        submitBtn.disabled = !isValid;
+    });
+
+    function updateBulkCommentRequired() {
+        const method = document.getElementById('bulkPayMethod').value;
+        const requiredSpan = document.getElementById('bulkCommentRequired');
+        const commentInput = document.getElementById('bulkPayComment');
+        
+        if (method === 'cheque') {
+            requiredSpan.style.display = 'inline';
+            commentInput.required = true;
+        } else {
+            requiredSpan.style.display = 'none';
+            commentInput.required = false;
+        }
+    }
+
+    function updateSingleCommentRequired() {
+        const method = document.getElementById('singlePayMethod').value;
+        const requiredSpan = document.getElementById('singleCommentRequired');
+        const commentInput = document.getElementById('singlePayComment');
+        
+        if (method === 'cheque') {
+            requiredSpan.style.display = 'inline';
+            commentInput.required = true;
+        } else {
+            requiredSpan.style.display = 'none';
+            commentInput.required = false;
+        }
+    }
+
+    function updateDonationCommentRequired() {
+        const method = document.getElementById('donationPayMethod').value;
+        const requiredSpan = document.getElementById('donationCommentRequired');
+        const commentInput = document.getElementById('donationComment');
+        
+        if (method === 'cheque') {
+            requiredSpan.style.display = 'inline';
+            commentInput.required = true;
+        } else {
+            requiredSpan.style.display = 'none';
+            commentInput.required = false;
+        }
+    }
+
+    // Add event listeners to bulk payment method dropdown
+    document.getElementById('bulkPayMethod').addEventListener('change', updateBulkCommentRequired);
+    
+    // Form validation for bulk payment
+    document.getElementById('bulkPayForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('bulkPayMethod').value;
+        const comment = document.getElementById('bulkPayComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
+    });
+
+    // Form validation for single payment
+    document.getElementById('singlePayForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('singlePayMethod').value;
+        const comment = document.getElementById('singlePayComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
+    });
+
+    // Form validation for donation
+    document.getElementById('donationForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('donationPayMethod').value;
+        const comment = document.getElementById('donationComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
     });
 
     document.querySelectorAll('.pay-single-btn').forEach(btn => {
