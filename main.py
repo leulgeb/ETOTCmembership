@@ -556,7 +556,7 @@ def admin_home():
     return render_template('admin_home.html', members=members, current_user=current_user)
 
 @app.route('/admin/add-member', methods=['GET', 'POST'])
-@admin_required
+@staff_required
 def add_member():
     """Add new member with auto-generated ID"""
     suggested_id = get_next_member_id_preview()
