@@ -957,10 +957,115 @@ def household_information(member_id):
     spouse = Spouse.query.filter_by(member_id=member.id).first()
     children = Child.query.filter_by(member_id=member.id).all()
     
+    # Get current user to check if admin
+    current_user = get_current_user()
+    
     return render_template('household_information.html', 
                          member=member,
                          spouse=spouse,
-                         children=children)
+                         children=children,
+                         current_user=current_user)
+
+@app.route('/admin/edit-household/<member_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_household(member_id):
+    """Edit household information (spouse and children) - admin only"""
+    member = Member.query.filter_by(member_id=member_id).first()
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    if request.method == 'POST':
+        try:
+            # Get spouse information from form
+            spouse_first_name = request.form.get('spouse_first_name', '').strip() or None
+            spouse = Spouse.query.filter_by(member_id=member.id).first()
+            
+            # If spouse info provided, create or update
+            if spouse_first_name:
+                spouse_father_name = request.form.get('spouse_father_name', '').strip() or None
+                spouse_last_name = request.form.get('spouse_last_name', '').strip() or None
+                spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
+                spouse_dob_str = request.form.get('spouse_date_of_birth', '').strip()
+                spouse_gender = request.form.get('spouse_gender', '').strip() or None
+                spouse_phone = request.form.get('spouse_phone', '').strip() or None
+                spouse_email = request.form.get('spouse_email', '').strip() or None
+                
+                spouse_dob = None
+                if spouse_dob_str:
+                    try:
+                        spouse_dob = datetime.strptime(spouse_dob_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                
+                if spouse:
+                    spouse.first_name = spouse_first_name
+                    spouse.father_name = spouse_father_name
+                    spouse.last_name = spouse_last_name
+                    spouse.baptismal_name = spouse_baptismal_name
+                    spouse.date_of_birth = spouse_dob
+                    spouse.gender = spouse_gender
+                    spouse.phone = spouse_phone
+                    spouse.email = spouse_email
+                else:
+                    spouse = Spouse(
+                        member_id=member.id,
+                        first_name=spouse_first_name,
+                        father_name=spouse_father_name,
+                        last_name=spouse_last_name,
+                        baptismal_name=spouse_baptismal_name,
+                        date_of_birth=spouse_dob,
+                        gender=spouse_gender,
+                        phone=spouse_phone,
+                        email=spouse_email
+                    )
+                    db.session.add(spouse)
+            elif spouse:
+                # Delete spouse if no name provided
+                db.session.delete(spouse)
+            
+            # Handle children
+            children_count = int(request.form.get('children_count', 0))
+            for i in range(children_count):
+                child_name = request.form.get(f'child_name_{i}', '').strip()
+                if child_name:
+                    child_baptismal = request.form.get(f'child_baptismal_{i}', '').strip() or None
+                    child_dob_str = request.form.get(f'child_dob_{i}', '').strip()
+                    child_gender = request.form.get(f'child_gender_{i}', '').strip() or None
+                    
+                    child_dob = None
+                    if child_dob_str:
+                        try:
+                            child_dob = datetime.strptime(child_dob_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            pass
+                    
+                    child = Child(
+                        member_id=member.id,
+                        full_name=child_name,
+                        baptismal_name=child_baptismal,
+                        date_of_birth=child_dob,
+                        gender=child_gender
+                    )
+                    db.session.add(child)
+            
+            db.session.commit()
+            flash('Household information updated successfully!', 'success')
+            return redirect(url_for('household_information', member_id=member.member_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating household information: {str(e)}', 'danger')
+            spouse = Spouse.query.filter_by(member_id=member.id).first()
+            children = Child.query.filter_by(member_id=member.id).all()
+            return render_template('edit_household.html', member=member, spouse=spouse, children=children)
+    
+    # GET request - load current data
+    spouse = Spouse.query.filter_by(member_id=member.id).first()
+    children = Child.query.filter_by(member_id=member.id).all()
+    
+    return render_template('edit_household.html', member=member, spouse=spouse, children=children)
 
 @app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
 @staff_required
