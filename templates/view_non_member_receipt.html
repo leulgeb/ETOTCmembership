@@ -14,9 +14,15 @@
             </div>
 
             <div class="card" id="receipt-card">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4 class="mb-0">ETOTC Church</h4>
-                    <small>Payment Receipt</small>
+                <div class="card-header bg-light text-center" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;"></div>
+                    <div style="flex: 1; text-align: center;">
+                        <h5 class="mb-0">Payment Receipt</h5>
+                        <small>EIN: 91-1699080</small>
+                    </div>
+                    <div style="flex: 1; text-align: right;">
+                        <img src="{{ url_for('static', filename='images/etotc_logo.png') }}" alt="ETOTC" style="height: 60px;">
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
