@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Household Information - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">
+                        <i class="bi bi-house-fill"></i> Household Information
+                    </h2>
+                    <a href="{{ url_for('member_details', member_id=member.member_id) }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Member
+                    </a>
+                </div>
+
+                <!-- Primary Member -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-person"></i> Primary Member</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Name:</strong> {{ member.full_name }}</p>
+                                <p class="mb-2"><strong>Member ID:</strong> {{ member.member_id }}</p>
+                                <p class="mb-2"><strong>Email:</strong> {{ member.email or 'N/A' }}</p>
+                                <p class="mb-0"><strong>Phone:</strong> {{ member.phone or 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Baptismal Name:</strong> {{ member.baptismal_name or 'N/A' }}</p>
+                                <p class="mb-2"><strong>Confession Name:</strong> {{ member.confession_name or 'N/A' }}</p>
+                                <p class="mb-2"><strong>Date of Birth:</strong> {{ member.date_of_birth.strftime('%B %d, %Y') if member.date_of_birth else 'N/A' }}</p>
+                                <p class="mb-0"><strong>Gender:</strong> {{ member.gender|capitalize if member.gender else 'N/A' }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p class="mb-2"><strong>Address:</strong> {{ member.address or 'N/A' }}</p>
+                                <p class="mb-0"><strong>City, State, ZIP:</strong> {{ member.city or 'N/A' }}, {{ member.state or 'N/A' }} {{ member.zip_code or '' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spouse Information -->
+                {% if spouse %}
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-heart"></i> Spouse Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Name:</strong> {{ spouse.full_name }}</p>
+                                <p class="mb-2"><strong>Email:</strong> {{ spouse.email or 'N/A' }}</p>
+                                <p class="mb-0"><strong>Phone:</strong> {{ spouse.phone or 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Baptismal Name:</strong> {{ spouse.baptismal_name or 'N/A' }}</p>
+                                <p class="mb-2"><strong>Date of Birth:</strong> {{ spouse.date_of_birth.strftime('%B %d, %Y') if spouse.date_of_birth else 'N/A' }}</p>
+                                <p class="mb-0"><strong>Gender:</strong> {{ spouse.gender|capitalize if spouse.gender else 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Children Information -->
+                {% if children %}
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-people"></i> Children ({{ children|length }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if children %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Baptismal Name</th>
+                                        <th>Date of Birth</th>
+                                        <th>Gender</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for child in children %}
+                                    <tr>
+                                        <td>{{ child.full_name }}</td>
+                                        <td>{{ child.baptismal_name or 'N/A' }}</td>
+                                        <td>{{ child.date_of_birth.strftime('%B %d, %Y') if child.date_of_birth else 'N/A' }}</td>
+                                        <td>{{ child.gender|capitalize if child.gender else 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- No household members message -->
+                {% if not spouse and not children %}
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle"></i> This member has no spouse or children information registered.
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

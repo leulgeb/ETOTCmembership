@@ -943,6 +943,25 @@ def member_details(member_id):
                          receipt_data=receipt_data,
                          previous_year_complete=previous_year_complete)
 
+@app.route('/admin/household/<member_id>')
+@staff_required
+def household_information(member_id):
+    """View full household information (spouse and children)"""
+    member = Member.query.filter_by(member_id=member_id).first()
+    
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('admin_home'))
+    
+    # Get spouse and children information
+    spouse = Spouse.query.filter_by(member_id=member.id).first()
+    children = Child.query.filter_by(member_id=member.id).all()
+    
+    return render_template('household_information.html', 
+                         member=member,
+                         spouse=spouse,
+                         children=children)
+
 @app.route('/admin/pay-month/<member_id>/<year>/<month>', methods=['POST'])
 @staff_required
 def admin_pay_month(member_id, year, month):
