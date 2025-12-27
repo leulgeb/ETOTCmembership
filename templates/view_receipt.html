@@ -71,16 +71,19 @@
                         </tfoot>
                     </table>
                     
-                    <div style="margin-bottom: 15px; font-size: 12px; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
-                        <strong style="display: block; margin-bottom: 8px;">For:</strong>
-                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'membership' %}checked{% endif %} disabled> Membership</label>
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'baptism' %}checked{% endif %} disabled> Baptism</label>
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'fithat' %}checked{% endif %} disabled> Fithat</label>
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'sunday_offering' %}checked{% endif %} disabled> Sunday Offering</label>
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'donation' %}checked{% endif %} disabled> Donation</label>
-                            <label><input type="checkbox" {% if receipt.payment_reason == 'other' %}checked{% endif %} disabled> Other</label>
-                        </div>
+                    <div style="margin-bottom: 15px; font-size: 12px;">
+                        {% if receipt.payment_reason %}
+                        <p style="margin: 5px 0;"><strong>For:</strong> 
+                            {% if receipt.payment_reason == 'membership' %}Membership
+                            {% elif receipt.payment_reason == 'baptism' %}Baptism
+                            {% elif receipt.payment_reason == 'fithat' %}Fithat
+                            {% elif receipt.payment_reason == 'sunday_offering' %}Sunday Offering
+                            {% elif receipt.payment_reason == 'donation' %}Donation
+                            {% elif receipt.payment_reason == 'other' %}Other
+                            {% else %}{{ receipt.payment_reason|capitalize }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
                     </div>
                     
                     <div style="margin-bottom: 15px; font-size: 12px;">
