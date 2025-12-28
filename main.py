@@ -978,6 +978,29 @@ def edit_household(member_id):
     
     if request.method == 'POST':
         try:
+            # Update member information
+            member.first_name = request.form.get('first_name', '').strip()
+            member.father_name = request.form.get('father_name', '').strip() or None
+            member.middle_name = request.form.get('middle_name', '').strip() or None
+            member.last_name = request.form.get('last_name', '').strip()
+            member.baptismal_name = request.form.get('baptismal_name', '').strip() or None
+            member.confession_name = request.form.get('confession_name', '').strip() or None
+            
+            dob_str = request.form.get('date_of_birth', '').strip()
+            if dob_str:
+                try:
+                    member.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            member.gender = request.form.get('gender', '').strip() or None
+            member.address = request.form.get('address', '').strip() or None
+            member.city = request.form.get('city', '').strip() or None
+            member.state = request.form.get('state', '').strip() or 'WA'
+            member.zip_code = request.form.get('zip_code', '').strip() or None
+            member.email = request.form.get('email', '').strip() or None
+            member.phone = request.form.get('phone', '').strip()
+            
             # Get spouse information from form
             spouse_first_name = request.form.get('spouse_first_name', '').strip() or None
             spouse = Spouse.query.filter_by(member_id=member.id).first()
@@ -1025,14 +1048,42 @@ def edit_household(member_id):
                 # Delete spouse if no name provided
                 db.session.delete(spouse)
             
-            # Handle children
-            children_count = int(request.form.get('children_count', 0))
-            for i in range(children_count):
-                child_name = request.form.get(f'child_name_{i}', '').strip()
+            # Handle children - delete those marked for deletion
+            children_to_delete = request.form.getlist('delete_child')
+            for child_id in children_to_delete:
+                try:
+                    child = Child.query.filter_by(id=int(child_id), member_id=member.id).first()
+                    if child:
+                        db.session.delete(child)
+                except (ValueError, TypeError):
+                    pass
+            
+            # Handle existing children updates
+            existing_children = Child.query.filter_by(member_id=member.id).all()
+            for child in existing_children:
+                child_baptismal = request.form.get(f'child_baptismal_{child.id}', '').strip() or None
+                child_dob_str = request.form.get(f'child_dob_{child.id}', '').strip()
+                child_gender = request.form.get(f'child_gender_{child.id}', '').strip() or None
+                
+                child_dob = None
+                if child_dob_str:
+                    try:
+                        child_dob = datetime.strptime(child_dob_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                
+                child.baptismal_name = child_baptismal
+                child.date_of_birth = child_dob
+                child.gender = child_gender
+            
+            # Handle new children
+            new_children_count = int(request.form.get('new_children_count', 0))
+            for i in range(new_children_count):
+                child_name = request.form.get(f'new_child_name_{i}', '').strip()
                 if child_name:
-                    child_baptismal = request.form.get(f'child_baptismal_{i}', '').strip() or None
-                    child_dob_str = request.form.get(f'child_dob_{i}', '').strip()
-                    child_gender = request.form.get(f'child_gender_{i}', '').strip() or None
+                    child_baptismal = request.form.get(f'new_child_baptismal_{i}', '').strip() or None
+                    child_dob_str = request.form.get(f'new_child_dob_{i}', '').strip()
+                    child_gender = request.form.get(f'new_child_gender_{i}', '').strip() or None
                     
                     child_dob = None
                     if child_dob_str:

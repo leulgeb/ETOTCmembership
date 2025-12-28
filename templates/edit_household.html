@@ -4,128 +4,205 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-10">
         <div class="card">
             <div class="card-body">
                 <h2 class="mb-4">
                     <i class="bi bi-pencil"></i> Edit Household Information
                 </h2>
 
-                <form method="POST" enctype="multipart/form-data">
-                    <!-- Member Name (Read-only) -->
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Primary Member:</strong></label>
-                        <p class="form-control-plaintext">{{ member.full_name }}</p>
+                <form method="POST" id="householdForm">
+                    <!-- PRIMARY MEMBER INFORMATION -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-person"></i> Primary Member Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label for="first_name" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ member.first_name }}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="father_name" class="form-label">Father's Name</label>
+                                    <input type="text" class="form-control" id="father_name" name="father_name" 
+                                           value="{{ member.father_name or '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                           value="{{ member.middle_name or '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ member.last_name }}" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
+                                    <input type="text" class="form-control" id="baptismal_name" name="baptismal_name" 
+                                           value="{{ member.baptismal_name or '' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="confession_name" class="form-label">Confession Name</label>
+                                    <input type="text" class="form-control" id="confession_name" name="confession_name" 
+                                           value="{{ member.confession_name or '' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                           value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="gender" class="form-label">Gender</label>
+                                    <select class="form-select" id="gender" name="gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="male" {% if member.gender == 'male' %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if member.gender == 'female' %}selected{% endif %}>Female</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="phone" class="form-label">Phone *</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           value="{{ member.phone }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ member.email or '' }}">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="address" class="form-label">Address</label>
+                                    <input type="text" class="form-control" id="address" name="address" 
+                                           value="{{ member.address or '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control" id="city" name="city" 
+                                           value="{{ member.city or '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="state" class="form-label">State</label>
+                                    <input type="text" class="form-control" id="state" name="state" 
+                                           value="{{ member.state or 'WA' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="zip_code" class="form-label">ZIP</label>
+                                    <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                           value="{{ member.zip_code or '' }}">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Spouse Information -->
-                    <h5 class="mt-4 mb-3">
-                        <i class="bi bi-heart"></i> Spouse Information
-                    </h5>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_first_name" class="form-label">First Name</label>
-                                <input type="text" class="form-control" id="spouse_first_name" name="spouse_first_name" 
-                                       value="{{ spouse.first_name if spouse else '' }}">
-                            </div>
+                    <!-- SPOUSE INFORMATION -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-heart"></i> Spouse Information</h5>
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_father_name" class="form-label">Father's Name</label>
-                                <input type="text" class="form-control" id="spouse_father_name" name="spouse_father_name" 
-                                       value="{{ spouse.father_name if spouse else '' }}">
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label for="spouse_first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="spouse_first_name" name="spouse_first_name" 
+                                           value="{{ spouse.first_name if spouse else '' }}">
+                                    <small class="text-muted">Leave blank to remove spouse</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="spouse_father_name" class="form-label">Father's Name</label>
+                                    <input type="text" class="form-control" id="spouse_father_name" name="spouse_father_name" 
+                                           value="{{ spouse.father_name if spouse else '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="spouse_last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="spouse_last_name" name="spouse_last_name" 
+                                           value="{{ spouse.last_name if spouse else '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="spouse_baptismal_name" class="form-label">Baptismal Name</label>
+                                    <input type="text" class="form-control" id="spouse_baptismal_name" name="spouse_baptismal_name" 
+                                           value="{{ spouse.baptismal_name if spouse else '' }}">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_last_name" class="form-label">Last Name</label>
-                                <input type="text" class="form-control" id="spouse_last_name" name="spouse_last_name" 
-                                       value="{{ spouse.last_name if spouse else '' }}">
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="spouse_date_of_birth" class="form-label">Date of Birth</label>
+                                    <input type="date" class="form-control" id="spouse_date_of_birth" name="spouse_date_of_birth" 
+                                           value="{{ spouse.date_of_birth.strftime('%Y-%m-%d') if spouse and spouse.date_of_birth else '' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="spouse_gender" class="form-label">Gender</label>
+                                    <select class="form-select" id="spouse_gender" name="spouse_gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="male" {% if spouse and spouse.gender == 'male' %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if spouse and spouse.gender == 'female' %}selected{% endif %}>Female</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="spouse_phone" class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" id="spouse_phone" name="spouse_phone" 
+                                           value="{{ spouse.phone if spouse else '' }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="spouse_email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="spouse_email" name="spouse_email" 
+                                           value="{{ spouse.email if spouse else '' }}">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="spouse_baptismal_name" class="form-label">Baptismal Name</label>
-                                <input type="text" class="form-control" id="spouse_baptismal_name" name="spouse_baptismal_name" 
-                                       value="{{ spouse.baptismal_name if spouse else '' }}">
-                            </div>
+                    <!-- CHILDREN INFORMATION -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-people"></i> Children</h5>
+                            <button type="button" class="btn btn-sm btn-light" onclick="addNewChild()">
+                                <i class="bi bi-plus-circle"></i> Add Child
+                            </button>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="spouse_date_of_birth" class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control" id="spouse_date_of_birth" name="spouse_date_of_birth" 
-                                       value="{{ spouse.date_of_birth.strftime('%Y-%m-%d') if spouse and spouse.date_of_birth else '' }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_gender" class="form-label">Gender</label>
-                                <select class="form-select" id="spouse_gender" name="spouse_gender">
-                                    <option value="">Select Gender</option>
-                                    <option value="male" {% if spouse and spouse.gender == 'male' %}selected{% endif %}>Male</option>
-                                    <option value="female" {% if spouse and spouse.gender == 'female' %}selected{% endif %}>Female</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_phone" class="form-label">Phone</label>
-                                <input type="tel" class="form-control" id="spouse_phone" name="spouse_phone" 
-                                       value="{{ spouse.phone if spouse else '' }}">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="spouse_email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="spouse_email" name="spouse_email" 
-                                       value="{{ spouse.email if spouse else '' }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Children Information -->
-                    <h5 class="mt-4 mb-3">
-                        <i class="bi bi-people"></i> Children Information
-                    </h5>
-
-                    <div id="childrenContainer">
-                        {% if children %}
-                            {% for child in children %}
-                            <div class="child-entry mb-3 p-3 border rounded">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="mb-2">
-                                            <label class="form-label">Full Name</label>
-                                            <input type="text" class="form-control" name="child_name_{{ loop.index0 }}" 
-                                                   value="{{ child.full_name }}">
-                                        </div>
+                        <div class="card-body">
+                            {% if children %}
+                                <h6 class="mb-3 text-muted">Existing Children</h6>
+                                {% for child in children %}
+                                <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
+                                    <div class="position-absolute top-0 end-0 p-2">
+                                        <label class="form-check-label">
+                                            <input type="checkbox" name="delete_child" value="{{ child.id }}" class="form-check-input">
+                                            <small class="text-danger">Remove</small>
+                                        </label>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-2">
-                                            <label class="form-label">Baptismal Name</label>
-                                            <input type="text" class="form-control" name="child_baptismal_{{ loop.index0 }}" 
-                                                   value="{{ child.baptismal_name or '' }}">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold">Full Name</label>
+                                            <p class="form-control-plaintext">{{ child.full_name }}</p>
                                         </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="mb-2">
-                                            <label class="form-label">DOB</label>
-                                            <input type="date" class="form-control" name="child_dob_{{ loop.index0 }}" 
-                                                   value="{{ child.date_of_birth.strftime('%Y-%m-%d') if child.date_of_birth else '' }}">
+                                        <div class="col-md-4">
+                                            <label for="child_baptismal_{{ child.id }}" class="form-label">Baptismal Name</label>
+                                            <input type="text" class="form-control form-control-sm" id="child_baptismal_{{ child.id }}" 
+                                                   name="child_baptismal_{{ child.id }}" value="{{ child.baptismal_name or '' }}">
                                         </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="mb-2">
-                                            <label class="form-label">Gender</label>
-                                            <select class="form-select" name="child_gender_{{ loop.index0 }}">
+                                        <div class="col-md-2">
+                                            <label for="child_dob_{{ child.id }}" class="form-label">DOB</label>
+                                            <input type="date" class="form-control form-control-sm" id="child_dob_{{ child.id }}" 
+                                                   name="child_dob_{{ child.id }}" value="{{ child.date_of_birth.strftime('%Y-%m-%d') if child.date_of_birth else '' }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="child_gender_{{ child.id }}" class="form-label">Gender</label>
+                                            <select class="form-select form-select-sm" id="child_gender_{{ child.id }}" name="child_gender_{{ child.id }}">
                                                 <option value="">Select</option>
                                                 <option value="male" {% if child.gender == 'male' %}selected{% endif %}>Male</option>
                                                 <option value="female" {% if child.gender == 'female' %}selected{% endif %}>Female</option>
@@ -133,18 +210,24 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            {% endfor %}
-                        {% endif %}
+                                {% endfor %}
+                            {% endif %}
+
+                            <div id="newChildrenContainer"></div>
+
+                            {% if not children %}
+                            <p class="text-muted">No children added yet. Click "Add Child" to add children to this household.</p>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <input type="hidden" id="children_count" name="children_count" value="{{ children|length }}">
+                    <input type="hidden" id="new_children_count" name="new_children_count" value="0">
 
                     <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Save Changes
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Save All Changes
                         </button>
-                        <a href="{{ url_for('household_information', member_id=member.member_id) }}" class="btn btn-secondary">
+                        <a href="{{ url_for('household_information', member_id=member.member_id) }}" class="btn btn-secondary btn-lg">
                             <i class="bi bi-x-circle"></i> Cancel
                         </a>
                     </div>
@@ -153,4 +236,57 @@
         </div>
     </div>
 </div>
+
+<script>
+let newChildCount = 0;
+
+function addNewChild() {
+    const container = document.getElementById('newChildrenContainer');
+    const childHtml = `
+        <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
+            <div class="position-absolute top-0 end-0 p-2">
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.child-entry').remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" class="form-control" name="new_child_name_${newChildCount}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Baptismal Name</label>
+                    <input type="text" class="form-control" name="new_child_baptismal_${newChildCount}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">DOB</label>
+                    <input type="date" class="form-control" name="new_child_dob_${newChildCount}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Gender</label>
+                    <select class="form-select" name="new_child_gender_${newChildCount}">
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', childHtml);
+    newChildCount++;
+    updateNewChildrenCount();
+}
+
+function updateNewChildrenCount() {
+    const count = document.querySelectorAll('#newChildrenContainer .child-entry').length;
+    document.getElementById('new_children_count').value = count;
+}
+
+// Update count when removing children
+document.getElementById('householdForm').addEventListener('change', function() {
+    updateNewChildrenCount();
+});
+</script>
+
 {% endblock %}
