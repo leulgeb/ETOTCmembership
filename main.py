@@ -1291,7 +1291,7 @@ def admin_add_donation(member_id):
             member_id=member.id,
             amount=amount,
             purpose=donation_reason.title(),
-            payment_date=datetime.now(),
+            donation_date=datetime.now(),
             payment_method=PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH,
             payment_comment=payment_comment,
             processed_by_id=current_user.id,
@@ -1303,7 +1303,7 @@ def admin_add_donation(member_id):
         # Store receipt data in session for display
         receipt_data = {
             'receipt_number': donation.receipt_number,
-            'date': donation.payment_date.strftime('%Y-%m-%d'),
+            'date': donation.donation_date.strftime('%Y-%m-%d'),
             'member_name': member.full_name,
             'member_id': member.member_id,
             'member_email': member.email or '',
