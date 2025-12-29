@@ -40,8 +40,6 @@
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Phone</th>
-                                        <th>Total Contributions</th>
-                                        <th>Paid Months</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -52,8 +50,6 @@
                                         <td>{{ member.full_name }}</td>
                                         <td>{{ member.email or '-' }}</td>
                                         <td>{{ member.phone or '-' }}</td>
-                                        <td><span class="text-success fw-bold">${{ "%.2f"|format(member.total_contributions) }}</span></td>
-                                        <td>{{ member.paid_months }}/{{ member.total_months }}</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#member-details-{{ member.id }}" title="View Details">
                                                 <i class="bi bi-chevron-down"></i> Details
@@ -65,7 +61,7 @@
                                     </tr>
                                     <!-- Collapsible Details Row -->
                                     <tr class="collapse" id="member-details-{{ member.id }}">
-                                        <td colspan="7">
+                                        <td colspan="5">
                                             <div class="p-3 bg-light rounded">
                                                 <h6 class="mb-3"><i class="bi bi-receipt"></i> Payment History</h6>
                                                 <div style="max-height: 400px; overflow-y: auto;">
