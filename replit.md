@@ -85,6 +85,12 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 29, 2025**: Added archive management system for members and users with restore functionality
+- **December 29, 2025**: Created Archive page accessible from Admin dropdown menu with two tabs (Members & Users)
+- **December 29, 2025**: Added restore capabilities for archived members and users (soft delete with `is_active` flag)
+- **December 29, 2025**: Fixed member edit navigation error (using member.member_id instead of member.id)
+- **December 29, 2025**: Fixed UndefinedError in edit_member template by using individual name fields
+- **December 29, 2025**: Centered logo on both member and non-member receipts for professional appearance
 - **December 18, 2025**: Added "For" section on receipts with payment reason checkboxes (Membership, Baptism, Fithat, Sunday Offering, Donation, Other)
 - **December 18, 2025**: Fixed receipt "Back to Member" button navigation
 - **December 18, 2025**: Unified receipt format across point-of-sale and historical receipt views with EIN and payment method details

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Archive - ETOTC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-archive"></i> Archive Management</h2>
+                    <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+
+                <!-- Archived Members Tab -->
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members-content" type="button" role="tab">
+                            <i class="bi bi-people"></i> Archived Members ({{ archived_members|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-content" type="button" role="tab">
+                            <i class="bi bi-person-gear"></i> Archived Users ({{ archived_users|length }})
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Archived Members Tab Content -->
+                    <div class="tab-pane fade show active" id="members-content" role="tabpanel">
+                        {% if archived_members %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Member ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Archived Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in archived_members %}
+                                    <tr>
+                                        <td><strong>{{ member.member_id }}</strong></td>
+                                        <td>{{ member.full_name }}</td>
+                                        <td>{{ member.email or '-' }}</td>
+                                        <td>{{ member.phone or '-' }}</td>
+                                        <td>{{ member.created_at.strftime('%b %d, %Y') if member.created_at else '-' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('restore_member', member_id=member.member_id) }}" class="btn btn-sm btn-success" title="Restore Member">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No archived members found.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Archived Users Tab Content -->
+                    <div class="tab-pane fade" id="users-content" role="tabpanel">
+                        {% if archived_users %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Archived Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in archived_users %}
+                                    <tr>
+                                        <td><strong>{{ user.username }}</strong></td>
+                                        <td>{{ user.full_name or '-' }}</td>
+                                        <td>{{ user.email or '-' }}</td>
+                                        <td>
+                                            {% if user.role.value == 'admin' %}
+                                            <span class="badge bg-danger">Admin</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Cashier</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else '-' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('restore_user', user_id=user.id) }}" class="btn btn-sm btn-success" title="Restore User">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No archived users found.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2145,6 +2145,49 @@ def delete_user(user_id):
     return redirect(url_for('admin_users'))
 
 # =============================================================================
+# ARCHIVE MANAGEMENT
+# =============================================================================
+
+@app.route('/admin/archive')
+@admin_required
+def archive():
+    """View archived members and users"""
+    archived_members = Member.query.filter_by(is_active=False).all()
+    archived_users = User.query.filter_by(is_active=False).all()
+    
+    return render_template('archive.html', 
+                         archived_members=archived_members,
+                         archived_users=archived_users)
+
+@app.route('/admin/restore-member/<member_id>')
+@admin_required
+def restore_member(member_id):
+    """Restore an archived member"""
+    member = Member.query.filter_by(member_id=member_id).first()
+    if not member:
+        flash('Member not found.', 'danger')
+        return redirect(url_for('archive'))
+    
+    member.is_active = True
+    db.session.commit()
+    flash(f'Member "{member.full_name}" has been restored.', 'success')
+    return redirect(url_for('archive'))
+
+@app.route('/admin/restore-user/<int:user_id>')
+@admin_required
+def restore_user(user_id):
+    """Restore an archived user"""
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('archive'))
+    
+    user.is_active = True
+    db.session.commit()
+    flash(f'User "{user.username}" has been restored.', 'success')
+    return redirect(url_for('archive'))
+
+# =============================================================================
 # ADMIN CORRECTIONS WITH CHANGE LOGGING
 # =============================================================================
 
