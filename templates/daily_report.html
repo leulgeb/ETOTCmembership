@@ -81,6 +81,7 @@
                 <button type="button" class="btn btn-outline-success" onclick="filterByReason('fithat')">Fithat</button>
                 <button type="button" class="btn btn-outline-warning" onclick="filterByReason('sunday_offering')">Sunday Offering</button>
                 <button type="button" class="btn btn-outline-danger" onclick="filterByReason('donation')">Donation</button>
+                <button type="button" class="btn btn-outline-dark" onclick="filterByReason('building_donation')">Building Donation</button>
                 <button type="button" class="btn btn-outline-secondary" onclick="filterByReason('other')">Other</button>
             </div>
         </div>
@@ -242,7 +243,8 @@ function filterByReason(reason) {
             'baptism': ['btn-outline-info', 'btn-info'],
             'fithat': ['btn-outline-success', 'btn-success'],
             'sunday_offering': ['btn-outline-warning', 'btn-warning'],
-            'donation': ['btn-outline-danger', 'btn-danger']
+            'donation': ['btn-outline-danger', 'btn-danger'],
+            'building_donation': ['btn-outline-dark', 'btn-dark']
         };
         
         if (colorMap[reason]) {

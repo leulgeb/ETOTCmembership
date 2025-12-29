@@ -2439,12 +2439,16 @@ def daily_report():
         # Determine payment reason based on donation purpose
         donation_purpose = (donation.purpose or 'donation').lower()
         payment_reason = 'donation'
-        if 'baptism' in donation_purpose:
+        if 'membership' in donation_purpose:
+            payment_reason = 'membership'
+        elif 'baptism' in donation_purpose:
             payment_reason = 'baptism'
         elif 'fithat' in donation_purpose:
             payment_reason = 'fithat'
         elif 'sunday' in donation_purpose or 'offering' in donation_purpose:
             payment_reason = 'sunday_offering'
+        elif 'building' in donation_purpose:
+            payment_reason = 'building_donation'
         
         if receipt_num not in receipts:
             receipts[receipt_num] = {
@@ -2479,6 +2483,8 @@ def daily_report():
             payment_reason = 'fithat'
         elif 'sunday' in purpose or 'offering' in purpose:
             payment_reason = 'sunday_offering'
+        elif 'building' in purpose:
+            payment_reason = 'building_donation'
         elif 'donation' in purpose:
             payment_reason = 'donation'
         
