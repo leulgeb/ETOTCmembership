@@ -542,18 +542,30 @@ def logout():
 @staff_required
 def admin_home():
     """Admin/Cashier home page with member list"""
-    members = Member.query.filter_by(is_active=True).all()
+    members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     current_user = get_current_user()
+    current_year = datetime.now().year
     
-    # Calculate total contributions for each member
+    # Calculate total contributions and payment status for each member
     for member in members:
         total = db.session.query(db.func.sum(Contribution.amount)).filter(
             Contribution.member_id == member.id,
             Contribution.status == PaymentStatus.PAID
         ).scalar() or 0
         member.total_contributions = total
+        
+        # Get contributions for current year
+        current_year_contributions = Contribution.query.filter_by(
+            member_id=member.id,
+            year=current_year
+        ).all()
+        
+        # Create a dictionary of payment status by month
+        member.month_status = {}
+        for contrib in current_year_contributions:
+            member.month_status[contrib.month] = contrib.status == PaymentStatus.PAID
     
-    return render_template('admin_home.html', members=members, current_user=current_user)
+    return render_template('admin_home.html', members=members, current_user=current_user, current_year=current_year, months=MONTHS)
 
 @app.route('/admin/add-member', methods=['GET', 'POST'])
 @staff_required
