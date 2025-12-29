@@ -925,6 +925,7 @@ def member_details(member_id):
     # Convert member to dict-like object for template compatibility
     member_dict = {
         'id': member.member_id,
+        'member_id': member.member_id,
         'name': member.full_name,
         'email': member.email,
         'phone': member.phone,
