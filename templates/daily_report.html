@@ -70,6 +70,22 @@
         </div>
     </div>
 
+    <!-- Payment Method Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="mb-3"><i class="bi bi-funnel"></i> Filter by Payment Method</h6>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('all')">All</button>
+                <button type="button" class="btn btn-outline-success" onclick="filterByMethod('cash')">Cash</button>
+                <button type="button" class="btn btn-outline-primary" onclick="filterByMethod('zelle')">Zelle</button>
+                <button type="button" class="btn btn-outline-info" onclick="filterByMethod('venmo')">Venmo</button>
+                <button type="button" class="btn btn-outline-warning" onclick="filterByMethod('credit_card')">Card</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('cheque')">Cheque</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('other')">Other</button>
+            </div>
+        </div>
+    </div>
+
     {% if receipt_groups %}
     <div class="card">
         <div class="card-header bg-dark text-white">
@@ -108,7 +124,7 @@
                         </thead>
                         <tbody>
                             {% for receipt in group.receipts %}
-                            <tr>
+                            <tr class="receipt-row" data-payment-method="{{ receipt.payment_method|lower|replace('_', '_') }}">
                                 <td>
                                     {% if receipt.is_member %}
                                     <a href="{{ url_for('view_receipt', member_id=receipt.member_id, receipt_number=receipt.receipt_number) }}" 
@@ -175,6 +191,8 @@
 </div>
 
 <script>
+let activeFilter = 'all';
+
 function toggleGroup(groupId) {
     const element = document.getElementById(groupId);
     const icon = document.getElementById('icon-' + groupId);
@@ -187,6 +205,48 @@ function toggleGroup(groupId) {
         element.style.display = 'none';
         icon.classList.remove('bi-chevron-up');
         icon.classList.add('bi-chevron-down');
+    }
+}
+
+function filterByMethod(method) {
+    activeFilter = method;
+    const rows = document.querySelectorAll('.receipt-row');
+    
+    rows.forEach(row => {
+        const paymentMethod = row.getAttribute('data-payment-method');
+        if (method === 'all' || paymentMethod === method) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update button states
+    document.querySelectorAll('.btn-group button').forEach(btn => {
+        btn.classList.remove('active', 'btn-success', 'btn-primary', 'btn-info', 'btn-warning');
+        btn.classList.add('btn-outline-secondary', 'btn-outline-success', 'btn-outline-primary', 'btn-outline-info', 'btn-outline-warning');
+    });
+    
+    const activeBtn = Array.from(document.querySelectorAll('.btn-group button')).find(btn => 
+        btn.textContent.toLowerCase().replace(/\s+/g, '_').includes(method.replace('_', ''))
+    );
+    
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        // Color the active button
+        if (method === 'cash') {
+            activeBtn.classList.remove('btn-outline-success');
+            activeBtn.classList.add('btn-success');
+        } else if (method === 'zelle') {
+            activeBtn.classList.remove('btn-outline-primary');
+            activeBtn.classList.add('btn-primary');
+        } else if (method === 'venmo') {
+            activeBtn.classList.remove('btn-outline-info');
+            activeBtn.classList.add('btn-info');
+        } else if (method === 'credit_card') {
+            activeBtn.classList.remove('btn-outline-warning');
+            activeBtn.classList.add('btn-warning');
+        }
     }
 }
 
