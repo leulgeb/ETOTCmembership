@@ -2421,7 +2421,8 @@ def daily_report():
                 'payment_method': contrib.payment_method.value if contrib.payment_method else 'N/A',
                 'processed_by': contrib.processed_by_user.full_name if contrib.processed_by_user else 'Unknown',
                 'time': contrib.payment_date.strftime('%H:%M') if contrib.payment_date else '',
-                'description': ''
+                'description': '',
+                'payment_reason': 'membership'
             }
         receipts[receipt_num]['months'].append(contrib.month)
         receipts[receipt_num]['total'] += contrib.amount
@@ -2435,6 +2436,16 @@ def daily_report():
     
     for donation in donations:
         receipt_num = donation.receipt_number or f'DON-{donation.id}'
+        # Determine payment reason based on donation purpose
+        donation_purpose = (donation.purpose or 'donation').lower()
+        payment_reason = 'donation'
+        if 'baptism' in donation_purpose:
+            payment_reason = 'baptism'
+        elif 'fithat' in donation_purpose:
+            payment_reason = 'fithat'
+        elif 'sunday' in donation_purpose or 'offering' in donation_purpose:
+            payment_reason = 'sunday_offering'
+        
         if receipt_num not in receipts:
             receipts[receipt_num] = {
                 'receipt_number': receipt_num,
@@ -2447,7 +2458,8 @@ def daily_report():
                 'payment_method': donation.payment_method.value if donation.payment_method else 'N/A',
                 'processed_by': donation.processed_by_user.full_name if donation.processed_by_user else 'Unknown',
                 'time': donation.donation_date.strftime('%H:%M') if donation.donation_date else '',
-                'description': f"Donation: {donation.purpose or 'General'}"
+                'description': f"Donation: {donation.purpose or 'General'}",
+                'payment_reason': payment_reason
             }
         receipts[receipt_num]['total'] += donation.amount
         total_amount += donation.amount
@@ -2456,6 +2468,20 @@ def daily_report():
     
     for txn in non_member_txns:
         receipt_num = txn.receipt_number or f'NM-{txn.id}'
+        # Determine payment reason based on purpose
+        purpose = (txn.purpose or 'other').lower()
+        payment_reason = 'other'
+        if 'membership' in purpose:
+            payment_reason = 'membership'
+        elif 'baptism' in purpose:
+            payment_reason = 'baptism'
+        elif 'fithat' in purpose:
+            payment_reason = 'fithat'
+        elif 'sunday' in purpose or 'offering' in purpose:
+            payment_reason = 'sunday_offering'
+        elif 'donation' in purpose:
+            payment_reason = 'donation'
+        
         receipts[receipt_num] = {
             'receipt_number': receipt_num,
             'member': txn.full_name,
@@ -2468,7 +2494,8 @@ def daily_report():
             'payment_method': txn.payment_method.value if txn.payment_method else 'N/A',
             'processed_by': txn.processed_by_user.full_name if txn.processed_by_user else 'Unknown',
             'time': txn.transaction_date.strftime('%H:%M') if txn.transaction_date else '',
-            'description': txn.purpose or 'General'
+            'description': txn.purpose or 'General',
+            'payment_reason': payment_reason
         }
         total_amount += txn.amount
         if txn.payment_method:

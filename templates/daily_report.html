@@ -70,18 +70,18 @@
         </div>
     </div>
 
-    <!-- Payment Method Filter -->
+    <!-- Payment Reason Filter -->
     <div class="card mb-4">
         <div class="card-body">
-            <h6 class="mb-3"><i class="bi bi-funnel"></i> Filter by Payment Method</h6>
+            <h6 class="mb-3"><i class="bi bi-funnel"></i> Filter by Payment Reason</h6>
             <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('all')">All</button>
-                <button type="button" class="btn btn-outline-success" onclick="filterByMethod('cash')">Cash</button>
-                <button type="button" class="btn btn-outline-primary" onclick="filterByMethod('zelle')">Zelle</button>
-                <button type="button" class="btn btn-outline-info" onclick="filterByMethod('venmo')">Venmo</button>
-                <button type="button" class="btn btn-outline-warning" onclick="filterByMethod('credit_card')">Card</button>
-                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('cheque')">Cheque</button>
-                <button type="button" class="btn btn-outline-secondary" onclick="filterByMethod('other')">Other</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterByReason('all')">All</button>
+                <button type="button" class="btn btn-outline-primary" onclick="filterByReason('membership')">Membership</button>
+                <button type="button" class="btn btn-outline-info" onclick="filterByReason('baptism')">Baptism</button>
+                <button type="button" class="btn btn-outline-success" onclick="filterByReason('fithat')">Fithat</button>
+                <button type="button" class="btn btn-outline-warning" onclick="filterByReason('sunday_offering')">Sunday Offering</button>
+                <button type="button" class="btn btn-outline-danger" onclick="filterByReason('donation')">Donation</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterByReason('other')">Other</button>
             </div>
         </div>
     </div>
@@ -124,7 +124,7 @@
                         </thead>
                         <tbody>
                             {% for receipt in group.receipts %}
-                            <tr class="receipt-row" data-payment-method="{{ receipt.payment_method|lower|replace('_', '_') }}">
+                            <tr class="receipt-row" data-payment-reason="{{ receipt.payment_reason|lower }}">
                                 <td>
                                     {% if receipt.is_member %}
                                     <a href="{{ url_for('view_receipt', member_id=receipt.member_id, receipt_number=receipt.receipt_number) }}" 
@@ -208,13 +208,13 @@ function toggleGroup(groupId) {
     }
 }
 
-function filterByMethod(method) {
-    activeFilter = method;
+function filterByReason(reason) {
+    activeFilter = reason;
     const rows = document.querySelectorAll('.receipt-row');
     
     rows.forEach(row => {
-        const paymentMethod = row.getAttribute('data-payment-method');
-        if (method === 'all' || paymentMethod === method) {
+        const paymentReason = row.getAttribute('data-payment-reason');
+        if (reason === 'all' || paymentReason === reason) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -223,29 +223,31 @@ function filterByMethod(method) {
     
     // Update button states
     document.querySelectorAll('.btn-group button').forEach(btn => {
-        btn.classList.remove('active', 'btn-success', 'btn-primary', 'btn-info', 'btn-warning');
-        btn.classList.add('btn-outline-secondary', 'btn-outline-success', 'btn-outline-primary', 'btn-outline-info', 'btn-outline-warning');
+        btn.classList.remove('active', 'btn-primary', 'btn-info', 'btn-success', 'btn-warning', 'btn-danger');
+        btn.classList.add('btn-outline-secondary', 'btn-outline-primary', 'btn-outline-info', 'btn-outline-success', 'btn-outline-warning', 'btn-outline-danger');
     });
     
-    const activeBtn = Array.from(document.querySelectorAll('.btn-group button')).find(btn => 
-        btn.textContent.toLowerCase().replace(/\s+/g, '_').includes(method.replace('_', ''))
-    );
+    // Find and highlight active button
+    const activeBtn = Array.from(document.querySelectorAll('.btn-group button')).find(btn => {
+        const btnText = btn.textContent.trim().toLowerCase();
+        const reasonText = reason.replace('_', ' ');
+        return btnText === reasonText || btnText === reason;
+    });
     
     if (activeBtn) {
         activeBtn.classList.add('active');
         // Color the active button
-        if (method === 'cash') {
-            activeBtn.classList.remove('btn-outline-success');
-            activeBtn.classList.add('btn-success');
-        } else if (method === 'zelle') {
-            activeBtn.classList.remove('btn-outline-primary');
-            activeBtn.classList.add('btn-primary');
-        } else if (method === 'venmo') {
-            activeBtn.classList.remove('btn-outline-info');
-            activeBtn.classList.add('btn-info');
-        } else if (method === 'credit_card') {
-            activeBtn.classList.remove('btn-outline-warning');
-            activeBtn.classList.add('btn-warning');
+        const colorMap = {
+            'membership': ['btn-outline-primary', 'btn-primary'],
+            'baptism': ['btn-outline-info', 'btn-info'],
+            'fithat': ['btn-outline-success', 'btn-success'],
+            'sunday_offering': ['btn-outline-warning', 'btn-warning'],
+            'donation': ['btn-outline-danger', 'btn-danger']
+        };
+        
+        if (colorMap[reason]) {
+            activeBtn.classList.remove(colorMap[reason][0]);
+            activeBtn.classList.add(colorMap[reason][1]);
         }
     }
 }
