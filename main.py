@@ -2155,6 +2155,27 @@ def archive():
     archived_members = Member.query.filter_by(is_active=False).all()
     archived_users = User.query.filter_by(is_active=False).all()
     
+    # Calculate contribution statistics for each member
+    for member in archived_members:
+        # Get all contributions
+        contributions = Contribution.query.filter_by(member_id=member.id).all()
+        paid_contributions = [c for c in contributions if c.status == PaymentStatus.PAID]
+        
+        # Calculate totals
+        member.total_contributions = sum(c.amount for c in paid_contributions)
+        member.paid_months = len(paid_contributions)
+        member.total_months = len(contributions)
+        
+        # Get years active
+        years = sorted(set(c.year for c in contributions))
+        member.years_active = ', '.join(str(y) for y in years) if years else 'None'
+        
+        # Get last payment date
+        if paid_contributions:
+            member.last_payment_date = max(c.payment_date for c in paid_contributions if c.payment_date)
+        else:
+            member.last_payment_date = None
+    
     return render_template('archive.html', 
                          archived_members=archived_members,
                          archived_users=archived_users)
