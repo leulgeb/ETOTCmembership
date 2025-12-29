@@ -19,20 +19,9 @@
                         </div>
                     </div>
                     
-                    {% set name_parts = member.name.split() %}
-                    {% if name_parts|length == 2 %}
-                        {% set first = name_parts[0] %}
-                        {% set middle = '' %}
-                        {% set last = name_parts[1] %}
-                    {% elif name_parts|length >= 3 %}
-                        {% set first = name_parts[0] %}
-                        {% set middle = ' '.join(name_parts[1:-1]) %}
-                        {% set last = name_parts[-1] %}
-                    {% else %}
-                        {% set first = member.name %}
-                        {% set middle = '' %}
-                        {% set last = '' %}
-                    {% endif %}
+                    {% set first = member.first_name %}
+                    {% set middle = member.middle_name or '' %}
+                    {% set last = member.last_name %}
                     
                     <div class="row">
                         <div class="col-md-4 mb-3">
