@@ -21,7 +21,7 @@
                             <tr>
                                 <th style="width: 50px;">#</th>
                                 <th>Name</th>
-                                <th style="width: 100px;">Current Year</th>
+                                <th style="width: 80px;">Current On</th>
                                 <th colspan="12" class="text-center">Payment Status</th>
                             </tr>
                         </thead>
@@ -33,7 +33,7 @@
                                     <strong>{{ member.full_name }}</strong><br>
                                     <small class="text-muted">{{ member.member_id }}</small>
                                 </td>
-                                <td><strong>{{ current_year }}</strong></td>
+                                <td><strong>{{ member.current_year }}</strong></td>
                                 {% for month in months %}
                                 <td style="width: 40px; text-align: center; padding: 8px 2px;">
                                     <span title="{{ month }}" style="display: inline-block; width: 24px; height: 24px; border: 1px solid #ccc; border-radius: 3px; line-height: 24px; font-size: 12px; font-weight: bold;">

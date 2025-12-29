@@ -544,7 +544,7 @@ def admin_home():
     """Admin/Cashier home page with member list"""
     members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     current_user = get_current_user()
-    current_year = datetime.now().year
+    current_calendar_year = datetime.now().year
     
     # Calculate total contributions and payment status for each member
     for member in members:
@@ -554,10 +554,28 @@ def admin_home():
         ).scalar() or 0
         member.total_contributions = total
         
-        # Get contributions for current year
+        # Find the year the member is current on based on last payment
+        last_contribution = Contribution.query.filter_by(
+            member_id=member.id,
+            status=PaymentStatus.PAID
+        ).order_by(Contribution.year.desc(), Contribution.month.desc()).first()
+        
+        if last_contribution:
+            # If last payment was in December, member is current for next year
+            if last_contribution.month == 'December':
+                member_current_year = last_contribution.year + 1
+            else:
+                member_current_year = last_contribution.year
+        else:
+            # No payments yet, use current calendar year
+            member_current_year = current_calendar_year
+        
+        member.current_year = member_current_year
+        
+        # Get contributions for the year the member is current on
         current_year_contributions = Contribution.query.filter_by(
             member_id=member.id,
-            year=current_year
+            year=member_current_year
         ).all()
         
         # Create a dictionary of payment status by month
@@ -565,7 +583,7 @@ def admin_home():
         for contrib in current_year_contributions:
             member.month_status[contrib.month] = contrib.status == PaymentStatus.PAID
     
-    return render_template('admin_home.html', members=members, current_user=current_user, current_year=current_year, months=MONTHS)
+    return render_template('admin_home.html', members=members, current_user=current_user, months=MONTHS)
 
 @app.route('/admin/add-member', methods=['GET', 'POST'])
 @staff_required
