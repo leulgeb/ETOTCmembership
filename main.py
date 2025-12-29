@@ -2474,14 +2474,28 @@ def daily_report():
         if txn.payment_method:
             totals_by_method[txn.payment_method.value] = totals_by_method.get(txn.payment_method.value, 0) + txn.amount
     
-    receipt_list = sorted(receipts.values(), key=lambda x: x['receipt_number'], reverse=True)
+    # Group receipts by processed_by (staff member)
+    grouped_receipts = {}
+    for receipt in receipts.values():
+        staff_name = receipt['processed_by']
+        if staff_name not in grouped_receipts:
+            grouped_receipts[staff_name] = {
+                'staff_name': staff_name,
+                'total': 0,
+                'receipts': []
+            }
+        grouped_receipts[staff_name]['total'] += receipt['total']
+        grouped_receipts[staff_name]['receipts'].append(receipt)
+    
+    # Sort by staff name
+    sorted_groups = sorted(grouped_receipts.values(), key=lambda x: x['staff_name'])
     
     return render_template('daily_report.html',
                          report_date=target_date.strftime('%Y-%m-%d'),
-                         receipts=receipt_list,
+                         receipt_groups=sorted_groups,
                          total_amount=total_amount,
                          totals_by_method=totals_by_method,
-                         receipt_count=len(receipt_list))
+                         receipt_count=len(receipts))
 
 # =============================================================================
 # NON-MEMBER TRANSACTIONS

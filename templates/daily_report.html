@@ -70,71 +70,94 @@
         </div>
     </div>
 
-    {% if receipts %}
+    {% if receipt_groups %}
     <div class="card">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Transactions for {{ report_date }}</h5>
+            <h5 class="mb-0">Transactions by Staff for {{ report_date }}</h5>
         </div>
         <div class="card-body p-0">
-            <table class="table table-striped table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Receipt #</th>
-                        <th>Time</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Method</th>
-                        <th>Processed By</th>
-                        <th class="text-end">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for receipt in receipts %}
-                    <tr>
-                        <td>
-                            {% if receipt.is_member %}
-                            <a href="{{ url_for('view_receipt', member_id=receipt.member_id, receipt_number=receipt.receipt_number) }}" 
-                               class="text-decoration-none">
-                                <strong>{{ receipt.receipt_number }}</strong>
-                            </a>
-                            {% else %}
-                            <a href="{{ url_for('view_non_member_receipt', txn_id=receipt.txn_id) }}" 
-                               class="text-decoration-none">
-                                <strong>{{ receipt.receipt_number }}</strong>
-                            </a>
-                            {% endif %}
-                        </td>
-                        <td>{{ receipt.time }}</td>
-                        <td>
-                            {{ receipt.member }}
-                            <br>
-                            <small class="{% if receipt.is_member %}text-muted{% else %}text-warning{% endif %}">
-                                {% if receipt.is_member %}{{ receipt.member_id }}{% else %}Guest{% endif %}
-                            </small>
-                        </td>
-                        <td>{{ receipt.description }}</td>
-                        <td>
-                            <span class="badge 
-                                {% if receipt.payment_method == 'cash' %}bg-success
-                                {% elif receipt.payment_method == 'zelle' %}bg-primary
-                                {% elif receipt.payment_method == 'venmo' %}bg-info
-                                {% elif receipt.payment_method == 'credit_card' %}bg-warning text-dark
-                                {% else %}bg-secondary{% endif %}">
-                                {{ receipt.payment_method|title|replace('_', ' ') }}
-                            </span>
-                        </td>
-                        <td>{{ receipt.processed_by }}</td>
-                        <td class="text-end"><strong>${{ "%.2f"|format(receipt.total) }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot class="table-dark">
-                    <tr>
-                        <th colspan="6">Total</th>
-                        <th class="text-end">${{ "%.2f"|format(total_amount) }}</th>
-                    </tr>
-                </tfoot>
-            </table>
+            {% for group in receipt_groups %}
+            <div class="border-bottom">
+                <!-- Staff Member Header - Clickable to expand -->
+                <div style="padding: 15px; cursor: pointer; user-select: none;" 
+                     onclick="toggleGroup('group-{{ loop.index }}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-chevron-down" id="icon-group-{{ loop.index }}"></i>
+                            <strong>{{ group.staff_name }}</strong>
+                        </div>
+                        <div>
+                            <strong class="text-success">${{ "%.2f"|format(group.total) }}</strong>
+                            <span class="badge bg-info ms-2">{{ group.receipts|length }} receipt{{ 's' if group.receipts|length != 1 else '' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Details - Collapsible -->
+                <div id="group-{{ loop.index }}" class="collapse-content" style="display: none;">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Receipt #</th>
+                                <th>Time</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Method</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for receipt in group.receipts %}
+                            <tr>
+                                <td>
+                                    {% if receipt.is_member %}
+                                    <a href="{{ url_for('view_receipt', member_id=receipt.member_id, receipt_number=receipt.receipt_number) }}" 
+                                       class="text-decoration-none" target="_blank">
+                                        <small>{{ receipt.receipt_number }}</small>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('view_non_member_receipt', txn_id=receipt.txn_id) }}" 
+                                       class="text-decoration-none" target="_blank">
+                                        <small>{{ receipt.receipt_number }}</small>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ receipt.time }}</small></td>
+                                <td>
+                                    <small>
+                                        {{ receipt.member }}<br>
+                                        <small class="{% if receipt.is_member %}text-muted{% else %}text-warning{% endif %}">
+                                            {% if receipt.is_member %}{{ receipt.member_id }}{% else %}Guest{% endif %}
+                                        </small>
+                                    </small>
+                                </td>
+                                <td><small>{{ receipt.description }}</small></td>
+                                <td>
+                                    <span class="badge 
+                                        {% if receipt.payment_method == 'cash' %}bg-success
+                                        {% elif receipt.payment_method == 'zelle' %}bg-primary
+                                        {% elif receipt.payment_method == 'venmo' %}bg-info
+                                        {% elif receipt.payment_method == 'credit_card' %}bg-warning text-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        <small>{{ receipt.payment_method|title|replace('_', ' ') }}</small>
+                                    </span>
+                                </td>
+                                <td class="text-end"><small><strong>${{ "%.2f"|format(receipt.total) }}</strong></small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Grand Total Footer -->
+            <div style="padding: 15px; background: #f8f9fa;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>Daily Total</strong>
+                    <strong class="text-success">${{ "%.2f"|format(total_amount) }}</strong>
+                </div>
+            </div>
         </div>
     </div>
     {% else %}
@@ -150,4 +173,42 @@
         </button>
     </div>
 </div>
+
+<script>
+function toggleGroup(groupId) {
+    const element = document.getElementById(groupId);
+    const icon = document.getElementById('icon-' + groupId);
+    
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+        icon.classList.remove('bi-chevron-down');
+        icon.classList.add('bi-chevron-up');
+    } else {
+        element.style.display = 'none';
+        icon.classList.remove('bi-chevron-up');
+        icon.classList.add('bi-chevron-down');
+    }
+}
+
+// Auto-expand first group on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const firstGroup = document.getElementById('group-1');
+    if (firstGroup) {
+        firstGroup.style.display = 'block';
+        const firstIcon = document.getElementById('icon-group-1');
+        if (firstIcon) {
+            firstIcon.classList.remove('bi-chevron-down');
+            firstIcon.classList.add('bi-chevron-up');
+        }
+    }
+});
+</script>
+
+<style>
+@media print {
+    .btn, .form-control, button { display: none !important; }
+    .collapse-content { display: block !important; }
+    .border-bottom { page-break-inside: avoid; }
+}
+</style>
 {% endblock %}
