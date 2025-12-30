@@ -18,7 +18,7 @@
 
     <div class="card">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Admin & Cashier Users</h5>
+            <h5 class="mb-0">Staff Users</h5>
         </div>
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">
@@ -41,6 +41,8 @@
                         <td>
                             {% if user.role.value == 'admin' %}
                             <span class="badge bg-danger">Admin</span>
+                            {% elif user.role.value == 'accountant' %}
+                            <span class="badge bg-info">Accountant</span>
                             {% else %}
                             <span class="badge bg-primary">Cashier</span>
                             {% endif %}
@@ -67,7 +69,12 @@
 
     <div class="mt-4">
         <div class="alert alert-info">
-            <strong>Note:</strong> Admins have full access to all features. Cashiers can process payments but cannot manage users or make corrections.
+            <strong>User Roles:</strong>
+            <ul class="mb-0 mt-2">
+                <li><span class="badge bg-danger">Admin</span> - Full access to all features including user management, corrections, and reports.</li>
+                <li><span class="badge bg-info">Accountant</span> - View all financial reports, process payments as backup. Cannot manage users or archive.</li>
+                <li><span class="badge bg-primary">Cashier</span> - Process payments and add members. Cannot manage users, make corrections, or view reports.</li>
+            </ul>
         </div>
     </div>
 </div>
