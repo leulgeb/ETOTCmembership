@@ -5,12 +5,52 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Daily Report{% if session.user_role == 'cashier' %} - My Transactions{% endif %}</h2>
+        <div>
+            <h2>
+                Daily Report
+                {% if session.user_role == 'cashier' %}
+                    - My Transactions
+                {% elif report_view == 'admin_only' %}
+                    - My Transactions
+                {% else %}
+                    - All Staff
+                {% endif %}
+            </h2>
+        </div>
         <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Back
         </a>
     </div>
 
+    <!-- View Toggle for Admins -->
+    {% if is_admin %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="date" class="form-label">Report Date</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ report_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">View</label>
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('daily_report', date=report_date, view='all_staff') }}" 
+                           class="btn btn-outline-primary {% if report_view == 'all_staff' %}active btn-primary{% endif %}">
+                            All Staff
+                        </a>
+                        <a href="{{ url_for('daily_report', date=report_date, view='admin_only') }}" 
+                           class="btn btn-outline-primary {% if report_view == 'admin_only' %}active btn-primary{% endif %}">
+                            My Transactions
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary w-100" onclick="location.reload()">Refresh</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">
@@ -24,6 +64,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     <div class="row mb-4">
         <div class="col-md-4">

@@ -2375,11 +2375,16 @@ def get_month_range_display(months_list, year):
 @app.route('/admin/reports/daily')
 @staff_required
 def daily_report():
-    """Daily report showing transactions - all for admins, only own for cashiers"""
+    """Daily report showing transactions - all staff for admins, only own for cashiers"""
     from datetime import timedelta
     
     current_user = get_current_user()
     is_admin = current_user.role == UserRole.ADMIN
+    
+    # For admins, allow toggling between all_staff and admin_only views
+    report_view = request.args.get('view', 'all_staff')
+    if not is_admin:
+        report_view = 'own'  # Cashiers always see their own
     
     report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     try:
@@ -2407,11 +2412,18 @@ def daily_report():
         NonMemberTransaction.transaction_date < end_of_day
     )
     
-    # For cashiers, filter by their own transactions only
-    if not is_admin:
+    # Apply filters based on user role and view preference
+    if report_view == 'admin_only':
+        # Admin viewing only their transactions
         contrib_query = contrib_query.filter(Contribution.processed_by_id == current_user.id)
         donation_query = donation_query.filter(Donation.processed_by_id == current_user.id)
         non_member_query = non_member_query.filter(NonMemberTransaction.processed_by_id == current_user.id)
+    elif report_view == 'own':
+        # Cashiers always see only their transactions
+        contrib_query = contrib_query.filter(Contribution.processed_by_id == current_user.id)
+        donation_query = donation_query.filter(Donation.processed_by_id == current_user.id)
+        non_member_query = non_member_query.filter(NonMemberTransaction.processed_by_id == current_user.id)
+    # else: all_staff (default for admins) - no filter, show all
     
     contributions = contrib_query.all()
     donations = donation_query.all()
@@ -2542,7 +2554,9 @@ def daily_report():
                          receipt_groups=sorted_groups,
                          total_amount=total_amount,
                          totals_by_method=totals_by_method,
-                         receipt_count=len(receipts))
+                         receipt_count=len(receipts),
+                         is_admin=is_admin,
+                         report_view=report_view)
 
 # =============================================================================
 # NON-MEMBER TRANSACTIONS
