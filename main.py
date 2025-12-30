@@ -2373,10 +2373,12 @@ def get_month_range_display(months_list, year):
         return f"{sorted_months[0]} to {sorted_months[-1]} {year}"
 
 @app.route('/admin/reports/daily')
-@admin_required
+@staff_required
 def daily_report():
-    """Daily report showing transactions grouped by receipt with payment method breakdown"""
+    """Daily report showing transactions processed by the current staff member"""
     from datetime import timedelta
+    
+    current_user = get_current_user()
     
     report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     try:
@@ -2390,17 +2392,20 @@ def daily_report():
     contributions = Contribution.query.filter(
         Contribution.payment_date >= start_of_day,
         Contribution.payment_date < end_of_day,
-        Contribution.status == PaymentStatus.PAID
+        Contribution.status == PaymentStatus.PAID,
+        Contribution.processed_by_user_id == current_user.id
     ).all()
     
     donations = Donation.query.filter(
         Donation.donation_date >= start_of_day,
-        Donation.donation_date < end_of_day
+        Donation.donation_date < end_of_day,
+        Donation.processed_by_user_id == current_user.id
     ).all()
     
     non_member_txns = NonMemberTransaction.query.filter(
         NonMemberTransaction.transaction_date >= start_of_day,
-        NonMemberTransaction.transaction_date < end_of_day
+        NonMemberTransaction.transaction_date < end_of_day,
+        NonMemberTransaction.processed_by_user_id == current_user.id
     ).all()
     
     receipts = {}
