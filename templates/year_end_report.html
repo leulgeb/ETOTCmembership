@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Year-End Summary - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-check"></i> Year-End Financial Summary</h2>
+        <a href="{{ url_for('financial_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(grand_total) }}</h3>
+                    <p class="mb-0">Total Revenue {{ year }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_contributions) }}</h3>
+                    <p class="mb-0">Contributions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_donations + total_non_member) }}</h3>
+                    <p class="mb-0">Donations & Giving</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if yoy_change >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body text-center">
+                    <h3>{% if yoy_change >= 0 %}+{% endif %}{{ "%.1f"|format(yoy_change) }}%</h3>
+                    <p class="mb-0">vs {{ year - 1 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Member Payment Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="bi bi-check-circle text-success"></i> Complete (12 months)</span>
+                            <strong>{{ complete_count }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="bi bi-clock text-warning"></i> Partial</span>
+                            <strong>{{ partial_count }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="bi bi-x-circle text-danger"></i> No Payments</span>
+                            <strong>{{ no_payment_count }}</strong>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Total Members</strong></span>
+                        <strong>{{ total_members }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Monthly Breakdown {{ year }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Month</th>
+                                    <th class="text-end">Contributions</th>
+                                    <th class="text-end">Donations</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in monthly_breakdown %}
+                                <tr>
+                                    <td>{{ m.month }}</td>
+                                    <td class="text-end">${{ "%.2f"|format(m.contributions) }}</td>
+                                    <td class="text-end">${{ "%.2f"|format(m.donations) }}</td>
+                                    <td class="text-end fw-bold">${{ "%.2f"|format(m.total) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-success">
+                                <tr>
+                                    <th>Total</th>
+                                    <th class="text-end">${{ "%.2f"|format(total_contributions) }}</th>
+                                    <th class="text-end">${{ "%.2f"|format(total_donations) }}</th>
+                                    <th class="text-end">${{ "%.2f"|format(grand_total) }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Year-over-Year Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>{{ year }} Contributions: <span class="text-success">${{ "%.2f"|format(total_contributions) }}</span></h4>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>{{ year - 1 }} Contributions: <span class="text-muted">${{ "%.2f"|format(prev_year_total) }}</span></h4>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="lead {% if yoy_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {% if yoy_change >= 0 %}
+                        <i class="bi bi-arrow-up-circle"></i> Increased by {{ "%.1f"|format(yoy_change) }}% (${{ "%.2f"|format(total_contributions - prev_year_total) }})
+                        {% else %}
+                        <i class="bi bi-arrow-down-circle"></i> Decreased by {{ "%.1f"|format(yoy_change|abs) }}% (${{ "%.2f"|format((total_contributions - prev_year_total)|abs) }})
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

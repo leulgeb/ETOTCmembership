@@ -85,6 +85,15 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 30, 2025**: Added comprehensive Financial Reports system with 7 reports:
+  - Financial Dashboard (overview cards, YTD metrics, monthly trends)
+  - Monthly Summary Report (monthly totals with payment method breakdown)
+  - Member Contribution Analysis (individual member payment status and completion rates)
+  - Donation & Special Giving Report (donations categorized by purpose)
+  - Delinquent Members Report (members with unpaid months and amounts owed)
+  - Year-End Financial Summary (annual totals with YoY comparison)
+  - Cash Flow & Bank Reconciliation (transactions grouped by payment method)
+- **December 30, 2025**: Added Reports dropdown menu in navigation for Accountants and Admins
 - **December 29, 2025**: Added archive management system for members and users with restore functionality
 - **December 29, 2025**: Created Archive page accessible from Admin dropdown menu with two tabs (Members & Users)
 - **December 29, 2025**: Added restore capabilities for archived members and users (soft delete with `is_active` flag)

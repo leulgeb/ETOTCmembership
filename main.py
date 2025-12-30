@@ -2586,6 +2586,522 @@ def daily_report():
                          report_view=report_view)
 
 # =============================================================================
+# FINANCIAL REPORTS (Accountant & Admin Access)
+# =============================================================================
+
+@app.route('/admin/reports/dashboard')
+@accountant_or_admin
+def financial_dashboard():
+    """Financial Dashboard with overview cards and key metrics"""
+    current_user = get_current_user()
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    
+    # Total active members
+    total_members = Member.query.filter_by(is_active=True).count()
+    
+    # Year-to-date contributions
+    ytd_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.year == current_year,
+        Contribution.status == PaymentStatus.PAID
+    ).scalar() or 0
+    
+    # Year-to-date donations
+    ytd_donations = db.session.query(db.func.sum(Donation.amount)).filter(
+        db.extract('year', Donation.donation_date) == current_year
+    ).scalar() or 0
+    
+    # Current month contributions
+    month_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.year == current_year,
+        Contribution.status == PaymentStatus.PAID,
+        db.extract('month', Contribution.payment_date) == current_month
+    ).scalar() or 0
+    
+    # Non-member transactions YTD
+    ytd_non_member = db.session.query(db.func.sum(NonMemberTransaction.amount)).filter(
+        db.extract('year', NonMemberTransaction.transaction_date) == current_year
+    ).scalar() or 0
+    
+    # Payment method breakdown for current year
+    payment_methods = db.session.query(
+        Contribution.payment_method,
+        db.func.sum(Contribution.amount)
+    ).filter(
+        Contribution.year == current_year,
+        Contribution.status == PaymentStatus.PAID
+    ).group_by(Contribution.payment_method).all()
+    
+    method_breakdown = {pm.value if pm else 'unknown': amt or 0 for pm, amt in payment_methods}
+    
+    # Monthly trend for current year
+    monthly_data = []
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    for i in range(1, 13):
+        month_total = db.session.query(db.func.sum(Contribution.amount)).filter(
+            Contribution.year == current_year,
+            Contribution.status == PaymentStatus.PAID,
+            db.extract('month', Contribution.payment_date) == i
+        ).scalar() or 0
+        monthly_data.append({'month': month_names[i-1], 'amount': float(month_total)})
+    
+    # Payment reason breakdown
+    reason_data = {
+        'membership': float(ytd_contributions),
+        'donations': float(ytd_donations),
+        'non_member': float(ytd_non_member)
+    }
+    
+    return render_template('financial_dashboard.html',
+                         current_year=current_year,
+                         total_members=total_members,
+                         ytd_contributions=ytd_contributions,
+                         ytd_donations=ytd_donations,
+                         month_contributions=month_contributions,
+                         ytd_non_member=ytd_non_member,
+                         ytd_total=ytd_contributions + ytd_donations + ytd_non_member,
+                         method_breakdown=method_breakdown,
+                         monthly_data=monthly_data,
+                         reason_data=reason_data)
+
+@app.route('/admin/reports/monthly')
+@accountant_or_admin
+def monthly_summary_report():
+    """Monthly Financial Summary Report with trends and breakdowns"""
+    current_user = get_current_user()
+    
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+    
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    
+    # Contributions for selected month
+    contributions = Contribution.query.filter(
+        Contribution.year == year,
+        Contribution.status == PaymentStatus.PAID,
+        db.extract('month', Contribution.payment_date) == month
+    ).all()
+    
+    # Donations for selected month
+    donations = Donation.query.filter(
+        db.extract('year', Donation.donation_date) == year,
+        db.extract('month', Donation.donation_date) == month
+    ).all()
+    
+    # Non-member transactions for selected month
+    non_member_txns = NonMemberTransaction.query.filter(
+        db.extract('year', NonMemberTransaction.transaction_date) == year,
+        db.extract('month', NonMemberTransaction.transaction_date) == month
+    ).all()
+    
+    # Calculate totals
+    total_contributions = sum(c.amount for c in contributions)
+    total_donations = sum(d.amount for d in donations)
+    total_non_member = sum(t.amount for t in non_member_txns)
+    
+    # Payment method breakdown
+    method_totals = {}
+    for c in contributions:
+        method = c.payment_method.value if c.payment_method else 'unknown'
+        method_totals[method] = method_totals.get(method, 0) + c.amount
+    for d in donations:
+        method = d.payment_method.value if d.payment_method else 'unknown'
+        method_totals[method] = method_totals.get(method, 0) + d.amount
+    for t in non_member_txns:
+        method = t.payment_method.value if t.payment_method else 'unknown'
+        method_totals[method] = method_totals.get(method, 0) + t.amount
+    
+    # Previous month comparison
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    
+    prev_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.year == prev_year,
+        Contribution.status == PaymentStatus.PAID,
+        db.extract('month', Contribution.payment_date) == prev_month
+    ).scalar() or 0
+    
+    change_percent = 0
+    if prev_contributions > 0:
+        change_percent = ((total_contributions - prev_contributions) / prev_contributions) * 100
+    
+    return render_template('monthly_summary_report.html',
+                         year=year,
+                         month=month,
+                         month_name=month_names[month-1],
+                         total_contributions=total_contributions,
+                         total_donations=total_donations,
+                         total_non_member=total_non_member,
+                         grand_total=total_contributions + total_donations + total_non_member,
+                         method_totals=method_totals,
+                         contribution_count=len(contributions),
+                         donation_count=len(donations),
+                         prev_month_total=prev_contributions,
+                         change_percent=change_percent,
+                         month_names=month_names)
+
+@app.route('/admin/reports/member-contributions')
+@accountant_or_admin
+def member_contribution_report():
+    """Member Contribution Analysis Report"""
+    current_user = get_current_user()
+    year = request.args.get('year', datetime.now().year, type=int)
+    
+    members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
+    
+    member_data = []
+    for member in members:
+        contributions = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year,
+            status=PaymentStatus.PAID
+        ).all()
+        
+        total_paid = sum(c.amount for c in contributions)
+        months_paid = len(contributions)
+        expected = member.monthly_payment * 12
+        
+        member_data.append({
+            'member': member,
+            'total_paid': total_paid,
+            'months_paid': months_paid,
+            'expected': expected,
+            'balance': expected - total_paid,
+            'completion_rate': (total_paid / expected * 100) if expected > 0 else 0
+        })
+    
+    # Sort by completion rate descending
+    member_data.sort(key=lambda x: x['completion_rate'], reverse=True)
+    
+    # Summary stats
+    total_expected = sum(m['expected'] for m in member_data)
+    total_collected = sum(m['total_paid'] for m in member_data)
+    
+    return render_template('member_contribution_report.html',
+                         year=year,
+                         member_data=member_data,
+                         total_expected=total_expected,
+                         total_collected=total_collected,
+                         collection_rate=(total_collected / total_expected * 100) if total_expected > 0 else 0,
+                         member_count=len(members))
+
+@app.route('/admin/reports/donations')
+@accountant_or_admin
+def donation_report():
+    """Donation & Special Giving Report"""
+    current_user = get_current_user()
+    year = request.args.get('year', datetime.now().year, type=int)
+    
+    donations = Donation.query.filter(
+        db.extract('year', Donation.donation_date) == year
+    ).order_by(Donation.donation_date.desc()).all()
+    
+    non_member_txns = NonMemberTransaction.query.filter(
+        db.extract('year', NonMemberTransaction.transaction_date) == year
+    ).order_by(NonMemberTransaction.transaction_date.desc()).all()
+    
+    # Categorize by purpose
+    categories = {
+        'membership': {'total': 0, 'count': 0},
+        'baptism': {'total': 0, 'count': 0},
+        'fithat': {'total': 0, 'count': 0},
+        'sunday_offering': {'total': 0, 'count': 0},
+        'donation': {'total': 0, 'count': 0},
+        'building_donation': {'total': 0, 'count': 0},
+        'other': {'total': 0, 'count': 0}
+    }
+    
+    for d in donations:
+        purpose = (d.purpose or 'donation').lower()
+        category = 'donation'
+        if 'membership' in purpose:
+            category = 'membership'
+        elif 'baptism' in purpose:
+            category = 'baptism'
+        elif 'fithat' in purpose:
+            category = 'fithat'
+        elif 'sunday' in purpose or 'offering' in purpose:
+            category = 'sunday_offering'
+        elif 'building' in purpose:
+            category = 'building_donation'
+        
+        categories[category]['total'] += d.amount
+        categories[category]['count'] += 1
+    
+    for t in non_member_txns:
+        purpose = (t.purpose or 'other').lower()
+        category = 'other'
+        if 'membership' in purpose:
+            category = 'membership'
+        elif 'baptism' in purpose:
+            category = 'baptism'
+        elif 'fithat' in purpose:
+            category = 'fithat'
+        elif 'sunday' in purpose or 'offering' in purpose:
+            category = 'sunday_offering'
+        elif 'building' in purpose:
+            category = 'building_donation'
+        elif 'donation' in purpose:
+            category = 'donation'
+        
+        categories[category]['total'] += t.amount
+        categories[category]['count'] += 1
+    
+    total_donations = sum(d.amount for d in donations)
+    total_non_member = sum(t.amount for t in non_member_txns)
+    
+    return render_template('donation_report.html',
+                         year=year,
+                         donations=donations,
+                         non_member_txns=non_member_txns,
+                         categories=categories,
+                         total_donations=total_donations,
+                         total_non_member=total_non_member,
+                         grand_total=total_donations + total_non_member)
+
+@app.route('/admin/reports/delinquent')
+@accountant_or_admin
+def delinquent_report():
+    """Delinquent Members Report - members with unpaid months"""
+    current_user = get_current_user()
+    year = request.args.get('year', datetime.now().year, type=int)
+    
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    
+    current_month_idx = datetime.now().month if year == datetime.now().year else 12
+    
+    members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
+    
+    delinquent_members = []
+    for member in members:
+        paid_months = set()
+        contributions = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year,
+            status=PaymentStatus.PAID
+        ).all()
+        
+        for c in contributions:
+            paid_months.add(c.month)
+        
+        unpaid_months = []
+        for i in range(current_month_idx):
+            month = month_names[i]
+            if month not in paid_months:
+                unpaid_months.append(month)
+        
+        if unpaid_months:
+            amount_owed = len(unpaid_months) * member.monthly_payment
+            delinquent_members.append({
+                'member': member,
+                'unpaid_months': unpaid_months,
+                'months_behind': len(unpaid_months),
+                'amount_owed': amount_owed
+            })
+    
+    # Sort by amount owed descending
+    delinquent_members.sort(key=lambda x: x['amount_owed'], reverse=True)
+    
+    total_owed = sum(m['amount_owed'] for m in delinquent_members)
+    
+    return render_template('delinquent_report.html',
+                         year=year,
+                         delinquent_members=delinquent_members,
+                         total_owed=total_owed,
+                         delinquent_count=len(delinquent_members),
+                         total_members=len(members))
+
+@app.route('/admin/reports/year-end')
+@accountant_or_admin
+def year_end_report():
+    """Year-End Financial Summary Report"""
+    current_user = get_current_user()
+    year = request.args.get('year', datetime.now().year, type=int)
+    
+    # Total contributions
+    total_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.year == year,
+        Contribution.status == PaymentStatus.PAID
+    ).scalar() or 0
+    
+    # Total donations
+    total_donations = db.session.query(db.func.sum(Donation.amount)).filter(
+        db.extract('year', Donation.donation_date) == year
+    ).scalar() or 0
+    
+    # Total non-member
+    total_non_member = db.session.query(db.func.sum(NonMemberTransaction.amount)).filter(
+        db.extract('year', NonMemberTransaction.transaction_date) == year
+    ).scalar() or 0
+    
+    # Members with complete payments
+    members = Member.query.filter_by(is_active=True).all()
+    complete_count = 0
+    partial_count = 0
+    
+    for member in members:
+        paid_count = Contribution.query.filter_by(
+            member_id=member.id,
+            year=year,
+            status=PaymentStatus.PAID
+        ).count()
+        
+        if paid_count >= 12:
+            complete_count += 1
+        elif paid_count > 0:
+            partial_count += 1
+    
+    # Monthly breakdown
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    
+    monthly_breakdown = []
+    for i in range(1, 13):
+        month_contrib = db.session.query(db.func.sum(Contribution.amount)).filter(
+            Contribution.year == year,
+            Contribution.status == PaymentStatus.PAID,
+            db.extract('month', Contribution.payment_date) == i
+        ).scalar() or 0
+        
+        month_donations = db.session.query(db.func.sum(Donation.amount)).filter(
+            db.extract('year', Donation.donation_date) == year,
+            db.extract('month', Donation.donation_date) == i
+        ).scalar() or 0
+        
+        monthly_breakdown.append({
+            'month': month_names[i-1],
+            'contributions': float(month_contrib),
+            'donations': float(month_donations),
+            'total': float(month_contrib) + float(month_donations)
+        })
+    
+    # Compare to previous year
+    prev_year = year - 1
+    prev_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.year == prev_year,
+        Contribution.status == PaymentStatus.PAID
+    ).scalar() or 0
+    
+    yoy_change = 0
+    if prev_contributions > 0:
+        yoy_change = ((total_contributions - prev_contributions) / prev_contributions) * 100
+    
+    return render_template('year_end_report.html',
+                         year=year,
+                         total_contributions=total_contributions,
+                         total_donations=total_donations,
+                         total_non_member=total_non_member,
+                         grand_total=total_contributions + total_donations + total_non_member,
+                         complete_count=complete_count,
+                         partial_count=partial_count,
+                         no_payment_count=len(members) - complete_count - partial_count,
+                         total_members=len(members),
+                         monthly_breakdown=monthly_breakdown,
+                         prev_year_total=prev_contributions,
+                         yoy_change=yoy_change)
+
+@app.route('/admin/reports/reconciliation')
+@accountant_or_admin
+def reconciliation_report():
+    """Cash Flow & Bank Reconciliation Report"""
+    current_user = get_current_user()
+    
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d')
+        end = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+    except ValueError:
+        start = datetime.now() - timedelta(days=30)
+        end = datetime.now()
+    
+    # Get all transactions in date range
+    contributions = Contribution.query.filter(
+        Contribution.payment_date >= start,
+        Contribution.payment_date <= end,
+        Contribution.status == PaymentStatus.PAID
+    ).order_by(Contribution.payment_date).all()
+    
+    donations = Donation.query.filter(
+        Donation.donation_date >= start,
+        Donation.donation_date <= end
+    ).order_by(Donation.donation_date).all()
+    
+    non_member_txns = NonMemberTransaction.query.filter(
+        NonMemberTransaction.transaction_date >= start,
+        NonMemberTransaction.transaction_date <= end
+    ).order_by(NonMemberTransaction.transaction_date).all()
+    
+    # Group by payment method for reconciliation
+    method_summary = {
+        'cash': {'count': 0, 'total': 0, 'transactions': []},
+        'zelle': {'count': 0, 'total': 0, 'transactions': []},
+        'venmo': {'count': 0, 'total': 0, 'transactions': []},
+        'credit_card': {'count': 0, 'total': 0, 'transactions': []},
+        'cheque': {'count': 0, 'total': 0, 'transactions': []},
+        'other': {'count': 0, 'total': 0, 'transactions': []}
+    }
+    
+    for c in contributions:
+        method = c.payment_method.value if c.payment_method else 'other'
+        if method not in method_summary:
+            method = 'other'
+        method_summary[method]['count'] += 1
+        method_summary[method]['total'] += c.amount
+        method_summary[method]['transactions'].append({
+            'date': c.payment_date,
+            'type': 'Contribution',
+            'description': f"{c.member.full_name if c.member else 'Unknown'} - {c.month} {c.year}",
+            'amount': c.amount,
+            'receipt': c.receipt_number
+        })
+    
+    for d in donations:
+        method = d.payment_method.value if d.payment_method else 'other'
+        if method not in method_summary:
+            method = 'other'
+        method_summary[method]['count'] += 1
+        method_summary[method]['total'] += d.amount
+        method_summary[method]['transactions'].append({
+            'date': d.donation_date,
+            'type': 'Donation',
+            'description': f"{d.member.full_name if d.member else 'Unknown'} - {d.purpose or 'General'}",
+            'amount': d.amount,
+            'receipt': d.receipt_number
+        })
+    
+    for t in non_member_txns:
+        method = t.payment_method.value if t.payment_method else 'other'
+        if method not in method_summary:
+            method = 'other'
+        method_summary[method]['count'] += 1
+        method_summary[method]['total'] += t.amount
+        method_summary[method]['transactions'].append({
+            'date': t.transaction_date,
+            'type': 'Non-Member',
+            'description': f"{t.full_name} - {t.purpose or 'General'}",
+            'amount': t.amount,
+            'receipt': t.receipt_number
+        })
+    
+    # Sort transactions by date
+    for method in method_summary:
+        method_summary[method]['transactions'].sort(key=lambda x: x['date'] or datetime.min)
+    
+    grand_total = sum(m['total'] for m in method_summary.values())
+    total_transactions = sum(m['count'] for m in method_summary.values())
+    
+    return render_template('reconciliation_report.html',
+                         start_date=start.strftime('%Y-%m-%d'),
+                         end_date=end.strftime('%Y-%m-%d'),
+                         method_summary=method_summary,
+                         grand_total=grand_total,
+                         total_transactions=total_transactions)
+
+# =============================================================================
 # NON-MEMBER TRANSACTIONS
 # =============================================================================
 

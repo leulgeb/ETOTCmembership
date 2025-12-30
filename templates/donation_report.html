@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Donation Report - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-gift"></i> Donation & Special Giving Report</h2>
+        <a href="{{ url_for('financial_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(grand_total) }}</h3>
+                    <p class="mb-0">Total Donations & Giving</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_donations) }}</h3>
+                    <p class="mb-0">Member Donations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_non_member) }}</h3>
+                    <p class="mb-0">Non-Member Giving</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Giving by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for category, data in categories.items() %}
+                        {% if data.total > 0 %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h4 class="text-success">${{ "%.2f"|format(data.total) }}</h4>
+                                    <p class="mb-1 text-capitalize">{{ category|replace('_', ' ') }}</p>
+                                    <small class="text-muted">{{ data.count }} transaction(s)</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Member Donations ({{ donations|length }})</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Member</th>
+                                    <th>Purpose</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in donations %}
+                                <tr>
+                                    <td>{{ d.donation_date.strftime('%m/%d') if d.donation_date else '-' }}</td>
+                                    <td>{{ d.member.full_name if d.member else 'Unknown' }}</td>
+                                    <td>{{ d.purpose or 'General' }}</td>
+                                    <td class="text-end text-success">${{ "%.2f"|format(d.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Non-Member Giving ({{ non_member_txns|length }})</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Name</th>
+                                    <th>Purpose</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for t in non_member_txns %}
+                                <tr>
+                                    <td>{{ t.transaction_date.strftime('%m/%d') if t.transaction_date else '-' }}</td>
+                                    <td>{{ t.full_name }}</td>
+                                    <td>{{ t.purpose or 'General' }}</td>
+                                    <td class="text-end text-success">${{ "%.2f"|format(t.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

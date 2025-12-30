@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Dashboard - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-speedometer2"></i> Financial Dashboard {{ current_year }}</h2>
+        <a href="{{ url_for('admin_home') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(ytd_total) }}</h3>
+                    <p class="mb-0">Year-to-Date Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(ytd_contributions) }}</h3>
+                    <p class="mb-0">Contributions (YTD)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(ytd_donations) }}</h3>
+                    <p class="mb-0">Donations (YTD)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3>{{ total_members }}</h3>
+                    <p class="mb-0">Active Members</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-success">${{ "%.2f"|format(month_contributions) }}</h4>
+                    <p class="mb-0 text-muted">This Month Contributions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-info">${{ "%.2f"|format(ytd_non_member) }}</h4>
+                    <p class="mb-0 text-muted">Non-Member (YTD)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">Payment Methods (YTD)</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row small">
+                        {% for method, amount in method_breakdown.items() %}
+                        {% if amount > 0 %}
+                        <div class="col-4 mb-1">
+                            <strong>{{ method|title|replace('_', ' ') }}:</strong> ${{ "%.2f"|format(amount) }}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Monthly Contribution Trend {{ current_year }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for data in monthly_data %}
+                        <div class="col-1 text-center">
+                            <div class="small text-muted">{{ data.month }}</div>
+                            <div class="fw-bold{% if data.amount > 0 %} text-success{% else %} text-muted{% endif %}">
+                                ${{ "%.0f"|format(data.amount) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Quick Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('monthly_summary_report') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-calendar-month"></i> Monthly Summary
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('member_contribution_report') }}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-people"></i> Member Contributions
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('donation_report') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-gift"></i> Donation Report
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('delinquent_report') }}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-exclamation-triangle"></i> Delinquent Members
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('year_end_report') }}" class="btn btn-outline-dark w-100">
+                                <i class="bi bi-calendar-check"></i> Year-End Summary
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{{ url_for('reconciliation_report') }}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-bank"></i> Reconciliation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

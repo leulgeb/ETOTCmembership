@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Member Contributions - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people"></i> Member Contribution Analysis</h2>
+        <a href="{{ url_for('financial_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ member_count }}</h3>
+                    <p class="mb-0">Active Members</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_expected) }}</h3>
+                    <p class="mb-0">Expected (Annual)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_collected) }}</h3>
+                    <p class="mb-0">Collected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if collection_rate >= 75 %}bg-success{% elif collection_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body text-center">
+                    <h3>{{ "%.1f"|format(collection_rate) }}%</h3>
+                    <p class="mb-0">Collection Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Member Details for {{ year }}</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Member ID</th>
+                            <th>Name</th>
+                            <th class="text-center">Months Paid</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-end">Expected</th>
+                            <th class="text-end">Balance</th>
+                            <th class="text-center">Completion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in member_data %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ m.member.member_id }}</td>
+                            <td>{{ m.member.full_name }}</td>
+                            <td class="text-center">{{ m.months_paid }}/12</td>
+                            <td class="text-end text-success">${{ "%.2f"|format(m.total_paid) }}</td>
+                            <td class="text-end">${{ "%.2f"|format(m.expected) }}</td>
+                            <td class="text-end {% if m.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                ${{ "%.2f"|format(m.balance) }}
+                            </td>
+                            <td class="text-center">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if m.completion_rate >= 100 %}bg-success{% elif m.completion_rate >= 75 %}bg-info{% elif m.completion_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         style="width: {{ m.completion_rate }}%">
+                                        {{ "%.0f"|format(m.completion_rate) }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

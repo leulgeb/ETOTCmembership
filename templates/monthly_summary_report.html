@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Summary - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-month"></i> Monthly Financial Summary</h2>
+        <a href="{{ url_for('financial_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="month" class="form-label">Month</label>
+                    <select name="month" id="month" class="form-select">
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if i == month %}selected{% endif %}>{{ month_names[i-1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(grand_total) }}</h3>
+                    <p class="mb-0">Total Collections</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_contributions) }}</h3>
+                    <p class="mb-0">Contributions ({{ contribution_count }})</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(total_donations) }}</h3>
+                    <p class="mb-0">Donations ({{ donation_count }})</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if change_percent >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body text-center">
+                    <h3>{% if change_percent >= 0 %}+{% endif %}{{ "%.1f"|format(change_percent) }}%</h3>
+                    <p class="mb-0">vs Previous Month</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Payment Method Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method, amount in method_totals.items() %}
+                            <tr>
+                                <td>{{ method|title|replace('_', ' ') }}</td>
+                                <td class="text-end">${{ "%.2f"|format(amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-success">
+                                <th>Total</th>
+                                <th class="text-end">${{ "%.2f"|format(grand_total) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Month Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>{{ month_name }} {{ year }}:</strong> ${{ "%.2f"|format(total_contributions) }}</p>
+                    <p><strong>Previous Month:</strong> ${{ "%.2f"|format(prev_month_total) }}</p>
+                    <hr>
+                    <p class="{% if change_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <strong>Change:</strong> {% if change_percent >= 0 %}+{% endif %}{{ "%.1f"|format(change_percent) }}%
+                        (${{ "%.2f"|format(total_contributions - prev_month_total) }})
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

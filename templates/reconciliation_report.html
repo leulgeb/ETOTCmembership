@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Bank Reconciliation - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bank"></i> Cash Flow & Bank Reconciliation</h2>
+        <a href="{{ url_for('financial_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>${{ "%.2f"|format(grand_total) }}</h3>
+                    <p class="mb-0">Total Collections</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_transactions }}</h3>
+                    <p class="mb-0">Total Transactions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>{{ start_date }} to {{ end_date }}</h3>
+                    <p class="mb-0">Report Period</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Summary by Payment Method</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for method, data in method_summary.items() %}
+                        {% if data.total > 0 %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header {% if method == 'cash' %}bg-success{% elif method == 'zelle' %}bg-primary{% elif method == 'venmo' %}bg-info{% elif method == 'cheque' %}bg-secondary{% else %}bg-warning{% endif %} text-white">
+                                    <h6 class="mb-0">{{ method|title|replace('_', ' ') }}</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h4 class="text-success">${{ "%.2f"|format(data.total) }}</h4>
+                                    <p class="text-muted mb-0">{{ data.count }} transaction(s)</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% for method, data in method_summary.items() %}
+    {% if data.transactions %}
+    <div class="card mb-4">
+        <div class="card-header {% if method == 'cash' %}bg-success{% elif method == 'zelle' %}bg-primary{% elif method == 'venmo' %}bg-info{% elif method == 'cheque' %}bg-secondary{% else %}bg-warning{% endif %} text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ method|title|replace('_', ' ') }} Transactions</h5>
+            <span class="badge bg-light text-dark">${{ "%.2f"|format(data.total) }} ({{ data.count }})</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Receipt #</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in data.transactions %}
+                        <tr>
+                            <td>{{ txn.date.strftime('%m/%d/%Y') if txn.date else '-' }}</td>
+                            <td>{{ txn.receipt or '-' }}</td>
+                            <td>
+                                <span class="badge {% if txn.type == 'Contribution' %}bg-primary{% elif txn.type == 'Donation' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ txn.type }}
+                                </span>
+                            </td>
+                            <td>{{ txn.description }}</td>
+                            <td class="text-end text-success">${{ "%.2f"|format(txn.amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="4">Subtotal</th>
+                            <th class="text-end">${{ "%.2f"|format(data.total) }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Grand Total</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    {% for method, data in method_summary.items() %}
+                    {% if data.total > 0 %}
+                    <tr>
+                        <td>{{ method|title|replace('_', ' ') }}</td>
+                        <td class="text-end">${{ "%.2f"|format(data.total) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-success">
+                        <th>Total</th>
+                        <th class="text-end">${{ "%.2f"|format(grand_total) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

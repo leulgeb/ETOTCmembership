@@ -107,11 +107,23 @@
                                 <i class="bi bi-person-dash"></i> Non-Member
                             </a>
                         </li>
-                        {% if session.user_role == 'accountant' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('daily_report') }}">
-                                <i class="bi bi-file-earmark-text"></i> Daily Report
+                        {% if session.user_role == 'accountant' or session.user_role == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-bar-chart"></i> Reports
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('financial_dashboard') }}"><i class="bi bi-speedometer2"></i> Financial Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('daily_report') }}"><i class="bi bi-calendar-day"></i> Daily Report</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('monthly_summary_report') }}"><i class="bi bi-calendar-month"></i> Monthly Summary</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('member_contribution_report') }}"><i class="bi bi-people"></i> Member Contributions</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('donation_report') }}"><i class="bi bi-gift"></i> Donation Report</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('delinquent_report') }}"><i class="bi bi-exclamation-triangle"></i> Delinquent Members</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('year_end_report') }}"><i class="bi bi-calendar-check"></i> Year-End Summary</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('reconciliation_report') }}"><i class="bi bi-bank"></i> Reconciliation</a></li>
+                            </ul>
                         </li>
                         {% endif %}
                         {% if session.user_role == 'admin' %}
@@ -122,7 +134,6 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> Manage Users</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('archive') }}"><i class="bi bi-archive"></i> Archive</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('daily_report') }}"><i class="bi bi-file-earmark-text"></i> Daily Report</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('export_csv', export_type='members') }}">Export Members</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('export_csv', export_type='contributions') }}">Export Contributions</a></li>
