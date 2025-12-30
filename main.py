@@ -413,7 +413,7 @@ def send_receipt_email(member_email, member_name, receipt_data, is_year_complete
         return False
 
 def staff_required(f):
-    """Decorator to require admin, cashier, or accountant login"""
+    """Decorator to require admin, cashier, accountant, or IT support login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = session.get('user_id')
@@ -428,8 +428,8 @@ def staff_required(f):
             flash('Invalid session. Please log in again.', 'danger')
             return redirect(url_for('login'))
         
-        # Verify user has staff role (admin, cashier, or accountant)
-        if user.role not in [UserRole.ADMIN, UserRole.CASHIER, UserRole.ACCOUNTANT]:
+        # Verify user has staff role (admin, cashier, accountant, or IT support)
+        if user.role not in [UserRole.ADMIN, UserRole.CASHIER, UserRole.ACCOUNTANT, UserRole.IT_SUPPORT]:
             session.clear()
             flash('Staff access required.', 'danger')
             return redirect(url_for('login'))
@@ -457,7 +457,7 @@ def admin_required(f):
     return decorated_function
 
 def accountant_or_admin(f):
-    """Decorator to require admin or accountant login (for financial reports)"""
+    """Decorator to require admin, accountant, or IT support login (for financial reports)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = session.get('user_id')
@@ -465,11 +465,30 @@ def accountant_or_admin(f):
             flash('Please log in to access this page.', 'danger')
             return redirect(url_for('login'))
         
-        # Verify user exists and has admin or accountant role
+        # Verify user exists and has admin, accountant, or IT support role
         user = User.query.get(user_id)
-        if not user or user.role not in [UserRole.ADMIN, UserRole.ACCOUNTANT] or not user.is_active:
+        if not user or user.role not in [UserRole.ADMIN, UserRole.ACCOUNTANT, UserRole.IT_SUPPORT] or not user.is_active:
             session.clear()
-            flash('Admin or Accountant access required.', 'danger')
+            flash('Admin, Accountant, or IT Support access required.', 'danger')
+            return redirect(url_for('login'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_it_support(f):
+    """Decorator to require admin or IT support login (for user management and archive)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
+            flash('Please log in to access this page.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Verify user exists and has admin or IT support role
+        user = User.query.get(user_id)
+        if not user or user.role not in [UserRole.ADMIN, UserRole.IT_SUPPORT] or not user.is_active:
+            session.clear()
+            flash('Admin or IT Support access required.', 'danger')
             return redirect(url_for('login'))
         
         return f(*args, **kwargs)
@@ -1820,7 +1839,7 @@ def admin_donations():
                          total_donations=total_donations)
 
 @app.route('/admin/export-csv/<export_type>')
-@admin_required
+@admin_or_it_support
 def export_csv(export_type):
     """Export data to CSV"""
     data = load_data()
@@ -2108,14 +2127,14 @@ def member_transactions():
 # =============================================================================
 
 @app.route('/admin/users')
-@admin_required
+@admin_or_it_support
 def admin_users():
     """Manage admin and cashier users"""
     users = User.query.filter_by(is_active=True).order_by(User.role, User.username).all()
     return render_template('admin_users.html', users=users)
 
 @app.route('/admin/users/add', methods=['GET', 'POST'])
-@admin_required
+@admin_or_it_support
 def add_user():
     """Add new admin or cashier user"""
     if request.method == 'POST':
@@ -2156,7 +2175,7 @@ def add_user():
     return render_template('add_user.html')
 
 @app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
-@admin_required
+@admin_or_it_support
 def edit_user(user_id):
     """Edit admin or cashier user"""
     user = User.query.get(user_id)
@@ -2193,7 +2212,7 @@ def edit_user(user_id):
     return render_template('edit_user.html', user=user)
 
 @app.route('/admin/users/delete/<int:user_id>')
-@admin_required
+@admin_or_it_support
 def delete_user(user_id):
     """Delete (deactivate) admin or cashier user"""
     user = User.query.get(user_id)
@@ -2216,7 +2235,7 @@ def delete_user(user_id):
 # =============================================================================
 
 @app.route('/admin/archive')
-@admin_required
+@admin_or_it_support
 def archive():
     """View archived members and users"""
     archived_members = Member.query.filter_by(is_active=False).all()
@@ -2248,7 +2267,7 @@ def archive():
                          archived_users=archived_users)
 
 @app.route('/admin/restore-member/<member_id>')
-@admin_required
+@admin_or_it_support
 def restore_member(member_id):
     """Restore an archived member"""
     member = Member.query.filter_by(member_id=member_id).first()
@@ -2262,7 +2281,7 @@ def restore_member(member_id):
     return redirect(url_for('archive'))
 
 @app.route('/admin/restore-user/<int:user_id>')
-@admin_required
+@admin_or_it_support
 def restore_user(user_id):
     """Restore an archived user"""
     user = User.query.get(user_id)

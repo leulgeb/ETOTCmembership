@@ -13,6 +13,7 @@ class UserRole(enum.Enum):
     ADMIN = "admin"
     CASHIER = "cashier"
     ACCOUNTANT = "accountant"
+    IT_SUPPORT = "it_support"
 
 class PaymentMethod(enum.Enum):
     CASH = "cash"
@@ -27,7 +28,7 @@ class PaymentStatus(enum.Enum):
     UNPAID = "Unpaid"
 
 class User(db.Model):
-    """Admin, Cashier, and Accountant staff users"""
+    """Admin, Cashier, Accountant, and IT Support staff users"""
     __tablename__ = 'users'
     
     id = db.Column(Integer, primary_key=True)

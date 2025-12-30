@@ -43,6 +43,8 @@
                             <span class="badge bg-danger">Admin</span>
                             {% elif user.role.value == 'accountant' %}
                             <span class="badge bg-info">Accountant</span>
+                            {% elif user.role.value == 'it_support' %}
+                            <span class="badge bg-dark">IT Support</span>
                             {% else %}
                             <span class="badge bg-primary">Cashier</span>
                             {% endif %}
@@ -72,6 +74,7 @@
             <strong>User Roles:</strong>
             <ul class="mb-0 mt-2">
                 <li><span class="badge bg-danger">Admin</span> - Full access to all features including user management, corrections, and reports.</li>
+                <li><span class="badge bg-dark">IT Support</span> - Manage users, view reports, archive access, export data. Cannot process payments or make corrections.</li>
                 <li><span class="badge bg-info">Accountant</span> - View all financial reports, process payments as backup. Cannot manage users or archive.</li>
                 <li><span class="badge bg-primary">Cashier</span> - Process payments and add members. Cannot manage users, make corrections, or view reports.</li>
             </ul>

@@ -114,7 +114,7 @@
                             </a>
                         </li>
                         {% endif %}
-                        {% if session.user_role == 'accountant' or session.user_role == 'admin' %}
+                        {% if session.user_role in ['accountant', 'admin', 'it_support'] %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-bar-chart"></i> Reports
@@ -133,10 +133,10 @@
                             </ul>
                         </li>
                         {% endif %}
-                        {% if session.user_role == 'admin' %}
+                        {% if session.user_role in ['admin', 'it_support'] %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-gear"></i> Admin
+                                <i class="bi bi-gear"></i> {% if session.user_role == 'it_support' %}IT Tools{% else %}Admin{% endif %}
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> Manage Users</a></li>
@@ -154,6 +154,8 @@
                                 <span class="badge bg-danger">Admin</span>
                                 {% elif session.user_role == 'accountant' %}
                                 <span class="badge bg-info">Accountant</span>
+                                {% elif session.user_role == 'it_support' %}
+                                <span class="badge bg-dark">IT Support</span>
                                 {% else %}
                                 <span class="badge bg-primary">Cashier</span>
                                 {% endif %}
