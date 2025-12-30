@@ -2393,19 +2393,19 @@ def daily_report():
         Contribution.payment_date >= start_of_day,
         Contribution.payment_date < end_of_day,
         Contribution.status == PaymentStatus.PAID,
-        Contribution.processed_by_user_id == current_user.id
+        Contribution.processed_by_id == current_user.id
     ).all()
     
     donations = Donation.query.filter(
         Donation.donation_date >= start_of_day,
         Donation.donation_date < end_of_day,
-        Donation.processed_by_user_id == current_user.id
+        Donation.processed_by_id == current_user.id
     ).all()
     
     non_member_txns = NonMemberTransaction.query.filter(
         NonMemberTransaction.transaction_date >= start_of_day,
         NonMemberTransaction.transaction_date < end_of_day,
-        NonMemberTransaction.processed_by_user_id == current_user.id
+        NonMemberTransaction.processed_by_id == current_user.id
     ).all()
     
     receipts = {}
