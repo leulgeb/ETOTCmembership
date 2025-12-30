@@ -85,6 +85,7 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 30, 2025**: Configured application to use Pacific timezone (America/Los_Angeles) for all dates
 - **December 30, 2025**: Added comprehensive Financial Reports system with 7 reports:
   - Financial Dashboard (overview cards, YTD metrics, monthly trends)
   - Monthly Summary Report (monthly totals with payment method breakdown)

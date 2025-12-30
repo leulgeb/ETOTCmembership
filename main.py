@@ -6,7 +6,18 @@ import os
 import csv
 import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from functools import wraps
+
+PACIFIC_TZ = ZoneInfo('America/Los_Angeles')
+
+def get_current_time():
+    """Get current time in Pacific timezone"""
+    return datetime.now(PACIFIC_TZ)
+
+def get_current_date():
+    """Get current date in Pacific timezone"""
+    return datetime.now(PACIFIC_TZ).date()
 from io import StringIO, BytesIO
 from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus
 
@@ -89,7 +100,7 @@ def get_next_receipt_number():
         counter = SequenceCounter(counter_name='receipt_number', counter_value=1)
         db.session.add(counter)
     
-    current_year = datetime.now().year
+    current_year = get_current_time().year
     receipt = f"RCPT-{current_year}-{counter.counter_value:04d}"
     counter.counter_value += 1
     db.session.commit()
@@ -102,7 +113,7 @@ def get_next_nonmember_receipt_number():
         counter = SequenceCounter(counter_name='nonmember_receipt_number', counter_value=1)
         db.session.add(counter)
     
-    current_year = datetime.now().year
+    current_year = get_current_time().year
     receipt = f"NM-{current_year}-{counter.counter_value:04d}"
     counter.counter_value += 1
     db.session.commit()
@@ -163,7 +174,7 @@ def generate_member_id(data):
 
 def generate_receipt_number(data):
     """Generate receipt number in format RCPT-YYYY-NNNN"""
-    current_year = datetime.now().year
+    current_year = get_current_time().year
     next_num = data.get('next_receipt_number', 1)
     receipt = f"RCPT-{current_year}-{next_num:04d}"
     data['next_receipt_number'] = next_num + 1
@@ -568,7 +579,7 @@ def admin_home():
     """Admin/Cashier/Accountant home page with member list"""
     members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     current_user = get_current_user()
-    current_calendar_year = datetime.now().year
+    current_calendar_year = get_current_time().year
     
     # Calculate total contributions and payment status for each member
     for member in members:
@@ -761,7 +772,7 @@ def add_member():
             db.session.commit()
             
             # Initialize contributions for current year
-            current_year = datetime.now().year
+            current_year = get_current_time().year
             for month in MONTHS:
                 contribution = Contribution(
                     member_id=new_member.id,
@@ -896,7 +907,7 @@ def member_details(member_id):
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    current_year = datetime.now().year
+    current_year = get_current_time().year
     selected_year = int(request.args.get('year', current_year))
     
     # Get contributions for selected year
@@ -1220,7 +1231,7 @@ def admin_pay_month(member_id, year, month):
     
     # Process payment
     receipt_number = get_next_receipt_number()
-    payment_date = datetime.now()
+    payment_date = get_current_time()
     
     contribution.status = PaymentStatus.PAID
     contribution.amount = member.monthly_payment
@@ -1346,7 +1357,7 @@ def admin_add_donation(member_id):
             member_id=member.id,
             amount=amount,
             purpose=donation_reason.title(),
-            donation_date=datetime.now(),
+            donation_date=get_current_time(),
             payment_method=PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH,
             payment_comment=payment_comment,
             processed_by_id=current_user.id,
@@ -1417,7 +1428,7 @@ def admin_bulk_pay(member_id, year):
     payment_comment = request.form.get('payment_comment', '').strip()
     
     year_int = int(year)
-    payment_date = datetime.now()
+    payment_date = get_current_time()
     processed_payments = []
     skipped_months = []
     
@@ -1829,7 +1840,7 @@ def export_csv(export_type):
                 f"${member['monthly_payment']:.2f}"
             ])
         
-        filename = f'members_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'members_{get_current_time().strftime("%Y%m%d_%H%M%S")}.csv'
         
     elif export_type == 'contributions':
         writer = csv.writer(output)
@@ -1851,7 +1862,7 @@ def export_csv(export_type):
                             contrib['receipt']
                         ])
         
-        filename = f'contributions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'contributions_{get_current_time().strftime("%Y%m%d_%H%M%S")}.csv'
         
     elif export_type == 'donations':
         writer = csv.writer(output)
@@ -1868,7 +1879,7 @@ def export_csv(export_type):
                     donation['receipt']
                 ])
         
-        filename = f'donations_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'donations_{get_current_time().strftime("%Y%m%d_%H%M%S")}.csv'
     
     else:
         flash('Invalid export type.', 'danger')
@@ -1894,7 +1905,7 @@ def member_dashboard():
         flash('Member account not found.', 'danger')
         return redirect(url_for('member_login'))
     
-    current_year = str(datetime.now().year)
+    current_year = str(get_current_time().year)
     selected_year = request.args.get('year', current_year)
     
     # Ensure year exists
@@ -1956,7 +1967,7 @@ def pay_month(year, month):
         return redirect(url_for('member_dashboard', year=year))
     
     # Check if previous months are paid (for current year)
-    if year == str(datetime.now().year):
+    if year == str(get_current_time().year):
         month_index = MONTHS.index(month)
         for i in range(month_index):
             if contributions[MONTHS[i]]['status'] == 'Unpaid':
@@ -1965,7 +1976,7 @@ def pay_month(year, month):
     
     # Process payment
     receipt_number = generate_receipt_number(data)
-    payment_date = datetime.now().strftime('%Y-%m-%d')
+    payment_date = get_current_time().strftime('%Y-%m-%d')
     
     contributions[month] = {
         'status': 'Paid',
@@ -2034,7 +2045,7 @@ def make_donation():
             
             # Process donation
             receipt_number = generate_receipt_number(data)
-            donation_date = datetime.now().strftime('%Y-%m-%d')
+            donation_date = get_current_time().strftime('%Y-%m-%d')
             
             donation = {
                 'date': donation_date,
@@ -2413,11 +2424,11 @@ def daily_report():
     if not is_admin:
         report_view = 'own'  # Cashiers always see their own
     
-    report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    report_date = request.args.get('date', get_current_time().strftime('%Y-%m-%d'))
     try:
         target_date = datetime.strptime(report_date, '%Y-%m-%d')
     except ValueError:
-        target_date = datetime.now()
+        target_date = get_current_time()
     
     start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_day = start_of_day + timedelta(days=1)
@@ -2594,8 +2605,8 @@ def daily_report():
 def financial_dashboard():
     """Financial Dashboard with overview cards and key metrics"""
     current_user = get_current_user()
-    current_year = datetime.now().year
-    current_month = datetime.now().month
+    current_year = get_current_time().year
+    current_month = get_current_time().month
     
     # Total active members
     total_members = Member.query.filter_by(is_active=True).count()
@@ -2670,8 +2681,8 @@ def monthly_summary_report():
     """Monthly Financial Summary Report with trends and breakdowns"""
     current_user = get_current_user()
     
-    year = request.args.get('year', datetime.now().year, type=int)
-    month = request.args.get('month', datetime.now().month, type=int)
+    year = request.args.get('year', get_current_time().year, type=int)
+    month = request.args.get('month', get_current_time().month, type=int)
     
     month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                    'July', 'August', 'September', 'October', 'November', 'December']
@@ -2746,7 +2757,7 @@ def monthly_summary_report():
 def member_contribution_report():
     """Member Contribution Analysis Report"""
     current_user = get_current_user()
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get('year', get_current_time().year, type=int)
     
     members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     
@@ -2791,7 +2802,7 @@ def member_contribution_report():
 def donation_report():
     """Donation & Special Giving Report"""
     current_user = get_current_user()
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get('year', get_current_time().year, type=int)
     
     donations = Donation.query.filter(
         db.extract('year', Donation.donation_date) == year
@@ -2865,12 +2876,12 @@ def donation_report():
 def delinquent_report():
     """Delinquent Members Report - members with unpaid months"""
     current_user = get_current_user()
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get('year', get_current_time().year, type=int)
     
     month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                    'July', 'August', 'September', 'October', 'November', 'December']
     
-    current_month_idx = datetime.now().month if year == datetime.now().year else 12
+    current_month_idx = get_current_time().month if year == get_current_time().year else 12
     
     members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     
@@ -2918,7 +2929,7 @@ def delinquent_report():
 def year_end_report():
     """Year-End Financial Summary Report"""
     current_user = get_current_user()
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get('year', get_current_time().year, type=int)
     
     # Total contributions
     total_contributions = db.session.query(db.func.sum(Contribution.amount)).filter(
@@ -3008,15 +3019,15 @@ def reconciliation_report():
     """Cash Flow & Bank Reconciliation Report"""
     current_user = get_current_user()
     
-    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    start_date = request.args.get('start_date', (get_current_time() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', get_current_time().strftime('%Y-%m-%d'))
     
     try:
         start = datetime.strptime(start_date, '%Y-%m-%d')
         end = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
     except ValueError:
-        start = datetime.now() - timedelta(days=30)
-        end = datetime.now()
+        start = get_current_time() - timedelta(days=30)
+        end = get_current_time()
     
     # Get all transactions in date range
     contributions = Contribution.query.filter(
@@ -3177,7 +3188,7 @@ def add_non_member_transaction():
                 'amount': amount,
                 'purpose': purpose,
                 'payment_method': payment_method.capitalize(),
-                'date': datetime.now().strftime('%Y-%m-%d %H:%M')
+                'date': get_current_time().strftime('%Y-%m-%d %H:%M')
             }
             
             return redirect(url_for('non_member_transactions'))
