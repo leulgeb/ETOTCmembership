@@ -85,6 +85,7 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **December 30, 2025**: Added IT Support user role with user management, reports, archive, and export access (no payment processing or corrections)
 - **December 30, 2025**: Configured application to use Pacific timezone (America/Los_Angeles) for all dates
 - **December 30, 2025**: Added comprehensive Financial Reports system with 7 reports:
   - Financial Dashboard (overview cards, YTD metrics, monthly trends)
@@ -151,14 +152,34 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - Full system access
 - User management (create, edit, delete users)
 - Make corrections to any payment
-- View daily reports
+- View all reports
 - Export data
+- Archive management
+
+### IT Support
+- User management (create, edit, delete users)
+- View all financial reports
+- Archive management (view and restore)
+- Export data (members, contributions, donations)
+- Cannot process payments
+- Cannot make admin corrections
+- Cannot edit/delete members
+
+### Accountant
+- View all financial reports
+- Process payments as backup
+- View members and contributions
+- Cannot manage users
+- Cannot make corrections
+- Cannot access archive
 
 ### Cashier
 - Process payments
 - View members and contributions
+- Add new members
 - Cannot manage users
 - Cannot make corrections
+- Cannot view financial reports
 - Cannot export data
 
 ## Security Notes
