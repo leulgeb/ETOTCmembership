@@ -22,49 +22,31 @@
         </a>
     </div>
 
-    <!-- View Toggle for Admins -->
-    {% if is_admin %}
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="date" class="form-label">Report Date</label>
-                    <input type="date" class="form-control" id="date" name="date" value="{{ report_date }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">View</label>
-                    <div class="btn-group w-100" role="group">
-                        <a href="{{ url_for('daily_report', date=report_date, view='all_staff') }}" 
-                           class="btn btn-outline-primary {% if report_view == 'all_staff' %}active btn-primary{% endif %}">
-                            All Staff
-                        </a>
-                        <a href="{{ url_for('daily_report', date=report_date, view='admin_only') }}" 
-                           class="btn btn-outline-primary {% if report_view == 'admin_only' %}active btn-primary{% endif %}">
-                            My Transactions
-                        </a>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-primary w-100" onclick="location.reload()">Refresh</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% else %}
+    <!-- Date Selection and View Toggle -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="date" class="form-label">Report Date</label>
                     <input type="date" class="form-control" id="date" name="date" value="{{ report_date }}">
                 </div>
+                {% if is_admin %}
+                <div class="col-md-3">
+                    <label class="form-label">View</label>
+                    <select name="view" class="form-select">
+                        <option value="all_staff" {% if report_view == 'all_staff' %}selected{% endif %}>All Staff</option>
+                        <option value="admin_only" {% if report_view == 'admin_only' %}selected{% endif %}>My Transactions</option>
+                    </select>
+                </div>
+                {% endif %}
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">View Report</button>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-search"></i> View Report
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-    {% endif %}
 
     <div class="row mb-4">
         <div class="col-md-4">
