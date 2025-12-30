@@ -107,6 +107,13 @@
                                 <i class="bi bi-person-dash"></i> Non-Member
                             </a>
                         </li>
+                        {% if session.user_role == 'accountant' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('daily_report') }}">
+                                <i class="bi bi-file-earmark-text"></i> Daily Report
+                            </a>
+                        </li>
+                        {% endif %}
                         {% if session.user_role == 'admin' %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
@@ -127,6 +134,8 @@
                             <span class="nav-link">
                                 {% if session.user_role == 'admin' %}
                                 <span class="badge bg-danger">Admin</span>
+                                {% elif session.user_role == 'accountant' %}
+                                <span class="badge bg-info">Accountant</span>
                                 {% else %}
                                 <span class="badge bg-primary">Cashier</span>
                                 {% endif %}

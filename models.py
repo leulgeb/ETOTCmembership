@@ -12,6 +12,7 @@ db = SQLAlchemy(model_class=Base)
 class UserRole(enum.Enum):
     ADMIN = "admin"
     CASHIER = "cashier"
+    ACCOUNTANT = "accountant"
 
 class PaymentMethod(enum.Enum):
     CASH = "cash"
@@ -26,7 +27,7 @@ class PaymentStatus(enum.Enum):
     UNPAID = "Unpaid"
 
 class User(db.Model):
-    """Admin and Cashier users"""
+    """Admin, Cashier, and Accountant staff users"""
     __tablename__ = 'users'
     
     id = db.Column(Integer, primary_key=True)

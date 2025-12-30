@@ -40,6 +40,7 @@
                             <label for="role" class="form-label">Role *</label>
                             <select class="form-select" id="role" name="role" required>
                                 <option value="cashier" {% if user.role.value == 'cashier' %}selected{% endif %}>Cashier</option>
+                                <option value="accountant" {% if user.role.value == 'accountant' %}selected{% endif %}>Accountant</option>
                                 <option value="admin" {% if user.role.value == 'admin' %}selected{% endif %}>Admin</option>
                             </select>
                         </div>

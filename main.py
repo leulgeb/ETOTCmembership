@@ -402,7 +402,7 @@ def send_receipt_email(member_email, member_name, receipt_data, is_year_complete
         return False
 
 def staff_required(f):
-    """Decorator to require admin or cashier login"""
+    """Decorator to require admin, cashier, or accountant login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = session.get('user_id')
@@ -417,8 +417,8 @@ def staff_required(f):
             flash('Invalid session. Please log in again.', 'danger')
             return redirect(url_for('login'))
         
-        # Verify user has staff role (admin or cashier)
-        if user.role not in [UserRole.ADMIN, UserRole.CASHIER]:
+        # Verify user has staff role (admin, cashier, or accountant)
+        if user.role not in [UserRole.ADMIN, UserRole.CASHIER, UserRole.ACCOUNTANT]:
             session.clear()
             flash('Staff access required.', 'danger')
             return redirect(url_for('login'))
@@ -440,6 +440,25 @@ def admin_required(f):
         if not user or user.role != UserRole.ADMIN or not user.is_active:
             session.clear()
             flash('Admin access required.', 'danger')
+            return redirect(url_for('login'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def accountant_or_admin(f):
+    """Decorator to require admin or accountant login (for financial reports)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
+            flash('Please log in to access this page.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Verify user exists and has admin or accountant role
+        user = User.query.get(user_id)
+        if not user or user.role not in [UserRole.ADMIN, UserRole.ACCOUNTANT] or not user.is_active:
+            session.clear()
+            flash('Admin or Accountant access required.', 'danger')
             return redirect(url_for('login'))
         
         return f(*args, **kwargs)
@@ -469,7 +488,7 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Admin/Cashier login"""
+    """Admin/Cashier/Accountant login"""
     # If already logged in, redirect to dashboard
     if session.get('is_staff'):
         return redirect(url_for('admin_home'))
@@ -494,7 +513,12 @@ def login():
             session['is_staff'] = True
             session.modified = True
             
-            role_display = "Admin" if user.role == UserRole.ADMIN else "Cashier"
+            role_map = {
+                UserRole.ADMIN: "Admin",
+                UserRole.CASHIER: "Cashier",
+                UserRole.ACCOUNTANT: "Accountant"
+            }
+            role_display = role_map.get(user.role, "Staff")
             flash(f'Successfully logged in as {role_display}!', 'success')
             return redirect(url_for('admin_home'))
         else:
@@ -541,7 +565,7 @@ def logout():
 @app.route('/admin/home')
 @staff_required
 def admin_home():
-    """Admin/Cashier home page with member list"""
+    """Admin/Cashier/Accountant home page with member list"""
     members = Member.query.filter_by(is_active=True).order_by(Member.first_name, Member.last_name).all()
     current_user = get_current_user()
     current_calendar_year = datetime.now().year
@@ -2100,7 +2124,8 @@ def add_user():
             return render_template('add_user.html')
         
         try:
-            user_role = UserRole.ADMIN if role == 'admin' else UserRole.CASHIER
+            role_map = {'admin': UserRole.ADMIN, 'cashier': UserRole.CASHIER, 'accountant': UserRole.ACCOUNTANT}
+            user_role = role_map.get(role, UserRole.CASHIER)
             new_user = User(
                 username=username,
                 password_hash=generate_password_hash(password),
@@ -2141,7 +2166,8 @@ def edit_user(user_id):
         try:
             user.full_name = full_name
             user.email = email
-            user.role = UserRole.ADMIN if role == 'admin' else UserRole.CASHIER
+            role_map = {'admin': UserRole.ADMIN, 'cashier': UserRole.CASHIER, 'accountant': UserRole.ACCOUNTANT}
+            user.role = role_map.get(role, UserRole.CASHIER)
             
             if new_password:
                 user.password_hash = generate_password_hash(new_password)
@@ -2380,6 +2406,7 @@ def daily_report():
     
     current_user = get_current_user()
     is_admin = current_user.role == UserRole.ADMIN
+    is_accountant = current_user.role == UserRole.ACCOUNTANT
     
     # For admins, allow toggling between all_staff and admin_only views
     report_view = request.args.get('view', 'all_staff')
