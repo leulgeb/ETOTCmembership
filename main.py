@@ -2375,10 +2375,11 @@ def get_month_range_display(months_list, year):
 @app.route('/admin/reports/daily')
 @staff_required
 def daily_report():
-    """Daily report showing transactions processed by the current staff member"""
+    """Daily report showing transactions - all for admins, only own for cashiers"""
     from datetime import timedelta
     
     current_user = get_current_user()
+    is_admin = current_user.role == UserRole.ADMIN
     
     report_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     try:
@@ -2389,24 +2390,32 @@ def daily_report():
     start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_day = start_of_day + timedelta(days=1)
     
-    contributions = Contribution.query.filter(
+    # Build base queries
+    contrib_query = Contribution.query.filter(
         Contribution.payment_date >= start_of_day,
         Contribution.payment_date < end_of_day,
-        Contribution.status == PaymentStatus.PAID,
-        Contribution.processed_by_id == current_user.id
-    ).all()
+        Contribution.status == PaymentStatus.PAID
+    )
     
-    donations = Donation.query.filter(
+    donation_query = Donation.query.filter(
         Donation.donation_date >= start_of_day,
-        Donation.donation_date < end_of_day,
-        Donation.processed_by_id == current_user.id
-    ).all()
+        Donation.donation_date < end_of_day
+    )
     
-    non_member_txns = NonMemberTransaction.query.filter(
+    non_member_query = NonMemberTransaction.query.filter(
         NonMemberTransaction.transaction_date >= start_of_day,
-        NonMemberTransaction.transaction_date < end_of_day,
-        NonMemberTransaction.processed_by_id == current_user.id
-    ).all()
+        NonMemberTransaction.transaction_date < end_of_day
+    )
+    
+    # For cashiers, filter by their own transactions only
+    if not is_admin:
+        contrib_query = contrib_query.filter(Contribution.processed_by_id == current_user.id)
+        donation_query = donation_query.filter(Donation.processed_by_id == current_user.id)
+        non_member_query = non_member_query.filter(NonMemberTransaction.processed_by_id == current_user.id)
+    
+    contributions = contrib_query.all()
+    donations = donation_query.all()
+    non_member_txns = non_member_query.all()
     
     receipts = {}
     total_amount = 0
