@@ -81,7 +81,7 @@ def get_next_member_id():
         counter = SequenceCounter(counter_name='member_id', counter_value=1)
         db.session.add(counter)
     
-    member_id = f"CH{counter.counter_value:03d}"
+    member_id = f"ETOTC-{counter.counter_value:04d}"
     counter.counter_value += 1
     db.session.commit()
     return member_id
@@ -90,8 +90,8 @@ def get_next_member_id_preview():
     """Preview next member ID without incrementing counter"""
     counter = SequenceCounter.query.filter_by(counter_name='member_id').first()
     if not counter:
-        return "CH001"
-    return f"CH{counter.counter_value:03d}"
+        return "ETOTC-0001"
+    return f"ETOTC-{counter.counter_value:04d}"
 
 def get_next_receipt_number():
     """Generate next receipt number using database sequence counter"""
@@ -166,9 +166,9 @@ def save_data(data):
         raise
 
 def generate_member_id(data):
-    """Generate next member ID in format CH001, CH002, etc."""
+    """Generate next member ID in format ETOTC-0001, ETOTC-0002, etc."""
     next_id = data.get('next_member_id', 1)
-    member_id = f"CH{next_id:03d}"
+    member_id = f"ETOTC-{next_id:04d}"
     data['next_member_id'] = next_id + 1
     return member_id
 
