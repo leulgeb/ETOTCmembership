@@ -733,7 +733,7 @@ def add_member():
                 
                 # Only create spouse record if at least first name is provided
                 if spouse_first_name:
-                    spouse_father_name = request.form.get('spouse_father_name', '').strip() or None
+                    spouse_middle_name = request.form.get('spouse_middle_name', '').strip() or None
                     spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
                     spouse_dob_str = request.form.get('spouse_date_of_birth', '').strip()
                     spouse_gender_str = request.form.get('spouse_gender', '').strip()
@@ -752,7 +752,7 @@ def add_member():
                     spouse = Spouse(
                         member_id=new_member.id,
                         first_name=spouse_first_name,
-                        father_name=spouse_father_name,
+                        middle_name=spouse_middle_name,
                         last_name=spouse_last_name or None,
                         baptismal_name=spouse_baptismal_name,
                         date_of_birth=spouse_dob,
@@ -1109,7 +1109,7 @@ def edit_household(member_id):
                 
                 if spouse:
                     spouse.first_name = spouse_first_name
-                    spouse.father_name = spouse_father_name
+                    spouse.middle_name = spouse_middle_name
                     spouse.last_name = spouse_last_name
                     spouse.baptismal_name = spouse_baptismal_name
                     spouse.date_of_birth = spouse_dob
@@ -1120,7 +1120,7 @@ def edit_household(member_id):
                     spouse = Spouse(
                         member_id=member.id,
                         first_name=spouse_first_name,
-                        father_name=spouse_father_name,
+                        middle_name=spouse_middle_name,
                         last_name=spouse_last_name,
                         baptismal_name=spouse_baptismal_name,
                         date_of_birth=spouse_dob,

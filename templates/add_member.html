@@ -53,19 +53,15 @@
                     <h5 class="border-bottom pb-2 mb-3 text-primary"><i class="bi bi-person"></i> Personal Information</h5>
                     
                     <div class="row mb-3">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="first_name" class="form-label">First Name <span class="required-indicator">*</span></label>
                             <input type="text" class="form-control required-field" id="first_name" name="first_name" value="{{ request.form.get('first_name', '') }}" required>
                         </div>
-                        <div class="col-md-3">
-                            <label for="father_name" class="form-label">Father's Name</label>
-                            <input type="text" class="form-control" id="father_name" name="father_name" value="{{ request.form.get('father_name', '') }}">
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="middle_name" class="form-label">Middle Name</label>
                             <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ request.form.get('middle_name', '') }}">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="last_name" class="form-label">Last Name <span class="required-indicator">*</span></label>
                             <input type="text" class="form-control required-field" id="last_name" name="last_name" value="{{ request.form.get('last_name', '') }}" required>
                         </div>
@@ -110,17 +106,13 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="phone" class="form-label">Phone Number <span class="required-indicator">*</span></label>
                             <input type="tel" class="form-control required-field" id="phone" name="phone" value="{{ request.form.get('phone', '') }}" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" value="{{ request.form.get('email', '') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="confession_name" class="form-label">Confession Name</label>
-                            <input type="text" class="form-control" id="confession_name" name="confession_name" value="{{ request.form.get('confession_name', '') }}">
                         </div>
                     </div>
 
@@ -151,8 +143,8 @@
                                         <input type="text" class="form-control error-field-check" id="spouse_first_name" name="spouse_first_name" value="{{ request.form.get('spouse_first_name', '') }}" {% if 'spouse_first_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
-                                        <label for="spouse_father_name" class="form-label">Father's Name</label>
-                                        <input type="text" class="form-control error-field-check" id="spouse_father_name" name="spouse_father_name" value="{{ request.form.get('spouse_father_name', '') }}" {% if 'spouse_father_name' in error_fields %}data-has-error="true"{% endif %}>
+                                        <label for="spouse_middle_name" class="form-label">Middle Name</label>
+                                        <input type="text" class="form-control error-field-check" id="spouse_middle_name" name="spouse_middle_name" value="{{ request.form.get('spouse_middle_name', '') }}" {% if 'spouse_middle_name' in error_fields %}data-has-error="true"{% endif %}>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="spouse_last_name" class="form-label">Last Name</label>

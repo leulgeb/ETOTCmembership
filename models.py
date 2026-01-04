@@ -79,9 +79,9 @@ class Member(db.Model):
     
     @property
     def full_name(self):
-        """Generate full name from first, father's name, last"""
-        if self.father_name:
-            return f"{self.first_name} {self.father_name} {self.last_name}"
+        """Generate full name from first, middle, last"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
         return f"{self.first_name} {self.last_name}"
 
 
@@ -93,6 +93,7 @@ class Spouse(db.Model):
     member_id = db.Column(Integer, ForeignKey('members.id'), nullable=False, unique=True)
     first_name = db.Column(String(100), nullable=False)
     father_name = db.Column(String(100))
+    middle_name = db.Column(String(100))
     last_name = db.Column(String(100))
     baptismal_name = db.Column(String(100))
     date_of_birth = db.Column(db.Date)
@@ -106,8 +107,8 @@ class Spouse(db.Model):
     
     @property
     def full_name(self):
-        if self.father_name:
-            return f"{self.first_name} {self.father_name} {self.last_name or ''}"
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name or ''}"
         return f"{self.first_name} {self.last_name or ''}"
 
 

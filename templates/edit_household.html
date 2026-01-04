@@ -19,22 +19,17 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label for="first_name" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="first_name" name="first_name" 
                                            value="{{ member.first_name }}" required>
                                 </div>
-                                <div class="col-md-3">
-                                    <label for="father_name" class="form-label">Father's Name</label>
-                                    <input type="text" class="form-control" id="father_name" name="father_name" 
-                                           value="{{ member.father_name or '' }}">
-                                </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label for="middle_name" class="form-label">Middle Name</label>
                                     <input type="text" class="form-control" id="middle_name" name="middle_name" 
                                            value="{{ member.middle_name or '' }}">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label for="last_name" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="last_name" name="last_name" 
                                            value="{{ member.last_name }}" required>
@@ -42,17 +37,12 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
                                     <input type="text" class="form-control" id="baptismal_name" name="baptismal_name" 
                                            value="{{ member.baptismal_name or '' }}">
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="confession_name" class="form-label">Confession Name</label>
-                                    <input type="text" class="form-control" id="confession_name" name="confession_name" 
-                                           value="{{ member.confession_name or '' }}">
-                                </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="date_of_birth" class="form-label">Date of Birth</label>
                                     <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
                                            value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
@@ -119,9 +109,9 @@
                                     <small class="text-muted">Leave blank to remove spouse</small>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="spouse_father_name" class="form-label">Father's Name</label>
-                                    <input type="text" class="form-control" id="spouse_father_name" name="spouse_father_name" 
-                                           value="{{ spouse.father_name if spouse else '' }}">
+                                    <label for="spouse_middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="spouse_middle_name" name="spouse_middle_name" 
+                                           value="{{ spouse.middle_name if spouse else '' }}">
                                 </div>
                                 <div class="col-md-3">
                                     <label for="spouse_last_name" class="form-label">Last Name</label>
