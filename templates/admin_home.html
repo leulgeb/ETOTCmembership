@@ -30,8 +30,7 @@
                             <tr style="cursor: pointer;" onclick="window.location='{{ url_for('member_details', member_id=member.member_id) }}'">
                                 <td><strong>{{ loop.index }}</strong></td>
                                 <td>
-                                    <strong>{{ member.full_name }}</strong><br>
-                                    <small class="text-muted">{{ member.member_id }}</small>
+                                    <strong>{{ member.full_name }}</strong>
                                 </td>
                                 <td><strong>{{ member.current_year }}</strong></td>
                                 {% for month in months %}
