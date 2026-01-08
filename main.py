@@ -71,7 +71,7 @@ DATA_FILE = 'data.json'  # Legacy JSON file - now in read-only mode for backup
 CHURCH_NAME = 'ETOTC'
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 
           'July', 'August', 'September', 'October', 'November', 'December']
-MINIMUM_MONTHLY_PAYMENT = 30
+MINIMUM_MONTHLY_PAYMENT = 25
 
 # Helper functions for database-backed ID generation
 def get_next_member_id():

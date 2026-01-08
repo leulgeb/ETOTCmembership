@@ -67,7 +67,7 @@ class Member(db.Model):
     confession_name = db.Column(String(100))
     marital_status = db.Column(String(20), default='single')
     password_hash = db.Column(String(255), nullable=False)
-    monthly_payment = db.Column(Float, nullable=False, default=30.0)
+    monthly_payment = db.Column(Float, nullable=False, default=25.0)
     created_at = db.Column(DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
