@@ -513,8 +513,12 @@ def get_current_user():
 
 @app.route('/')
 def index():
-    """Landing page"""
-    return render_template('index.html')
+    """Landing page - redirect to admin login"""
+    if session.get('is_staff'):
+        return redirect(url_for('admin_home'))
+    if session.get('member_id'):
+        return redirect(url_for('member_dashboard'))
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
