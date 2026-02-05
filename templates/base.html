@@ -97,31 +97,31 @@
                         </li>
                         {% if session.user_role == 'admin' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('add_member') }}">
+                            <a class="nav-link {% if request.endpoint == 'add_member' %}active{% endif %}" href="{{ url_for('add_member') }}">
                                 <i class="bi bi-person-plus"></i> Add Member
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_donations') }}">
+                            <a class="nav-link {% if request.endpoint == 'admin_donations' %}active{% endif %}" href="{{ url_for('admin_donations') }}">
                                 <i class="bi bi-gift"></i> Donations
                             </a>
                         </li>
                         {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('non_member_transactions') }}">
+                            <a class="nav-link {% if request.endpoint == 'non_member_transactions' %}active{% endif %}" href="{{ url_for('non_member_transactions') }}">
                                 <i class="bi bi-person-dash"></i> Non-Member
                             </a>
                         </li>
                         {% if session.user_role == 'cashier' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('daily_report') }}">
+                            <a class="nav-link {% if request.endpoint == 'daily_report' %}active{% endif %}" href="{{ url_for('daily_report') }}">
                                 <i class="bi bi-calendar-day"></i> Daily Report
                             </a>
                         </li>
                         {% endif %}
                         {% if session.user_role in ['accountant', 'admin', 'it_support'] %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint in ['financial_dashboard', 'daily_report', 'monthly_summary_report', 'member_contribution_report', 'donation_report', 'delinquent_report', 'year_end_report', 'reconciliation_report'] %}active{% endif %}" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-bar-chart"></i> Reports
                             </a>
                             <ul class="dropdown-menu">
@@ -140,7 +140,7 @@
                         {% endif %}
                         {% if session.user_role in ['admin', 'it_support'] %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint in ['admin_users', 'archive', 'export_csv', 'add_user', 'edit_user'] %}active{% endif %}" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-gear"></i> {% if session.user_role == 'it_support' %}IT Tools{% else %}Admin{% endif %}
                             </a>
                             <ul class="dropdown-menu">
