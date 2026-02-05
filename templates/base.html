@@ -28,8 +28,38 @@
             font-size: 1.3rem;
             color: white !important;
         }
+        .navbar-nav {
+            flex-grow: 1;
+            justify-content: space-evenly;
+            align-items: center;
+        }
         .nav-link {
             color: rgba(255,255,255,0.9) !important;
+            white-space: nowrap;
+            font-size: 0.88rem;
+            padding: 0.5rem 0.5rem !important;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-link i {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        @media (max-width: 1200px) {
+            .nav-link {
+                font-size: 0.82rem;
+                padding: 0.5rem 0.35rem !important;
+            }
+        }
+        @media (max-width: 991px) {
+            .navbar-nav {
+                justify-content: flex-start;
+            }
+            .nav-link {
+                font-size: 0.9rem;
+                padding: 0.5rem 0.75rem !important;
+            }
         }
         .nav-link:hover {
             color: white !important;
@@ -85,7 +115,7 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
+        <div class="container-fluid px-3">
             <a class="navbar-brand" href="{% if session.is_staff %}{{ url_for('admin_home') }}{% elif session.member_id %}{{ url_for('member_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}">
                 <img src="{{ url_for('static', filename='images/etotc_logo.png') }}" alt="ETOTC" height="50">
             </a>
@@ -93,7 +123,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav">
                     {% if session.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'admin_home' %}active{% endif %}" href="{{ url_for('admin_home') }}">
