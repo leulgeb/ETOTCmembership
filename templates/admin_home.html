@@ -15,6 +15,9 @@
                 </div>
 
                 {% if members %}
+                <div class="mb-3">
+                    <input type="text" id="memberSearch" class="form-control" placeholder="Search by name..." oninput="filterMembers()">
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-sm">
                         <thead class="table-dark">
@@ -66,4 +69,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterMembers() {
+    var input = document.getElementById('memberSearch').value.toLowerCase();
+    var rows = document.querySelectorAll('tbody tr');
+    var index = 1;
+    rows.forEach(function(row) {
+        var name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        if (name.includes(input)) {
+            row.style.display = '';
+            row.querySelector('td:first-child strong').textContent = index;
+            index++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}
