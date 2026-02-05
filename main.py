@@ -612,17 +612,36 @@ def admin_home():
         last_contribution = Contribution.query.filter_by(
             member_id=member.id,
             status=PaymentStatus.PAID
-        ).order_by(Contribution.year.desc(), Contribution.month.desc()).first()
+        ).order_by(Contribution.year.desc(), 
+                   db.case(
+                       (Contribution.month == 'January', 1),
+                       (Contribution.month == 'February', 2),
+                       (Contribution.month == 'March', 3),
+                       (Contribution.month == 'April', 4),
+                       (Contribution.month == 'May', 5),
+                       (Contribution.month == 'June', 6),
+                       (Contribution.month == 'July', 7),
+                       (Contribution.month == 'August', 8),
+                       (Contribution.month == 'September', 9),
+                       (Contribution.month == 'October', 10),
+                       (Contribution.month == 'November', 11),
+                       (Contribution.month == 'December', 12),
+                       else_=0
+                   ).desc()).first()
         
         if last_contribution:
-            # If last payment was in December, member is current for next year
-            if last_contribution.month == 'December':
-                member_current_year = last_contribution.year + 1
-            else:
-                member_current_year = last_contribution.year
+            # Show the year of the last payment
+            member_current_year = last_contribution.year
         else:
-            # No payments yet, use current calendar year
-            member_current_year = current_calendar_year
+            # No payments yet, show the earliest year with unpaid contributions
+            first_unpaid = Contribution.query.filter_by(
+                member_id=member.id,
+                status=PaymentStatus.UNPAID
+            ).order_by(Contribution.year.asc()).first()
+            if first_unpaid:
+                member_current_year = first_unpaid.year
+            else:
+                member_current_year = current_calendar_year
         
         member.current_year = member_current_year
         
