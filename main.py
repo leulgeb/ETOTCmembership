@@ -600,61 +600,87 @@ def admin_home():
     current_user = get_current_user()
     current_calendar_year = get_current_time().year
     
-    # Calculate total contributions and payment status for each member
-    for member in members:
-        total = db.session.query(db.func.sum(Contribution.amount)).filter(
-            Contribution.member_id == member.id,
+    member_ids = [m.id for m in members]
+    
+    if member_ids:
+        month_order = db.case(
+            (Contribution.month == 'January', 1),
+            (Contribution.month == 'February', 2),
+            (Contribution.month == 'March', 3),
+            (Contribution.month == 'April', 4),
+            (Contribution.month == 'May', 5),
+            (Contribution.month == 'June', 6),
+            (Contribution.month == 'July', 7),
+            (Contribution.month == 'August', 8),
+            (Contribution.month == 'September', 9),
+            (Contribution.month == 'October', 10),
+            (Contribution.month == 'November', 11),
+            (Contribution.month == 'December', 12),
+            else_=0
+        )
+        
+        totals = db.session.query(
+            Contribution.member_id,
+            db.func.sum(Contribution.amount)
+        ).filter(
+            Contribution.member_id.in_(member_ids),
             Contribution.status == PaymentStatus.PAID
-        ).scalar() or 0
-        member.total_contributions = total
+        ).group_by(Contribution.member_id).all()
+        totals_map = {mid: total for mid, total in totals}
         
-        # Find the year the member is current on based on last payment
-        last_contribution = Contribution.query.filter_by(
-            member_id=member.id,
-            status=PaymentStatus.PAID
-        ).order_by(Contribution.year.desc(), 
-                   db.case(
-                       (Contribution.month == 'January', 1),
-                       (Contribution.month == 'February', 2),
-                       (Contribution.month == 'March', 3),
-                       (Contribution.month == 'April', 4),
-                       (Contribution.month == 'May', 5),
-                       (Contribution.month == 'June', 6),
-                       (Contribution.month == 'July', 7),
-                       (Contribution.month == 'August', 8),
-                       (Contribution.month == 'September', 9),
-                       (Contribution.month == 'October', 10),
-                       (Contribution.month == 'November', 11),
-                       (Contribution.month == 'December', 12),
-                       else_=0
-                   ).desc()).first()
+        last_paid = db.session.query(
+            Contribution.member_id,
+            db.func.max(Contribution.year * 100 + month_order)
+        ).filter(
+            Contribution.member_id.in_(member_ids),
+            Contribution.status == PaymentStatus.PAID
+        ).group_by(Contribution.member_id).all()
+        last_paid_map = {mid: val // 100 for mid, val in last_paid}
         
-        if last_contribution:
-            # Show the year of the last payment
-            member_current_year = last_contribution.year
-        else:
-            # No payments yet, show the earliest year with unpaid contributions
-            first_unpaid = Contribution.query.filter_by(
-                member_id=member.id,
-                status=PaymentStatus.UNPAID
-            ).order_by(Contribution.year.asc()).first()
-            if first_unpaid:
-                member_current_year = first_unpaid.year
+        first_unpaid = db.session.query(
+            Contribution.member_id,
+            db.func.min(Contribution.year)
+        ).filter(
+            Contribution.member_id.in_(member_ids),
+            Contribution.status == PaymentStatus.UNPAID
+        ).group_by(Contribution.member_id).all()
+        first_unpaid_map = {mid: yr for mid, yr in first_unpaid}
+        
+        current_year_map = {}
+        for m in members:
+            if m.id in last_paid_map:
+                current_year_map[m.id] = last_paid_map[m.id]
+            elif m.id in first_unpaid_map:
+                current_year_map[m.id] = first_unpaid_map[m.id]
             else:
-                member_current_year = current_calendar_year
+                current_year_map[m.id] = current_calendar_year
         
-        member.current_year = member_current_year
+        needed_years = set()
+        for mid, yr in current_year_map.items():
+            needed_years.add((mid, yr))
         
-        # Get contributions for the year the member is current on
-        current_year_contributions = Contribution.query.filter_by(
-            member_id=member.id,
-            year=member_current_year
+        all_contribs = Contribution.query.filter(
+            db.or_(*[
+                db.and_(Contribution.member_id == mid, Contribution.year == yr)
+                for mid, yr in needed_years
+            ])
         ).all()
         
-        # Create a dictionary of payment status by month
-        member.month_status = {}
-        for contrib in current_year_contributions:
-            member.month_status[contrib.month] = contrib.status == PaymentStatus.PAID
+        contrib_map = {}
+        for c in all_contribs:
+            if c.member_id not in contrib_map:
+                contrib_map[c.member_id] = {}
+            contrib_map[c.member_id][c.month] = c.status == PaymentStatus.PAID
+        
+        for member in members:
+            member.total_contributions = totals_map.get(member.id, 0)
+            member.current_year = current_year_map.get(member.id, current_calendar_year)
+            member.month_status = contrib_map.get(member.id, {})
+    else:
+        for member in members:
+            member.total_contributions = 0
+            member.current_year = current_calendar_year
+            member.month_status = {}
     
     return render_template('admin_home.html', members=members, current_user=current_user, months=MONTHS)
 
