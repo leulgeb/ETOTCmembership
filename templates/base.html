@@ -81,7 +81,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{% if session.is_staff %}{{ url_for('admin_home') }}{% elif session.member_id %}{{ url_for('member_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}">
                 <img src="{{ url_for('static', filename='images/etotc_logo.png') }}" alt="ETOTC" height="50">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
