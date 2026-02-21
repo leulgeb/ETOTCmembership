@@ -740,7 +740,7 @@ def add_member():
             
             # Parse gender and marital status (use simple strings)
             gender = gender_str if gender_str in ['male', 'female'] else None
-            marital_status = marital_status_str if marital_status_str in ['single', 'married'] else 'single'
+            marital_status = marital_status_str if marital_status_str in ['single', 'married', 'single_with_children'] else 'single'
             
             # Generate or use custom ID
             if custom_id:
@@ -906,6 +906,9 @@ def edit_member(member_id):
     if request.method == 'POST':
         try:
             new_id = request.form.get('member_id', '').strip().upper()
+            marital_status_str = request.form.get('marital_status', 'single').strip()
+            marital_status = marital_status_str if marital_status_str in ['single', 'married', 'single_with_children'] else 'single'
+            
             first_name = request.form.get('first_name', '').strip()
             middle_name = request.form.get('middle_name', '').strip() or None
             last_name = request.form.get('last_name', '').strip()
@@ -934,6 +937,7 @@ def edit_member(member_id):
                 return render_template('edit_member.html', member=member)
             
             member.member_id = new_id
+            member.marital_status = marital_status
             member.first_name = first_name
             member.middle_name = middle_name
             member.last_name = last_name

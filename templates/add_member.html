@@ -125,6 +125,10 @@
                                 <label class="form-check-label" for="single">Single</label>
                             </div>
                             <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="marital_status" id="single_with_children" value="single_with_children" {% if request.form.get('marital_status') == 'single_with_children' %}checked{% endif %}>
+                                <label class="form-check-label" for="single_with_children">Single with Children</label>
+                            </div>
+                            <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="marital_status" id="married" value="married" {% if request.form.get('marital_status') == 'married' %}checked{% endif %}>
                                 <label class="form-check-label" for="married">Married</label>
                             </div>

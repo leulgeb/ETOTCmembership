@@ -53,7 +53,16 @@
                             <div class="card bg-light">
                                 <div class="card-body">
                                     <h6 class="text-muted"><i class="bi bi-info-circle"></i> Member Information</h6>
-                                    <p class="mb-1"><strong>ID:</strong> {{ member.id }}</p>
+                                    <p class="mb-1"><strong>ID:</strong> {{ member.member_id }}</p>
+                                    <p class="mb-1"><strong>Marital Status:</strong> 
+                                        {% if member.marital_status == 'single' %}
+                                            Single
+                                        {% elif member.marital_status == 'single_with_children' %}
+                                            Single with Children
+                                        {% else %}
+                                            Married
+                                        {% endif %}
+                                    </p>
                                     <p class="mb-1"><strong>Email:</strong> {{ member.email }}</p>
                                     <p class="mb-1"><strong>Phone:</strong> {{ member.phone }}</p>
                                     <p class="mb-2"><strong>Monthly:</strong> ${{ "%.2f"|format(member.monthly_payment) }}</p>

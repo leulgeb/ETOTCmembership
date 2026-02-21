@@ -65,7 +65,7 @@ class Member(db.Model):
     email = db.Column(String(200))
     phone = db.Column(String(50))
     confession_name = db.Column(String(100))
-    marital_status = db.Column(String(20), default='single')
+    marital_status = db.Column(String(50), default='single')
     password_hash = db.Column(String(255), nullable=False)
     monthly_payment = db.Column(Float, nullable=False, default=25.0)
     created_at = db.Column(DateTime, default=datetime.utcnow)
