@@ -839,39 +839,22 @@ def add_member():
             
             db.session.commit()
             
-            # Initialize contributions starting from the month they signed up
-            current_date = get_current_time()
-            current_year = current_date.year
-            current_month_index = current_date.month - 1  # 0-indexed
-            
-            for i, month in enumerate(MONTHS):
-                status = PaymentStatus.UNPAID
-                # If the month is before the current signup month, mark as 'N/A' or just don't create?
-                # User said "members start payment on the month they signed up on", 
-                # implying preceding months are not owed.
-                
+            # Generate contribution records for the start year (2024)
+            # All months will be Unpaid by default
+            start_year = "2024"
+            for month in MONTHS:
                 contribution = Contribution(
                     member_id=new_member.id,
-                    year=current_year,
+                    year=int(start_year),
                     month=month,
-                    status=status,
+                    status=PaymentStatus.UNPAID,
                     amount=0
                 )
-                
-                # If month is before signup, we can mark it differently or set amount to 0
-                # Here we just ensure they are created as Unpaid but they will only start paying from now
-                if i < current_month_index:
-                    # Mark as Paid with 0 amount to effectively "open" the later months
-                    # or keep as Unpaid but the UI should handle it. 
-                    # The user says "open the months that precede", likely meaning 
-                    # they shouldn't be blocked by them.
-                    contribution.status = PaymentStatus.PAID
-                    contribution.payment_comment = "Pre-registration month"
-                
                 db.session.add(contribution)
+            
             db.session.commit()
             
-            flash(f'Member {new_member.full_name} added successfully with ID {member_id}!', 'success')
+            flash(f'Member {new_member.full_name} added successfully with ID {new_member.member_id}!', 'success')
             return redirect(url_for('admin_home'))
             
         except Exception as e:
