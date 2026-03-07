@@ -1069,7 +1069,12 @@ def member_details(member_id):
     # Pass next year's contributions to the template
     next_year_val = int(selected_year) + 1
     next_year_contribs = Contribution.query.filter_by(member_id=member.id, year=next_year_val).all()
-    next_year_contributions = {c.month: c.to_dict() for c in next_year_contribs}
+    next_year_contributions = {c.month: {
+        'status': c.status.value if hasattr(c.status, 'value') else c.status,
+        'amount': c.amount,
+        'date': c.payment_date.strftime('%Y-%m-%d') if c.payment_date else '',
+        'receipt': c.receipt_number
+    } for c in next_year_contribs}
     if not next_year_contributions:
         next_year_contributions = {month: {'status': 'Unpaid', 'amount': 0} for month in MONTHS}
 
