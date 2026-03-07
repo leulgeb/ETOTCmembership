@@ -920,17 +920,10 @@ def edit_member(member_id):
                 flash('All required fields must be filled.', 'danger')
                 return render_template('edit_member.html', member=member)
             
-            # Check if ID is being changed and if new ID already exists
-            if new_id != member_id:
-                existing = Member.query.filter_by(member_id=new_id).first()
-                if existing:
-                    flash('This Member ID already exists. Please use a different ID.', 'danger')
-                    return render_template('edit_member.html', member=member)
-            
             try:
                 monthly_amount = float(monthly_payment)
-                if monthly_amount < MINIMUM_MONTHLY_PAYMENT:
-                    flash(f'Monthly payment must be at least ${MINIMUM_MONTHLY_PAYMENT}.', 'danger')
+                if monthly_amount < 25:
+                    flash(f'Monthly payment must be at least $25.', 'danger')
                     return render_template('edit_member.html', member=member)
             except ValueError:
                 flash('Monthly payment must be a valid number.', 'danger')

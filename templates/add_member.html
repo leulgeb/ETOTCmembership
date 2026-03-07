@@ -41,8 +41,9 @@
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" class="form-control required-field" id="monthly_payment" name="monthly_payment" 
-                                       step="0.01" min="30" value="{{ request.form.get('monthly_payment', '30') }}" required>
+                                       step="0.01" min="25" value="{{ request.form.get('monthly_payment', '25') }}" required>
                             </div>
+                            <small class="text-muted">Minimum monthly contribution is $25</small>
                         </div>
                         <div class="col-md-4">
                             <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
@@ -126,7 +127,7 @@
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="marital_status" id="single_with_children" value="single_with_children" {% if request.form.get('marital_status') == 'single_with_children' %}checked{% endif %}>
-                                <label class="form-check-label" for="single_with_children">Single with Children</label>
+                                <label class="form-check-label" for="single_with_children">Add children</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="marital_status" id="married" value="married" {% if request.form.get('marital_status') == 'married' %}checked{% endif %}>
@@ -188,7 +189,7 @@
 
                         <div class="card bg-light mb-4">
                             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0"><i class="bi bi-people-fill"></i> Children (living with you)</h6>
+                                <h6 class="mb-0"><i class="bi bi-people-fill"></i> Children</h6>
                                 <button type="button" class="btn btn-sm btn-light" id="addChildBtn">
                                     <i class="bi bi-plus-circle"></i> Add Child
                                 </button>
