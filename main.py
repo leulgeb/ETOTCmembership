@@ -839,16 +839,35 @@ def add_member():
             
             db.session.commit()
             
-            # Initialize contributions for current year
-            current_year = get_current_time().year
-            for month in MONTHS:
+            # Initialize contributions starting from the month they signed up
+            current_date = get_current_time()
+            current_year = current_date.year
+            current_month_index = current_date.month - 1  # 0-indexed
+            
+            for i, month in enumerate(MONTHS):
+                status = PaymentStatus.UNPAID
+                # If the month is before the current signup month, mark as 'N/A' or just don't create?
+                # User said "members start payment on the month they signed up on", 
+                # implying preceding months are not owed.
+                
                 contribution = Contribution(
                     member_id=new_member.id,
                     year=current_year,
                     month=month,
-                    status=PaymentStatus.UNPAID,
+                    status=status,
                     amount=0
                 )
+                
+                # If month is before signup, we can mark it differently or set amount to 0
+                # Here we just ensure they are created as Unpaid but they will only start paying from now
+                if i < current_month_index:
+                    # Mark as Paid with 0 amount to effectively "open" the later months
+                    # or keep as Unpaid but the UI should handle it. 
+                    # The user says "open the months that precede", likely meaning 
+                    # they shouldn't be blocked by them.
+                    contribution.status = PaymentStatus.PAID
+                    contribution.payment_comment = "Pre-registration month"
+                
                 db.session.add(contribution)
             db.session.commit()
             

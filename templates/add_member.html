@@ -47,7 +47,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
-                            <input type="password" class="form-control required-field" id="password" name="password" required>
+                            <input type="password" class="form-control required-field" id="password" name="password" value="000000" required>
                         </div>
                     </div>
 
@@ -295,8 +295,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function toggleSpouseSection() {
-        if (marriedRadio.checked) {
+        const singleWithChildrenRadio = document.getElementById('single_with_children');
+        if (marriedRadio.checked || singleWithChildrenRadio.checked) {
             spouseSection.style.display = 'block';
+            
+            // Show/Hide specific parts within the section based on role
+            const spouseInfoCard = spouseSection.querySelector('.card:first-child');
+            if (marriedRadio.checked) {
+                spouseInfoCard.style.display = 'block';
+            } else {
+                spouseInfoCard.style.display = 'none';
+            }
         } else {
             spouseSection.style.display = 'none';
         }
@@ -304,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     marriedRadio.addEventListener('change', toggleSpouseSection);
     singleRadio.addEventListener('change', toggleSpouseSection);
+    document.getElementById('single_with_children').addEventListener('change', toggleSpouseSection);
     
     // Initial toggle based on form data (for error cases)
     toggleSpouseSection();
