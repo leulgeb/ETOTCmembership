@@ -84,9 +84,8 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Credit Card**: Card payments (Stripe integration pending)
 - **Other**: Check, money order, etc.
 
-- **March 07, 2026**: Updated receipt format: removed "ETOTC Church" text from under logo, repositioned Receipt # to top right, and reinstated EIN (91-1699080) in the header.
-- **March 07, 2026**: Disabled automatic marking of pre-registration months as Paid ($0). New members now have all months starting from January 2024 as Unpaid by default.
-- **March 07, 2026**: Changed registration logic to leave preceding months as Unpaid instead of marking them as Paid ($0).
+## Recent Changes
+- **December 30, 2025**: Added IT Support user role with user management, reports, archive, and export access (no payment processing or corrections)
 - **December 30, 2025**: Configured application to use Pacific timezone (America/Los_Angeles) for all dates
 - **December 30, 2025**: Added comprehensive Financial Reports system with 7 reports:
   - Financial Dashboard (overview cards, YTD metrics, monthly trends)
