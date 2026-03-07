@@ -839,18 +839,35 @@ def add_member():
             
             db.session.commit()
             
-            # Initialize contributions - all months start as Unpaid
+            # Initialize contributions starting from the month they signed up
             current_date = get_current_time()
             current_year = current_date.year
+            current_month_index = current_date.month - 1  # 0-indexed
             
-            for month in MONTHS:
+            for i, month in enumerate(MONTHS):
+                status = PaymentStatus.UNPAID
+                # If the month is before the current signup month, mark as 'N/A' or just don't create?
+                # User said "members start payment on the month they signed up on", 
+                # implying preceding months are not owed.
+                
                 contribution = Contribution(
                     member_id=new_member.id,
                     year=current_year,
                     month=month,
-                    status=PaymentStatus.UNPAID,
+                    status=status,
                     amount=0
                 )
+                
+                # If month is before signup, we can mark it differently or set amount to 0
+                # Here we just ensure they are created as Unpaid but they will only start paying from now
+                if i < current_month_index:
+                    # Mark as Paid with 0 amount to effectively "open" the later months
+                    # or keep as Unpaid but the UI should handle it. 
+                    # The user says "open the months that precede", likely meaning 
+                    # they shouldn't be blocked by them.
+                    contribution.status = PaymentStatus.PAID
+                    contribution.payment_comment = "Pre-registration month"
+                
                 db.session.add(contribution)
             db.session.commit()
             
@@ -1062,37 +1079,19 @@ def member_details(member_id):
         'email': member.email,
         'phone': member.phone,
         'monthly_payment': member.monthly_payment,
-        'db_id': member.id,
-        'marital_status': member.marital_status
+        'db_id': member.id
     }
     
-    # Pass next year's contributions to the template
-    next_year_val = int(selected_year) + 1
-    next_year_contribs = Contribution.query.filter_by(member_id=member.id, year=next_year_val).all()
-    next_year_contributions = {c.month: {
-        'status': c.status.value if hasattr(c.status, 'value') else c.status,
-        'amount': c.amount,
-        'date': c.payment_date.strftime('%Y-%m-%d') if c.payment_date else '',
-        'receipt': c.receipt_number
-    } for c in next_year_contribs}
-    if not next_year_contributions:
-        next_year_contributions = {month: {'status': 'Unpaid', 'amount': 0} for month in MONTHS}
-
-    # Check if next year is complete
-    next_year_complete = all(next_year_contributions.get(m, {}).get('status') == 'Paid' for m in MONTHS)
-
     return render_template('member_details.html', 
-                           member=member_dict,
-                           contributions=contributions,
-                           next_year_contributions=next_year_contributions,
-                           months=MONTHS,
-                           selected_year=str(selected_year),
-                           available_years=available_years,
-                           paid_months=paid_months,
-                           total_paid=total_paid,
-                           receipt_data=receipt_data,
-                           previous_year_complete=previous_year_complete,
-                           next_year_complete=next_year_complete)
+                         member=member_dict,
+                         contributions=contributions,
+                         months=MONTHS,
+                         selected_year=str(selected_year),
+                         available_years=available_years,
+                         paid_months=paid_months,
+                         total_paid=total_paid,
+                         receipt_data=receipt_data,
+                         previous_year_complete=previous_year_complete)
 
 @app.route('/admin/household/<member_id>')
 @staff_required
@@ -1509,89 +1508,74 @@ def admin_bulk_pay(member_id, year):
     
     # Get payment method from form
     payment_method_str = request.form.get('payment_method', 'cash')
-    try:
-        payment_method = PaymentMethod(payment_method_str)
-    except ValueError:
-        payment_method = PaymentMethod.CASH
-        
+    payment_method = PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH
     payment_comment = request.form.get('payment_comment', '').strip()
     
-    current_time = get_current_time()
+    year_int = int(year)
+    payment_date = get_current_time()
     processed_payments = []
-    total_amount = 0
-    receipt_number = get_next_receipt_number()
-
-    for month_item in selected_months:
-        # Check if the month item is "Month:Year" (for cross-year payments)
-        if ':' in month_item:
-            m_name, m_year = month_item.split(':')
-            m_year = int(m_year)
-        else:
-            m_name = month_item
-            m_year = int(year)
-
-        if m_name not in MONTHS:
+    skipped_months = []
+    
+    # Collect valid months first
+    valid_months = []
+    for month in selected_months:
+        if month not in MONTHS:
             continue
-
-        contribution = Contribution.query.filter_by(
+        contrib = Contribution.query.filter_by(
             member_id=member.id,
-            year=m_year,
-            month=m_name
+            year=year_int,
+            month=month
         ).first()
-
-        if not contribution:
-            contribution = Contribution(
+        if contrib and contrib.status == PaymentStatus.PAID:
+            skipped_months.append(month)
+            continue
+        valid_months.append(month)
+    
+    if valid_months:
+        # Generate ONE receipt for all months in this transaction
+        receipt_number = get_next_receipt_number()
+        total_amount = len(valid_months) * member.monthly_payment
+        
+        for month in valid_months:
+            # Get or create contribution record
+            contribution = Contribution.query.filter_by(
                 member_id=member.id,
-                year=m_year,
-                month=m_name,
-                status=PaymentStatus.UNPAID,
-                amount=0
-            )
-            db.session.add(contribution)
-
-        if contribution.status != PaymentStatus.PAID:
+                year=year_int,
+                month=month
+            ).first()
+            
+            if not contribution:
+                contribution = Contribution(
+                    member_id=member.id,
+                    year=year_int,
+                    month=month
+                )
+                db.session.add(contribution)
+            
             contribution.status = PaymentStatus.PAID
             contribution.amount = member.monthly_payment
-            contribution.payment_date = current_time
-            contribution.date = current_time.date()
+            contribution.payment_date = payment_date
             contribution.receipt_number = receipt_number
             contribution.payment_method = payment_method
             contribution.payment_comment = payment_comment
-            contribution.processed_by_id = current_user.id if current_user else None
+            contribution.processed_by_id = current_user.id
             
-            total_amount += member.monthly_payment
             processed_payments.append({
-                'month': f"{m_name} {m_year}",
+                'month': month,
                 'amount': member.monthly_payment
             })
-
-    if processed_payments:
+        
         db.session.commit()
         
-        # Prepare receipt data for modal
-        receipt_data = {
-            'receipt_number': receipt_number,
-            'date': current_time.strftime('%Y-%m-%d'),
-            'member_name': member.full_name,
-            'member_id': member.member_id,
-            'total': total_amount,
-            'payment_method': payment_method.value,
-            'payment_comment': payment_comment,
-            'processed_by': current_user.full_name if current_user else 'System',
-            'payments': processed_payments
-        }
-        session['receipt_data'] = receipt_data
-        flash(f'Successfully processed {len(processed_payments)} payments. Total: ${total_amount:.2f}', 'success')
-        
-        # Auto-generate next year if nearly complete
+        # Check paid months count after payment and auto-generate next year's sheet
         paid_count = Contribution.query.filter_by(
             member_id=member.id,
-            year=int(year),
+            year=year_int,
             status=PaymentStatus.PAID
         ).count()
         
         if paid_count >= 11:
-            next_year = int(year) + 1
+            next_year = year_int + 1
             existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
             if not existing:
                 for m in MONTHS:
@@ -1605,9 +1589,65 @@ def admin_bulk_pay(member_id, year):
                     db.session.add(new_contrib)
                 db.session.commit()
                 flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
+        
+        # Check if year is now complete
+        is_year_complete = paid_count == 12
+        year_sheet_html = None
+        
+        if is_year_complete:
+            contributions_dict = {}
+            contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+            for c in contribs:
+                contributions_dict[c.month] = {
+                    'amount': c.amount,
+                    'receipt': c.receipt_number or ''
+                }
+            member_dict = {'name': member.full_name, 'id': member.member_id}
+            year_sheet_html = generate_year_completion_sheet(member_dict, year, contributions_dict)
+            flash(f'Congratulations! {member.full_name} has completed all contributions for {year}!', 'success')
+        
+        # Store receipt data in session for display
+        receipt_data = {
+            'receipt_number': receipt_number,
+            'date': payment_date.strftime('%Y-%m-%d'),
+            'member_name': member.full_name,
+            'member_id': member.member_id,
+            'member_email': member.email or '',
+            'payments': processed_payments,
+            'total': total_amount,
+            'year': year,
+            'is_year_complete': is_year_complete,
+            'payment_method': payment_method.value,
+            'processed_by': current_user.full_name or current_user.username
+        }
+        session['receipt_data'] = receipt_data
+        
+        # Store year sheet in session if complete
+        if is_year_complete and year_sheet_html:
+            session['year_sheet'] = year_sheet_html
+        
+        # Send email automatically
+        if member.email:
+            email_sent = send_receipt_email(
+                member.email, 
+                member.full_name, 
+                receipt_data,
+                is_year_complete,
+                year_sheet_html
+            )
+            if email_sent:
+                flash(f'Receipt emailed to {member.email}', 'info')
+        
+        months_str = ', '.join([p['month'] for p in processed_payments])
+        flash(f'Payment processed! Receipt {receipt_number} for {months_str}', 'success')
+        
+        # Notify about skipped months if any
+        if skipped_months:
+            skipped_str = ', '.join(skipped_months)
+            flash(f'Skipped {len(skipped_months)} already paid month(s): {skipped_str}', 'info')
     else:
-        flash('No new payments were processed.', 'info')
-
+        flash('No payments were processed. All selected months were already paid.', 'warning')
+    
     return redirect(url_for('member_details', member_id=member_id, year=year))
 
 @app.route('/admin/member/<member_id>/transactions')

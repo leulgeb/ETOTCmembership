@@ -85,7 +85,7 @@
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="mb-0">Monthly Contributions</h4>
+                    <h4 class="mb-0">Monthly Contributions - {{ selected_year }}</h4>
                     <div class="d-flex align-items-center gap-3">
                         <form method="GET" id="yearForm" class="d-flex align-items-center">
                             <label class="me-2 text-muted">Year:</label>
@@ -98,196 +98,105 @@
                     </div>
                 </div>
 
-                <ul class="nav nav-tabs mb-3" id="yearTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="current-year-tab" data-bs-toggle="tab" data-bs-target="#current-year" type="button" role="tab">{{ selected_year }}</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="next-year-tab" data-bs-toggle="tab" data-bs-target="#next-year" type="button" role="tab">{{ selected_year|int + 1 }}</button>
-                    </li>
-                </ul>
-
-                <div class="tab-content" id="yearTabsContent">
-                    <div class="tab-pane fade show active" id="current-year" role="tabpanel">
-                        <form method="POST" action="{{ url_for('admin_bulk_pay', member_id=member.id, year=selected_year) }}" id="bulkPayForm">
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th style="width: 40px;">
-                                                <input type="checkbox" id="selectAll" class="form-check-input" title="Select All Unpaid">
-                                            </th>
-                                            <th>Month</th>
-                                            <th>Status</th>
-                                            <th>Amount</th>
-                                            <th>Payment Date</th>
-                                            <th>Receipt #</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for month in months %}
-                                        {% set contrib = contributions[month] %}
-                                        <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
-                                            <td>
-                                                {% if contrib.status == 'Unpaid' %}
-                                                <input type="checkbox" name="months" value="{{ month }}:{{ selected_year }}" class="form-check-input month-checkbox">
-                                                {% else %}
-                                                <i class="bi bi-check-circle-fill text-success"></i>
-                                                {% endif %}
-                                            </td>
-                                            <td><strong>{{ month }}</strong></td>
-                                            <td>
-                                                <span class="status-badge-{{ contrib.status.lower() }}">
-                                                    {{ contrib.status }}
-                                                </span>
-                                            </td>
-                                            <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
-                                            <td>{{ contrib.date if contrib.date else '-' }}</td>
-                                            <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
-                                            <td>
-                                                {% if contrib.status == 'Unpaid' %}
-                                                <button type="button" class="btn btn-sm btn-success pay-single-btn" 
-                                                        data-month="{{ month }}"
-                                                        data-year="{{ selected_year }}"
-                                                        data-amount="{{ member.monthly_payment }}">
-                                                    <i class="bi bi-cash-coin"></i> Pay
-                                                </button>
-                                                {% else %}
-                                                {% if contrib.receipt %}
-                                                <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
-                                                   class="btn btn-sm btn-outline-info" title="View Receipt">
-                                                    <i class="bi bi-receipt"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% if session.user_role == 'admin' %}
-                                                <a href="{{ url_for('admin_correction', member_id=member.id, year=selected_year, month=month) }}" 
-                                                   class="btn btn-sm btn-outline-warning" title="Correct">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Payment Method</label>
-                                    <select name="payment_method" class="form-select" id="bulkPayMethod">
-                                        <option value="cash">Cash</option>
-                                        <option value="zelle">Zelle</option>
-                                        <option value="venmo">Venmo</option>
-                                        <option value="credit_card">Credit Card</option>
-                                        <option value="cheque">Cheque</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Comment <span id="bulkCommentRequired" style="color: red; display: none;">*</span></label>
-                                    <input type="text" name="payment_comment" class="form-control" id="bulkPayComment" placeholder="e.g., Check #123">
-                                </div>
-                                <div class="col-md-4 d-flex flex-column justify-content-end">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <span class="text-muted">Selected: <strong id="selectedCount">0</strong> (<strong id="selectedTotal">$0.00</strong>)</span>
-                                        <button type="submit" class="btn btn-primary" id="bulkPayBtn" disabled>
-                                            <i class="bi bi-cash-stack"></i> Pay Selected
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="tab-pane fade" id="next-year" role="tabpanel">
-                        <form method="POST" action="{{ url_for('admin_bulk_pay', member_id=member.id, year=selected_year|int + 1) }}" id="bulkPayFormNext">
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th style="width: 40px;">
-                                                <input type="checkbox" id="selectAllNext" class="form-check-input" title="Select All Unpaid">
-                                            </th>
-                                            <th>Month</th>
-                                            <th>Status</th>
-                                            <th>Amount</th>
-                                            <th>Payment Date</th>
-                                            <th>Receipt #</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for month in months %}
-                                        {% set next_year = selected_year|int + 1 %}
-                                        {% set contrib = next_year_contributions[month] if next_year_contributions else {'status': 'Unpaid', 'amount': 0} %}
-                                        <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
-                                            <td>
-                                                {% if contrib.status == 'Unpaid' %}
-                                                <input type="checkbox" name="months" value="{{ month }}:{{ selected_year|int + 1 }}" class="form-check-input month-checkbox-next">
-                                                {% else %}
-                                                <i class="bi bi-check-circle-fill text-success"></i>
-                                                {% endif %}
-                                            </td>
-                                            <td><strong>{{ month }}</strong></td>
-                                            <td>
-                                                <span class="status-badge-{{ contrib.status.lower() if contrib.status else 'unpaid' }}">
-                                                    {{ contrib.status or 'Unpaid' }}
-                                                </span>
-                                            </td>
-                                            <td>${{ "%.2f"|format(contrib.amount) if contrib.amount and contrib.amount > 0 else '0.00' }}</td>
-                                            <td>{{ contrib.date if contrib.date else '-' }}</td>
-                                            <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
-                                            <td>
-                                                {% if not contrib or contrib.status == 'Unpaid' %}
-                                                <button type="button" class="btn btn-sm btn-success pay-single-btn" 
-                                                        data-month="{{ month }}"
-                                                        data-year="{{ next_year }}"
-                                                        data-amount="{{ member.monthly_payment }}">
-                                                    <i class="bi bi-cash-coin"></i> Pay
-                                                </button>
-                                                {% else %}
-                                                {% if contrib.receipt %}
-                                                <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
-                                                   class="btn btn-sm btn-outline-info" title="View Receipt">
-                                                    <i class="bi bi-receipt"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Payment Method</label>
-                                    <select name="payment_method" class="form-select" id="bulkPayMethodNext">
-                                        <option value="cash">Cash</option>
-                                        <option value="zelle">Zelle</option>
-                                        <option value="venmo">Venmo</option>
-                                        <option value="credit_card">Credit Card</option>
-                                        <option value="cheque">Cheque</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Comment</label>
-                                    <input type="text" name="payment_comment" class="form-control" id="bulkPayCommentNext" placeholder="e.g., Check #123">
-                                </div>
-                                <div class="col-md-4 d-flex flex-column justify-content-end">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <button type="submit" class="btn btn-primary" id="bulkPayBtnNext" disabled>
-                                            <i class="bi bi-cash-stack"></i> Pay Selected
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+                {% if not previous_year_complete %}
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Year Locked:</strong> You must complete all 12 months of {{ selected_year|int - 1 }} before making payments for {{ selected_year }}.
                 </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('admin_bulk_pay', member_id=member.id, year=selected_year) }}" id="bulkPayForm">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" title="Select All Unpaid">
+                                    </th>
+                                    <th>Month</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Payment Date</th>
+                                    <th>Receipt #</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in months %}
+                                {% set contrib = contributions[month] %}
+                                <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
+                                    <td>
+                                        {% if contrib.status == 'Unpaid' %}
+                                        <input type="checkbox" name="months" value="{{ month }}" class="form-check-input month-checkbox">
+                                        {% else %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ month }}</strong></td>
+                                    <td>
+                                        <span class="status-badge-{{ contrib.status.lower() }}">
+                                            {{ contrib.status }}
+                                        </span>
+                                    </td>
+                                    <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
+                                    <td>{{ contrib.date if contrib.date else '-' }}</td>
+                                    <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                                    <td>
+                                        {% if contrib.status == 'Unpaid' %}
+                                        <button type="button" class="btn btn-sm btn-success pay-single-btn" 
+                                                data-month="{{ month }}"
+                                                data-month-index="{{ loop.index0 }}"
+                                                data-amount="{{ member.monthly_payment }}"
+                                                {% if not previous_year_complete %}disabled{% endif %}>
+                                            <i class="bi bi-cash-coin"></i> Pay
+                                        </button>
+                                        {% else %}
+                                        {% if contrib.receipt %}
+                                        <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
+                                           class="btn btn-sm btn-outline-info" title="View Receipt">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if session.user_role == 'admin' %}
+                                        <a href="{{ url_for('admin_correction', member_id=member.id, year=selected_year, month=month) }}" 
+                                           class="btn btn-sm btn-outline-warning" title="Correct">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Method</label>
+                            <select name="payment_method" class="form-select" id="bulkPayMethod">
+                                <option value="cash">Cash</option>
+                                <option value="zelle">Zelle</option>
+                                <option value="venmo">Venmo</option>
+                                <option value="credit_card">Credit Card</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Comment <span id="bulkCommentRequired" style="color: red; display: none;">*</span></label>
+                            <input type="text" name="payment_comment" class="form-control" id="bulkPayComment" placeholder="e.g., Check #123">
+                        </div>
+                        <div class="col-md-4 d-flex flex-column justify-content-end">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-muted">Selected: <strong id="selectedCount">0</strong> (<strong id="selectedTotal">$0.00</strong>)</span>
+                                <button type="submit" class="btn btn-primary" id="bulkPayBtn" disabled>
+                                    <i class="bi bi-cash-stack"></i> Pay Selected
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -351,7 +260,6 @@
     </div>
 </div>
 
-<!-- Receipt Modal -->
 <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -373,7 +281,6 @@
     </div>
 </div>
 
-<!-- Confirm Payment Modal -->
 <div class="modal fade" id="confirmPayModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -417,66 +324,112 @@
     const monthlyPayment = {{ member.monthly_payment }};
     const memberId = "{{ member.id }}";
     const selectedYear = "{{ selected_year }}";
+    const previousYearComplete = {{ 'true' if previous_year_complete else 'false' }};
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
     
-    function updateSelectedInfo(isNextYear = false) {
-        const selector = isNextYear ? '.month-checkbox-next:checked' : '.month-checkbox:checked';
-        const checked = document.querySelectorAll(selector);
+    function getCheckboxes() {
+        return Array.from(document.querySelectorAll('.month-checkbox'));
+    }
+    
+    function isMonthPaid(monthIndex) {
+        const checkboxes = getCheckboxes();
+        // If there are no checkboxes for earlier months (all paid), they're paid
+        if (monthIndex > 0) {
+            const prevCheckbox = checkboxes[monthIndex - 1];
+            if (prevCheckbox) {
+                // If checkbox exists, the month is unpaid
+                return false;
+            } else {
+                // If no checkbox, the month is paid
+                return true;
+            }
+        }
+        return true;
+    }
+    
+    function updatePayButtonStates() {
+        const payButtons = document.querySelectorAll('.pay-single-btn');
+        payButtons.forEach(btn => {
+            const monthIndex = parseInt(btn.getAttribute('data-month-index'));
+            let shouldDisable = !previousYearComplete;
+            
+            // For months after January, check if previous month is paid
+            if (monthIndex > 0 && !shouldDisable) {
+                shouldDisable = !isMonthPaid(monthIndex);
+            }
+            
+            btn.disabled = shouldDisable;
+        });
+    }
+    
+    function updateCheckboxStates() {
+        const checkboxes = getCheckboxes();
+        
+        if (!previousYearComplete) {
+            checkboxes.forEach(cb => cb.disabled = true);
+            document.getElementById('selectAll').disabled = true;
+            document.getElementById('bulkPayBtn').disabled = true;
+        } else {
+            let lastSelected = -1;
+            for (let i = checkboxes.length - 1; i >= 0; i--) {
+                if (checkboxes[i].checked) {
+                    lastSelected = i;
+                    break;
+                }
+            }
+            
+            checkboxes.forEach((cb, index) => {
+                if (cb.checked) {
+                    cb.disabled = false;
+                } else if (lastSelected === -1 && index === 0) {
+                    cb.disabled = false;
+                } else if (index === lastSelected + 1) {
+                    cb.disabled = false;
+                } else {
+                    cb.disabled = true;
+                }
+            });
+        }
+        updatePayButtonStates();
+    }
+    
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = getCheckboxes();
+        if (this.checked) {
+            checkboxes.forEach(cb => {
+                cb.disabled = false;
+                cb.checked = true;
+            });
+        } else {
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+        updateCheckboxStates();
+        updateSelectedInfo();
+    });
+
+    document.querySelectorAll('.month-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            updateCheckboxStates();
+            updateSelectedInfo();
+        });
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCheckboxStates();
+        updatePayButtonStates();
+    });
+
+    function updateSelectedInfo() {
+        const checked = document.querySelectorAll('.month-checkbox:checked');
         const count = checked.length;
         const total = count * monthlyPayment;
         
-        if (isNextYear) {
-            const btn = document.getElementById('bulkPayBtnNext');
-            if (btn) btn.disabled = count === 0;
-        } else {
-            const btn = document.getElementById('bulkPayBtn');
-            if (btn) btn.disabled = count === 0;
-            const countEl = document.getElementById('selectedCount');
-            const totalEl = document.getElementById('selectedTotal');
-            if (countEl) countEl.textContent = count;
-            if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
-        }
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('selectedTotal').textContent = '$' + total.toFixed(2);
+        document.getElementById('bulkPayBtn').disabled = count === 0;
     }
-
-    document.querySelectorAll('.month-checkbox').forEach(cb => {
-        cb.addEventListener('change', () => updateSelectedInfo(false));
-    });
     
-    document.querySelectorAll('.month-checkbox-next').forEach(cb => {
-        cb.addEventListener('change', () => updateSelectedInfo(true));
-    });
-
-    const selectAllBtn = document.getElementById('selectAll');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.month-checkbox');
-            checkboxes.forEach(cb => cb.checked = this.checked);
-            updateSelectedInfo(false);
-        });
-    }
-
-    const selectAllNextBtn = document.getElementById('selectAllNext');
-    if (selectAllNextBtn) {
-        selectAllNextBtn.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.month-checkbox-next');
-            checkboxes.forEach(cb => cb.checked = this.checked);
-            updateSelectedInfo(true);
-        });
-    }
-
-    document.querySelectorAll('.pay-single-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const month = this.getAttribute('data-month');
-            const year = this.getAttribute('data-year');
-            const amount = this.getAttribute('data-amount');
-            
-            document.getElementById('confirmMonth').textContent = month + ' ' + year;
-            document.getElementById('confirmAmount').textContent = '$' + parseFloat(amount).toFixed(2);
-            document.getElementById('singlePayForm').action = `/admin/pay-month/${memberId}/${year}/${month}`;
-            
-            new bootstrap.Modal(document.getElementById('confirmPayModal')).show();
-        });
-    });
-
     function updateDonationForm() {
         const reason = document.getElementById('donationReason').value;
         const amountField = document.getElementById('donationAmount');
@@ -505,10 +458,20 @@
         document.getElementById('submitDonationBtn').disabled = true;
     }
     
-    function updateDonationCommentRequired() {
-        const method = document.getElementById('donationPayMethod').value;
-        const requiredSpan = document.getElementById('donationCommentRequired');
-        const commentInput = document.getElementById('donationComment');
+    document.getElementById('donationAmount').addEventListener('input', function() {
+        const submitBtn = document.getElementById('submitDonationBtn');
+        const reason = document.getElementById('donationReason').value;
+        const amount = parseFloat(this.value);
+        const paymentMethod = document.getElementById('donationPayMethod').value;
+        const comment = document.getElementById('donationComment').value.trim();
+        const isValid = reason && amount && amount > 0 && !(paymentMethod === 'cheque' && !comment);
+        submitBtn.disabled = !isValid;
+    });
+
+    function updateBulkCommentRequired() {
+        const method = document.getElementById('bulkPayMethod').value;
+        const requiredSpan = document.getElementById('bulkCommentRequired');
+        const commentInput = document.getElementById('bulkPayComment');
         
         if (method === 'cheque') {
             requiredSpan.style.display = 'inline';
@@ -533,10 +496,10 @@
         }
     }
 
-    function updateBulkCommentRequired() {
-        const method = document.getElementById('bulkPayMethod').value;
-        const requiredSpan = document.getElementById('bulkCommentRequired');
-        const commentInput = document.getElementById('bulkPayComment');
+    function updateDonationCommentRequired() {
+        const method = document.getElementById('donationPayMethod').value;
+        const requiredSpan = document.getElementById('donationCommentRequired');
+        const commentInput = document.getElementById('donationComment');
         
         if (method === 'cheque') {
             requiredSpan.style.display = 'inline';
@@ -547,12 +510,53 @@
         }
     }
 
+    // Add event listeners to bulk payment method dropdown
     document.getElementById('bulkPayMethod').addEventListener('change', updateBulkCommentRequired);
-    document.getElementById('singlePayMethod').addEventListener('change', updateSingleCommentRequired);
-    document.getElementById('donationPayMethod').addEventListener('change', updateDonationCommentRequired);
+    
+    // Form validation for bulk payment
+    document.getElementById('bulkPayForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('bulkPayMethod').value;
+        const comment = document.getElementById('bulkPayComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
+    });
 
-    document.getElementById('donationAmount').addEventListener('input', function() {
-        document.getElementById('submitDonationBtn').disabled = !this.value || parseFloat(this.value) <= 0;
+    // Form validation for single payment
+    document.getElementById('singlePayForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('singlePayMethod').value;
+        const comment = document.getElementById('singlePayComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
+    });
+
+    // Form validation for donation
+    document.getElementById('donationForm').addEventListener('submit', function(e) {
+        const method = document.getElementById('donationPayMethod').value;
+        const comment = document.getElementById('donationComment').value.trim();
+        
+        if (method === 'cheque' && !comment) {
+            e.preventDefault();
+            alert('Please provide a cheque number or reference in the Comment field.');
+        }
+    });
+
+    document.querySelectorAll('.pay-single-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const month = this.dataset.month;
+            const amount = this.dataset.amount;
+            
+            document.getElementById('confirmMonth').textContent = month;
+            document.getElementById('confirmAmount').textContent = '$' + parseFloat(amount).toFixed(2);
+            document.getElementById('singlePayForm').action = `/admin/pay-month/${memberId}/${selectedYear}/${month}`;
+            
+            new bootstrap.Modal(document.getElementById('confirmPayModal')).show();
+        });
     });
 
     {% if receipt_data %}
@@ -562,6 +566,7 @@
     {% endif %}
 
     function showReceipt(data) {
+        // Build description - show range for multiple months
         let description = '';
         if (data.payments.length > 1) {
             const months = data.payments.filter(p => p.month).map(p => p.month);
@@ -578,15 +583,23 @@
             <div id="printableReceipt" style="width: 8.5in; height: 3.5in; padding: 15px; font-family: Arial, sans-serif; background-color: white; box-sizing: border-box; position: relative; overflow: hidden; border: 1px solid #eee; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 10px;">
                     <img src="/static/images/etotc_logo.png" alt="ETOTC Logo" style="height: 50px; width: auto; margin-bottom: 5px;">
+                    <h2 style="margin: 0; color: #2c3e50; font-size: 18px; font-weight: bold;">ETOTC Church</h2>
                     <p style="margin: 2px 0; font-size: 12px; color: #7f8c8d;">9256 227th Ave NE, Redmond, WA 98053</p>
-                    <p style="margin: 2px 0; font-size: 11px; color: #7f8c8d;">EIN: 91-1699080</p>
                 </div>
-                <div style="margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px; text-align: right;">
-                    <span style="font-size: 10px;"><strong>Receipt #:</strong> \${data.receipt_number}</span>
+                <!-- Header with receipt details -->
+                <div style="margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px;">
+                    <p style="margin: 0 0 2px 0; font-size: 12px; font-weight: bold;">Contribution Receipt</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 10px;"><strong>Receipt #:</strong> ${data.receipt_number}</span>
+                    </div>
                 </div>
+                
+                <!-- Member info in one line -->
                 <div style="margin-bottom: 8px; font-size: 10px;">
-                    <strong>Member Information</strong> ID: \${data.member_id} Name: \${data.member_name}
+                    <strong>Member Information</strong> ID: ${data.member_id} Name: ${data.member_name}
                 </div>
+                
+                <!-- Payment description -->
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;">
                     <thead>
                         <tr style="background: #f0f0f0;">
@@ -596,21 +609,26 @@
                     </thead>
                     <tbody>
                         <tr style="border: 1px solid #ccc;">
-                            <td style="padding: 4px;">\${description}</td>
-                            <td style="padding: 4px; text-align: right;">$\${data.total.toFixed(2)}</td>
+                            <td style="padding: 4px;">${description}</td>
+                            <td style="padding: 4px; text-align: right;">$${data.total.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <!-- Payment method and received by -->
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 10px;">
-                    <span><strong>Payment Method:</strong> \${data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash'}\${data.payment_comment ? ` (\${data.payment_comment})` : ''}</span>
-                    <span><strong>Received By:</strong> \${data.processed_by || ''}</span>
+                    <span><strong>Payment Method:</strong> ${data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash'}${data.payment_comment ? ` (${data.payment_comment})` : ''}</span>
+                    <span><strong>Received By:</strong> ${data.processed_by || ''}</span>
                 </div>
+                
+                <!-- Website and closing message -->
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; border-top: 1px solid #ddd; padding-top: 5px;">
                     <span style="font-weight: bold;">Thank you for your contribution! God bless you.</span>
                     <span>Website: ETOTC.org</span>
                 </div>
             </div>
         `;
+        
         document.getElementById('receiptContent').innerHTML = content;
         new bootstrap.Modal(document.getElementById('receiptModal')).show();
     }
@@ -618,22 +636,54 @@
     function printReceipt() {
         const printContent = document.getElementById('printableReceipt').innerHTML;
         const printWindow = window.open('', '_blank');
-        printWindow.document.write(\`
+        printWindow.document.write(`
             <html>
             <head>
                 <title>ETOTC Church - Payment Receipt</title>
                 <style>
                     body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
-                    @page { size: 8.5in 3.5in; margin: 0; }
-                    #printableReceipt { width: 8.5in; height: 3.5in; padding: 15px; box-sizing: border-box; }
+                    @page {
+                        size: 8.5in 3.5in;
+                        margin: 0;
+                    }
+                    #printableReceipt {
+                        width: 8.5in;
+                        height: 3.5in;
+                        padding: 15px;
+                        box-sizing: border-box;
+                    }
                 </style>
             </head>
-            <body><div id="printableReceipt">\${printContent}</div></body>
+            <body>
+                <div id="printableReceipt">
+                    ${printContent}
+                </div>
+            </body>
             </html>
-        \`);
+        `);
         printWindow.document.close();
         printWindow.focus();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     }
+
+    document.getElementById('bulkPayForm').addEventListener('submit', function(e) {
+        const checked = document.querySelectorAll('.month-checkbox:checked');
+        if (checked.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one month to pay.');
+            return false;
+        }
+        
+        const months = Array.from(checked).map(cb => cb.value).join(', ');
+        const total = checked.length * monthlyPayment;
+        
+        if (!confirm(`Process payment of $${total.toFixed(2)} for ${months}?`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
 </script>
 {% endblock %}
