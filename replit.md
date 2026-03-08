@@ -85,6 +85,7 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - **Other**: Check, money order, etc.
 
 ## Recent Changes
+- **March 8, 2026**: Enabled cross-calendar year payments in a single transaction (members can now pay months from different years with one receipt)
 - **December 30, 2025**: Added IT Support user role with user management, reports, archive, and export access (no payment processing or corrections)
 - **December 30, 2025**: Configured application to use Pacific timezone (America/Los_Angeles) for all dates
 - **December 30, 2025**: Added comprehensive Financial Reports system with 7 reports:

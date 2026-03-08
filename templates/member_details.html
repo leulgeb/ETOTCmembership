@@ -127,7 +127,7 @@
                                 <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
                                     <td>
                                         {% if contrib.status == 'Unpaid' %}
-                                        <input type="checkbox" name="months" value="{{ month }}" class="form-check-input month-checkbox">
+                                        <input type="checkbox" name="month_year" value="{{ selected_year }}-{{ month }}" class="form-check-input month-checkbox" data-month="{{ month }}" data-year="{{ selected_year }}">
                                         {% else %}
                                         <i class="bi bi-check-circle-fill text-success"></i>
                                         {% endif %}
@@ -676,7 +676,11 @@
             return false;
         }
         
-        const months = Array.from(checked).map(cb => cb.value).join(', ');
+        const months = Array.from(checked).map(cb => {
+            const month = cb.getAttribute('data-month');
+            const year = cb.getAttribute('data-year');
+            return `${month} ${year}`;
+        }).join(', ');
         const total = checked.length * monthlyPayment;
         
         if (!confirm(`Process payment of $${total.toFixed(2)} for ${months}?`)) {

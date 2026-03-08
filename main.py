@@ -1491,7 +1491,7 @@ def admin_add_donation(member_id):
 @app.route('/admin/bulk-pay/<member_id>/<year>', methods=['POST'])
 @staff_required
 def admin_bulk_pay(member_id, year):
-    """Admin processes bulk payments for multiple months with ONE receipt"""
+    """Admin processes bulk payments for multiple months (including cross-year) with ONE receipt"""
     current_user = get_current_user()
     member = Member.query.filter_by(member_id=member_id).first()
     
@@ -1499,10 +1499,15 @@ def admin_bulk_pay(member_id, year):
         flash('Member not found.', 'danger')
         return redirect(url_for('admin_home'))
     
-    # Get selected months from form
-    selected_months = request.form.getlist('months')
+    # Get selected months from form - can include cross-year months in format "YEAR-MONTH"
+    selected_items = request.form.getlist('month_year')
     
-    if not selected_months:
+    if not selected_items:
+        # Fallback to old format for backward compatibility
+        selected_months = request.form.getlist('months')
+        selected_items = [f"{year}-{m}" for m in selected_months if m in MONTHS]
+    
+    if not selected_items:
         flash('Please select at least one month to pay.', 'warning')
         return redirect(url_for('member_details', member_id=member_id, year=year))
     
@@ -1511,43 +1516,62 @@ def admin_bulk_pay(member_id, year):
     payment_method = PaymentMethod(payment_method_str) if payment_method_str else PaymentMethod.CASH
     payment_comment = request.form.get('payment_comment', '').strip()
     
-    year_int = int(year)
     payment_date = get_current_time()
     processed_payments = []
     skipped_months = []
+    years_involved = set()
     
-    # Collect valid months first
+    # Collect valid months first (parsing YEAR-MONTH format)
     valid_months = []
-    for month in selected_months:
+    for item in selected_items:
+        # Parse YEAR-MONTH format
+        if '-' in item:
+            parts = item.rsplit('-', 1)
+            if len(parts) == 2:
+                try:
+                    item_year = int(parts[0])
+                    month = parts[1]
+                except (ValueError, IndexError):
+                    continue
+            else:
+                continue
+        else:
+            # Fallback: assume it's just month name with year from parameter
+            month = item
+            item_year = int(year)
+        
         if month not in MONTHS:
             continue
+        
+        years_involved.add(item_year)
+        
         contrib = Contribution.query.filter_by(
             member_id=member.id,
-            year=year_int,
+            year=item_year,
             month=month
         ).first()
         if contrib and contrib.status == PaymentStatus.PAID:
-            skipped_months.append(month)
+            skipped_months.append(f"{month} {item_year}")
             continue
-        valid_months.append(month)
+        valid_months.append((item_year, month))
     
     if valid_months:
         # Generate ONE receipt for all months in this transaction
         receipt_number = get_next_receipt_number()
         total_amount = len(valid_months) * member.monthly_payment
         
-        for month in valid_months:
+        for item_year, month in valid_months:
             # Get or create contribution record
             contribution = Contribution.query.filter_by(
                 member_id=member.id,
-                year=year_int,
+                year=item_year,
                 month=month
             ).first()
             
             if not contribution:
                 contribution = Contribution(
                     member_id=member.id,
-                    year=year_int,
+                    year=item_year,
                     month=month
                 )
                 db.session.add(contribution)
@@ -1562,36 +1586,44 @@ def admin_bulk_pay(member_id, year):
             
             processed_payments.append({
                 'month': month,
+                'year': item_year,
                 'amount': member.monthly_payment
             })
         
         db.session.commit()
         
-        # Check paid months count after payment and auto-generate next year's sheet
-        paid_count = Contribution.query.filter_by(
+        # Check paid months count after payment for each year involved and auto-generate next year's sheet as needed
+        for check_year in years_involved:
+            paid_count = Contribution.query.filter_by(
+                member_id=member.id,
+                year=check_year,
+                status=PaymentStatus.PAID
+            ).count()
+            
+            if paid_count >= 11:
+                next_year = check_year + 1
+                existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
+                if not existing:
+                    for m in MONTHS:
+                        new_contrib = Contribution(
+                            member_id=member.id,
+                            year=next_year,
+                            month=m,
+                            status=PaymentStatus.UNPAID,
+                            amount=0
+                        )
+                        db.session.add(new_contrib)
+                    db.session.commit()
+                    flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
+        
+        # Check if primary year is now complete (for receipt message)
+        primary_year = int(year)
+        primary_paid_count = Contribution.query.filter_by(
             member_id=member.id,
-            year=year_int,
+            year=primary_year,
             status=PaymentStatus.PAID
         ).count()
-        
-        if paid_count >= 11:
-            next_year = year_int + 1
-            existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
-            if not existing:
-                for m in MONTHS:
-                    new_contrib = Contribution(
-                        member_id=member.id,
-                        year=next_year,
-                        month=m,
-                        status=PaymentStatus.UNPAID,
-                        amount=0
-                    )
-                    db.session.add(new_contrib)
-                db.session.commit()
-                flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
-        
-        # Check if year is now complete
-        is_year_complete = paid_count == 12
+        is_year_complete = primary_paid_count == 12
         year_sheet_html = None
         
         if is_year_complete:
