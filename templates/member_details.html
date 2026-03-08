@@ -195,7 +195,7 @@
                                                 data-month="{{ month }}"
                                                 data-month-index="year2-{{ loop.index0 }}"
                                                 data-amount="{{ member.monthly_payment }}"
-                                                {% if not previous_year_complete %}disabled{% endif %}>
+                                                disabled title="Use bulk payment to pay future year months">
                                             <i class="bi bi-cash-coin"></i> Pay
                                         </button>
                                         {% else %}
