@@ -1068,6 +1068,35 @@ def member_details(member_id):
     else:
         previous_year_complete = True
     
+    # Fetch next year contributions for cross-year payments
+    next_year = selected_year + 1
+    next_year_contributions_list = Contribution.query.filter_by(
+        member_id=member.id,
+        year=next_year
+    ).all()
+    
+    # Convert next year contributions to dict
+    next_year_contributions = {}
+    for c in next_year_contributions_list:
+        next_year_contributions[c.month] = {
+            'status': 'Paid' if c.status == PaymentStatus.PAID else 'Unpaid',
+            'amount': c.amount or 0,
+            'date': c.payment_date.strftime('%Y-%m-%d') if c.payment_date else '',
+            'receipt': c.receipt_number or '',
+            'payment_method': c.payment_method.value if c.payment_method else None,
+            'processed_by': c.processed_by_user.full_name if c.processed_by_user else None
+        }
+    
+    # Ensure all 12 months exist for next year too
+    for month in MONTHS:
+        if month not in next_year_contributions:
+            next_year_contributions[month] = {
+                'status': 'Unpaid',
+                'amount': 0,
+                'date': '',
+                'receipt': ''
+            }
+    
     # Get receipt data from session if available (after payment)
     receipt_data = session.pop('receipt_data', None)
     
@@ -1085,8 +1114,10 @@ def member_details(member_id):
     return render_template('member_details.html', 
                          member=member_dict,
                          contributions=contributions,
+                         next_year_contributions=next_year_contributions,
                          months=MONTHS,
                          selected_year=str(selected_year),
+                         next_year=str(next_year),
                          available_years=available_years,
                          paid_months=paid_months,
                          total_paid=total_paid,
