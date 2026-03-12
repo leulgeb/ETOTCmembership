@@ -189,6 +189,19 @@ A comprehensive Flask web application for ETOTC Church to manage monthly member 
 - All corrections logged with mandatory comments
 - Session management with secure secret key
 
+## Thermal Printer Integration
+- **Module**: `thermal_printer.py` — ESC/POS receipt generator with raw socket fallback
+- **Supported printers**: Any network thermal printer supporting ESC/POS over TCP/IP (Epson TM, Star TSP, BIXOLON, etc.)
+- **Paper widths**: 80mm (42 chars) and 58mm (32 chars)
+- **Routes**:
+  - `GET/POST /admin/printer-config` — Printer settings UI (Admin only)
+  - `POST /admin/thermal-print/test` — Send test page to printer
+  - `POST /admin/thermal-print/member/<receipt_number>` — Print member receipt
+  - `POST /admin/thermal-print/non-member/<receipt_number>` — Print non-member receipt
+- **UI**: "Thermal Print" button alongside existing "Print" button on all receipt pages
+- **Config storage**: `SystemSetting` model (key-value table in PostgreSQL)
+- **Setup**: Admin → Printer Settings; enter printer's IP address and port (default 9100)
+
 ## Pending Features
 - Stripe integration for credit card processing
 - Member self-service payment portal

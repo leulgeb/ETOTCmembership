@@ -10,9 +10,15 @@
                 <a href="{{ url_for('non_member_transactions') }}" class="btn btn-secondary btn-sm">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
-                <button onclick="window.print()" class="btn btn-primary btn-sm">
-                    <i class="bi bi-printer"></i> Print
-                </button>
+                <div class="d-flex gap-2">
+                    <button onclick="window.print()" class="btn btn-primary btn-sm">
+                        <i class="bi bi-printer"></i> Print
+                    </button>
+                    <button id="thermalPrintBtn" class="btn btn-outline-dark btn-sm"
+                            onclick="thermalPrint('non-member', '{{ receipt.receipt_number }}')">
+                        <i class="bi bi-receipt"></i> Thermal Print
+                    </button>
+                </div>
             </div>
 
             <div class="card" id="receipt-card">
@@ -76,6 +82,45 @@
         </div>
     </div>
 </div>
+
+<!-- Thermal Print Toast -->
+<div class="position-fixed bottom-0 end-0 p-3 d-print-none" style="z-index: 9999">
+    <div id="thermalToast" class="toast align-items-center border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="thermalToastMsg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+function thermalPrint(type, id) {
+    const btn = document.getElementById('thermalPrintBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Printing...';
+
+    fetch('/admin/thermal-print/' + type + '/' + encodeURIComponent(id), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+    })
+    .then(r => r.json())
+    .then(data => showThermalToast(data.success, data.message))
+    .catch(() => showThermalToast(false, 'Network error — could not reach server.'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-receipt"></i> Thermal Print';
+    });
+}
+
+function showThermalToast(success, message) {
+    const toastEl = document.getElementById('thermalToast');
+    const msgEl   = document.getElementById('thermalToastMsg');
+    toastEl.classList.remove('text-bg-success', 'text-bg-danger');
+    toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+    msgEl.textContent = message;
+    bootstrap.Toast.getOrCreateInstance(toastEl, {delay: 6000}).show();
+}
+</script>
 
 <style>
 @media print {

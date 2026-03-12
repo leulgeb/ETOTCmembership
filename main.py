@@ -19,7 +19,7 @@ def get_current_date():
     """Get current date in Pacific timezone"""
     return datetime.now(PACIFIC_TZ).date()
 from io import StringIO, BytesIO
-from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus
+from models import db, User, Member, Contribution, Donation, ChangeLog, SequenceCounter, NonMemberTransaction, Spouse, Child, UserRole, PaymentMethod, PaymentStatus, SystemSetting
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -3373,6 +3373,151 @@ def view_non_member_receipt(txn_id):
     }
     
     return render_template('view_non_member_receipt.html', receipt=receipt_data)
+
+# ---------------------------------------------------------------------------
+# Thermal Printer Routes
+# ---------------------------------------------------------------------------
+
+@app.route('/admin/printer-config', methods=['GET', 'POST'])
+@admin_required
+def printer_config():
+    """Thermal printer settings page (Admin only)."""
+    if request.method == 'POST':
+        printer_ip   = request.form.get('printer_ip', '').strip()
+        printer_port = request.form.get('printer_port', '9100').strip()
+        paper_width  = request.form.get('paper_width', '80mm').strip()
+        timeout      = request.form.get('timeout', '5').strip()
+
+        SystemSetting.set('printer_ip', printer_ip)
+        SystemSetting.set('printer_port', printer_port)
+        SystemSetting.set('paper_width', paper_width)
+        SystemSetting.set('timeout', timeout)
+        db.session.commit()
+        flash('Printer settings saved successfully.', 'success')
+        return redirect(url_for('printer_config'))
+
+    settings = {
+        'printer_ip':   SystemSetting.get('printer_ip', ''),
+        'printer_port': SystemSetting.get('printer_port', '9100'),
+        'paper_width':  SystemSetting.get('paper_width', '80mm'),
+        'timeout':      SystemSetting.get('timeout', '5'),
+    }
+    return render_template('printer_config.html', settings=settings)
+
+
+@app.route('/admin/thermal-print/test', methods=['POST'])
+@admin_required
+def thermal_test_print():
+    """Send a test page to the configured thermal printer."""
+    from thermal_printer import test_printer_connection
+    ip      = SystemSetting.get('printer_ip', '')
+    port    = int(SystemSetting.get('printer_port', '9100'))
+    timeout = int(SystemSetting.get('timeout', '5'))
+
+    if not ip:
+        return jsonify(success=False, message='No printer configured. Please set the IP address in Printer Settings first.')
+
+    success, message = test_printer_connection(ip, port, timeout)
+    return jsonify(success=success, message=message)
+
+
+@app.route('/admin/thermal-print/member/<receipt_number>', methods=['POST'])
+@staff_required
+def thermal_print_member_receipt(receipt_number):
+    """Send a member receipt to the configured thermal printer."""
+    from thermal_printer import print_member_receipt
+
+    ip         = SystemSetting.get('printer_ip', '')
+    port       = int(SystemSetting.get('printer_port', '9100'))
+    paper_width = SystemSetting.get('paper_width', '80mm')
+    timeout    = int(SystemSetting.get('timeout', '5'))
+
+    if not ip:
+        return jsonify(success=False, message='No thermal printer configured. Go to Admin → Printer Settings to set one up.')
+
+    # Fetch the receipt data from the database
+    contributions = Contribution.query.filter_by(receipt_number=receipt_number).all()
+    donations     = Donation.query.filter_by(receipt_number=receipt_number).all()
+
+    if not contributions and not donations:
+        return jsonify(success=False, message='Receipt not found.')
+
+    member = None
+    payments = []
+    receipt_date = ''
+    payment_method = None
+    processed_by = None
+
+    for c in contributions:
+        if not member:
+            member = c.member
+        payments.append({'type': 'contribution', 'month': c.month, 'amount': c.amount})
+        if not receipt_date and c.payment_date:
+            receipt_date   = c.payment_date.strftime('%Y-%m-%d')
+            payment_method = c.payment_method.value if c.payment_method else 'Cash'
+            processed_by   = c.processed_by_user.full_name if c.processed_by_user else None
+
+    for d in donations:
+        if not member:
+            member = d.member
+        payments.append({'type': 'donation', 'reason': d.purpose or '', 'amount': d.amount})
+        if not receipt_date and d.donation_date:
+            receipt_date   = d.donation_date.strftime('%Y-%m-%d')
+            payment_method = d.payment_method.value if d.payment_method else 'Cash'
+            processed_by   = d.processed_by_user.full_name if d.processed_by_user else None
+
+    if not member:
+        return jsonify(success=False, message='Member not found for this receipt.')
+
+    receipt_data = {
+        'receipt_number': receipt_number,
+        'date':           receipt_date,
+        'member_name':    member.full_name,
+        'member_id':      member.member_id,
+        'payments':       payments,
+        'total':          sum(p['amount'] for p in payments),
+        'payment_method': payment_method,
+        'processed_by':   processed_by,
+    }
+
+    success, message = print_member_receipt(receipt_data, ip, port, paper_width, timeout)
+    return jsonify(success=success, message=message)
+
+
+@app.route('/admin/thermal-print/non-member/<receipt_number>', methods=['POST'])
+@staff_required
+def thermal_print_non_member_receipt(receipt_number):
+    """Send a non-member/guest receipt to the configured thermal printer."""
+    from thermal_printer import print_non_member_receipt
+
+    ip          = SystemSetting.get('printer_ip', '')
+    port        = int(SystemSetting.get('printer_port', '9100'))
+    paper_width = SystemSetting.get('paper_width', '80mm')
+    timeout     = int(SystemSetting.get('timeout', '5'))
+
+    if not ip:
+        return jsonify(success=False, message='No thermal printer configured. Go to Admin → Printer Settings to set one up.')
+
+    txn = NonMemberTransaction.query.filter_by(receipt_number=receipt_number).first()
+    if not txn:
+        return jsonify(success=False, message='Transaction not found.')
+
+    receipt_data = {
+        'receipt_number':  txn.receipt_number,
+        'name':            txn.full_name,
+        'email':           txn.email or '',
+        'phone':           txn.phone or '',
+        'line_items':      [{'description': txn.purpose or 'General', 'amount': txn.amount}],
+        'total':           txn.amount,
+        'payment_method':  txn.payment_method.value if txn.payment_method else 'Cash',
+        'payment_comment': txn.payment_comment or '',
+        'date':            txn.transaction_date.strftime('%Y-%m-%d') if txn.transaction_date else '',
+        'processed_by':    txn.processed_by_user.full_name if txn.processed_by_user else 'Unknown',
+    }
+
+    success, message = print_non_member_receipt(receipt_data, ip, port, paper_width, timeout)
+    return jsonify(success=success, message=message)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

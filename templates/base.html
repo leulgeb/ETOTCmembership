@@ -181,6 +181,9 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="bi bi-people"></i> Manage Users</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('archive') }}"><i class="bi bi-archive"></i> Archive</a></li>
+                                {% if session.user_role == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('printer_config') }}"><i class="bi bi-printer"></i> Printer Settings</a></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('export_csv', export_type='members') }}">Export Members</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('export_csv', export_type='contributions') }}">Export Contributions</a></li>

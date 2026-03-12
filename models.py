@@ -207,6 +207,30 @@ class SequenceCounter(db.Model):
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class SystemSetting(db.Model):
+    """Key-value store for system-wide settings (e.g. thermal printer config)."""
+    __tablename__ = 'system_settings'
+
+    id = db.Column(Integer, primary_key=True)
+    key = db.Column(String(100), unique=True, nullable=False)
+    value = db.Column(String(500))
+    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @staticmethod
+    def get(key, default=None):
+        row = SystemSetting.query.filter_by(key=key).first()
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = SystemSetting.query.filter_by(key=key).first()
+        if row:
+            row.value = value
+        else:
+            row = SystemSetting(key=key, value=value)
+            db.session.add(row)
+
+
 class NonMemberTransaction(db.Model):
     """Transactions for non-members (guests, visitors)"""
     __tablename__ = 'non_member_transactions'

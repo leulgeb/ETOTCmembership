@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Thermal Printer Settings - ETOTC Church{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="bi bi-printer"></i> Thermal Printer Settings</h4>
+                <a href="{{ url_for('admin_home') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- How It Works Info -->
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> How Thermal Printing Works</h6>
+                <p class="mb-1">The app sends receipt data directly to your thermal printer over your local network. Your printer must:</p>
+                <ul class="mb-0 small">
+                    <li>Be a <strong>network-capable ESC/POS thermal printer</strong> (e.g., Epson TM series, Star TSP series, BIXOLON)</li>
+                    <li>Be connected to your <strong>local network</strong> via Ethernet or Wi-Fi</li>
+                    <li>Have a <strong>static IP address</strong> configured (set on the printer or via your router)</li>
+                    <li>Accept connections on port <strong>9100</strong> (standard for most models)</li>
+                </ul>
+            </div>
+
+            <!-- Settings Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-gear"></i> Printer Configuration</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('printer_config') }}">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label fw-semibold">Printer IP Address <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="printer_ip"
+                                       value="{{ settings.printer_ip or '' }}"
+                                       placeholder="e.g. 192.168.1.100"
+                                       pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                                       required>
+                                <div class="form-text">Find this in the printer's settings menu or your router's device list.</div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold">Port</label>
+                                <input type="number" class="form-control" name="printer_port"
+                                       value="{{ settings.printer_port or '9100' }}"
+                                       min="1" max="65535">
+                                <div class="form-text">Default is <strong>9100</strong> for most thermal printers.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Paper Width</label>
+                                <select class="form-select" name="paper_width">
+                                    <option value="80mm" {% if settings.paper_width == '80mm' or not settings.paper_width %}selected{% endif %}>80mm (Standard — 42 chars)</option>
+                                    <option value="58mm" {% if settings.paper_width == '58mm' %}selected{% endif %}>58mm (Compact — 32 chars)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Connection Timeout (seconds)</label>
+                                <input type="number" class="form-control" name="timeout"
+                                       value="{{ settings.timeout or '5' }}"
+                                       min="1" max="30">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Settings
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="testPrintBtn"
+                                    {% if not settings.printer_ip %}disabled{% endif %}>
+                                <i class="bi bi-printer"></i> Test Print
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-wifi"></i> Printer Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if settings.printer_ip %}
+                        <div class="d-flex align-items-center gap-3">
+                            <div>
+                                <div class="fw-semibold">{{ settings.printer_ip }}:{{ settings.printer_port or '9100' }}</div>
+                                <small class="text-muted">{{ settings.paper_width or '80mm' }} paper &bull; {{ settings.timeout or '5' }}s timeout</small>
+                            </div>
+                            <span id="statusBadge" class="badge bg-secondary">Not Checked</span>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No printer configured yet. Enter an IP address above to get started.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Common Printers Guide -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-question-circle"></i> Compatible Printers & Setup Tips</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6 class="text-primary">Epson TM Series</h6>
+                            <ul class="small">
+                                <li>TM-T20III, TM-T88VI, TM-T70II</li>
+                                <li>Connect via Ethernet cable</li>
+                                <li>Use <strong>EpsonNet Config</strong> to assign a static IP</li>
+                                <li>Default port: 9100</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-primary">Star TSP Series</h6>
+                            <ul class="small">
+                                <li>TSP143, TSP654, mC-Print3</li>
+                                <li>Use <strong>Star Utility</strong> to find the IP</li>
+                                <li>Enable "RAW" mode on port 9100</li>
+                                <li>Wi-Fi or Ethernet supported</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-primary">BIXOLON / Others</h6>
+                            <ul class="small">
+                                <li>SRP-350, SRP-Q300</li>
+                                <li>Print a self-test page to find the IP</li>
+                                <li>Port is usually 9100</li>
+                                <li>Must support ESC/POS commands</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="small text-muted mb-0">
+                        <strong>Tip:</strong> To find your printer's IP, hold the paper-feed button while powering on — most printers print a configuration page showing the IP address.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Test Print Result Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="testToast" class="toast align-items-center border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="testToastMsg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('testPrintBtn')?.addEventListener('click', function () {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testing...';
+
+    fetch("{{ url_for('thermal_test_print') }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': ''},
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.success, data.message);
+        if (data.success) {
+            document.getElementById('statusBadge')?.classList.replace('bg-secondary', 'bg-success');
+            document.getElementById('statusBadge').textContent = 'Online';
+        } else {
+            document.getElementById('statusBadge')?.classList.replace('bg-secondary', 'bg-danger');
+            document.getElementById('statusBadge').textContent = 'Offline';
+        }
+    })
+    .catch(() => showToast(false, 'Network error — could not reach server.'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-printer"></i> Test Print';
+    });
+});
+
+function showToast(success, message) {
+    const toastEl = document.getElementById('testToast');
+    const msgEl   = document.getElementById('testToastMsg');
+    toastEl.classList.remove('text-bg-success', 'text-bg-danger');
+    toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+    msgEl.textContent = message;
+    bootstrap.Toast.getOrCreateInstance(toastEl, {delay: 5000}).show();
+}
+</script>
+{% endblock %}
