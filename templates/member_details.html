@@ -123,6 +123,7 @@
                             </thead>
                             <tbody>
                                 <!-- Current Year Months -->
+                                {% set first_unpaid_found = false %}
                                 {% for month in months %}
                                 {% set contrib = contributions[month] %}
                                 <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
@@ -144,13 +145,23 @@
                                     <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
                                     <td>
                                         {% if contrib.status == 'Unpaid' %}
-                                        <button type="button" class="btn btn-sm btn-success pay-single-btn" 
-                                                data-month="{{ month }}"
-                                                data-month-index="{{ loop.index0 }}"
-                                                data-amount="{{ member.monthly_payment }}"
-                                                {% if not previous_year_complete %}disabled{% endif %}>
-                                            <i class="bi bi-cash-coin"></i> Pay
-                                        </button>
+                                        {% if not first_unpaid_found and previous_year_complete %}
+                                            {% set first_unpaid_found = true %}
+                                            <button type="button" class="btn btn-sm btn-success pay-single-btn" 
+                                                    data-month="{{ month }}"
+                                                    data-month-index="{{ loop.index0 }}"
+                                                    data-amount="{{ member.monthly_payment }}">
+                                                <i class="bi bi-cash-coin"></i> Pay
+                                            </button>
+                                        {% else %}
+                                            <button type="button" class="btn btn-sm btn-success pay-single-btn" 
+                                                    data-month="{{ month }}"
+                                                    data-month-index="{{ loop.index0 }}"
+                                                    data-amount="{{ member.monthly_payment }}"
+                                                    disabled title="Pay in sequence or use bulk payment">
+                                                <i class="bi bi-cash-coin"></i> Pay
+                                            </button>
+                                        {% endif %}
                                         {% else %}
                                         {% if contrib.receipt %}
                                         <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
