@@ -54,9 +54,10 @@
                                             <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#member-details-{{ member.id }}" title="View Details">
                                                 <i class="bi bi-chevron-down"></i> Details
                                             </button>
-                                            <a href="{{ url_for('restore_member', member_id=member.member_id) }}" class="btn btn-sm btn-success" title="Restore Member">
+                                            <button class="btn btn-sm btn-success" type="button" title="Restore Member"
+                                                    onclick="confirmRestore('{{ member.member_id }}', '{{ member.full_name }}')">
                                                 <i class="bi bi-arrow-counterclockwise"></i> Restore
-                                            </a>
+                                            </button>
                                         </td>
                                     </tr>
                                     <!-- Collapsible Details Row -->
@@ -180,4 +181,36 @@
         </div>
     </div>
 </div>
+
+<!-- Restore Member Confirmation Modal -->
+<div class="modal fade" id="restoreMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-success">
+                <h5 class="modal-title"><i class="bi bi-arrow-counterclockwise text-success"></i> Confirm Restore Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to restore this member to the active list:</p>
+                <p class="fw-bold fs-5" id="restoreMemberName"></p>
+                <p class="text-muted">The member will become active again and appear in the member list.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="restoreConfirmBtn" href="#" class="btn btn-success">
+                    <i class="bi bi-arrow-counterclockwise"></i> Yes, Restore Member
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmRestore(memberId, memberName) {
+    document.getElementById('restoreMemberName').textContent = memberName + ' (' + memberId + ')';
+    document.getElementById('restoreConfirmBtn').href = '/admin/restore-member/' + memberId;
+    var modal = new bootstrap.Modal(document.getElementById('restoreMemberModal'));
+    modal.show();
+}
+</script>
 {% endblock %}
