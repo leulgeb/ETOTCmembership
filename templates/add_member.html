@@ -32,13 +32,9 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="custom_id" class="form-label">Member ID</label>
-                            <input type="text" class="form-control {{ 'is-invalid' if errors and 'custom_id' in errors }}" id="custom_id" name="custom_id" 
-                                   placeholder="{{ suggested_id }}" value="{{ request.form.get('custom_id', '') }}">
-                            {% if errors and 'custom_id' in errors %}
-                                <div class="invalid-feedback">{{ errors['custom_id'] }}</div>
-                            {% else %}
-                                <small class="text-muted">Auto: {{ suggested_id }}</small>
-                            {% endif %}
+                            <input type="text" class="form-control bg-light text-muted" id="custom_id" name="custom_id"
+                                   value="{{ suggested_id }}" readonly>
+                            <small class="text-muted">Assigned automatically</small>
                         </div>
                         <div class="col-md-4">
                             <label for="monthly_payment" class="form-label">Monthly Payment <span class="required-indicator">*</span></label>
