@@ -770,19 +770,33 @@ def add_member():
             password = request.form.get('password', '').strip()
             monthly_payment = request.form.get('monthly_payment', '').strip()
             
-            # Validation
-            if not all([first_name, last_name, phone, password, monthly_payment]):
-                flash('First name, last name, phone, password, and monthly payment are required.', 'danger')
-                return render_template('add_member.html', suggested_id=suggested_id)
+            # Validation — collect all field-level errors before returning
+            errors = {}
+            if not first_name:
+                errors['first_name'] = 'First name is required.'
+            if not last_name:
+                errors['last_name'] = 'Last name is required.'
+            if not phone:
+                errors['phone'] = 'Phone number is required.'
+            if not password:
+                errors['password'] = 'Password is required.'
             
-            try:
-                monthly_amount = float(monthly_payment)
-                if monthly_amount < MINIMUM_MONTHLY_PAYMENT:
-                    flash(f'Monthly payment must be at least ${MINIMUM_MONTHLY_PAYMENT}.', 'danger')
-                    return render_template('add_member.html', suggested_id=suggested_id)
-            except ValueError:
-                flash('Monthly payment must be a valid number.', 'danger')
-                return render_template('add_member.html', suggested_id=suggested_id)
+            monthly_amount = 0
+            if not monthly_payment:
+                errors['monthly_payment'] = 'Monthly payment is required.'
+            else:
+                try:
+                    monthly_amount = float(monthly_payment)
+                    if monthly_amount < MINIMUM_MONTHLY_PAYMENT:
+                        errors['monthly_payment'] = f'Monthly payment must be at least ${MINIMUM_MONTHLY_PAYMENT}.'
+                except ValueError:
+                    errors['monthly_payment'] = 'Monthly payment must be a valid number.'
+
+            if custom_id and Member.query.filter_by(member_id=custom_id).first():
+                errors['custom_id'] = 'This Member ID already exists. Please use a different ID.'
+
+            if errors:
+                return render_template('add_member.html', suggested_id=suggested_id, errors=errors)
             
             # Parse date of birth
             date_of_birth = None
@@ -798,9 +812,6 @@ def add_member():
             
             # Generate or use custom ID
             if custom_id:
-                if Member.query.filter_by(member_id=custom_id).first():
-                    flash('This Member ID already exists. Please use a different ID.', 'danger')
-                    return render_template('add_member.html', suggested_id=suggested_id)
                 member_id = custom_id
             else:
                 member_id = get_next_member_id()
@@ -959,12 +970,13 @@ def add_member():
             flash(friendly_error, 'danger')
             
             # Pass form data and error fields back to template
-            return render_template('add_member.html', 
+            return render_template('add_member.html',
                                  suggested_id=suggested_id,
                                  form_data=request.form,
-                                 error_fields=error_fields)
-    
-    return render_template('add_member.html', suggested_id=suggested_id)
+                                 error_fields=error_fields,
+                                 errors={})
+
+    return render_template('add_member.html', suggested_id=suggested_id, errors={})
 
 @app.route('/admin/edit-member/<member_id>', methods=['GET', 'POST'])
 @admin_required

@@ -32,23 +32,36 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="custom_id" class="form-label">Member ID</label>
-                            <input type="text" class="form-control" id="custom_id" name="custom_id" 
+                            <input type="text" class="form-control {{ 'is-invalid' if errors and 'custom_id' in errors }}" id="custom_id" name="custom_id" 
                                    placeholder="{{ suggested_id }}" value="{{ request.form.get('custom_id', '') }}">
-                            <small class="text-muted">Auto: {{ suggested_id }}</small>
+                            {% if errors and 'custom_id' in errors %}
+                                <div class="invalid-feedback">{{ errors['custom_id'] }}</div>
+                            {% else %}
+                                <small class="text-muted">Auto: {{ suggested_id }}</small>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label for="monthly_payment" class="form-label">Monthly Payment <span class="required-indicator">*</span></label>
-                            <div class="input-group">
+                            <div class="input-group {{ 'has-validation' if errors and 'monthly_payment' in errors }}">
                                 <span class="input-group-text">$</span>
-                                <input type="number" class="form-control required-field" id="monthly_payment" name="monthly_payment" 
+                                <input type="number" class="form-control required-field {{ 'is-invalid' if errors and 'monthly_payment' in errors }}" id="monthly_payment" name="monthly_payment" 
                                        step="0.01" min="25" value="{{ request.form.get('monthly_payment', '25') }}" required>
+                                {% if errors and 'monthly_payment' in errors %}
+                                    <div class="invalid-feedback">{{ errors['monthly_payment'] }}</div>
+                                {% endif %}
                             </div>
-                            <small class="text-muted">Minimum monthly contribution is $25</small>
+                            {% if not (errors and 'monthly_payment' in errors) %}
+                                <small class="text-muted">Minimum monthly contribution is $25</small>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
-                            <input type="password" class="form-control required-field" id="password" name="password" value="000000" required>
-                            <small class="text-muted">Default password: <strong>000000</strong></small>
+                            <input type="password" class="form-control required-field {{ 'is-invalid' if errors and 'password' in errors }}" id="password" name="password" value="000000" required>
+                            {% if errors and 'password' in errors %}
+                                <div class="invalid-feedback">{{ errors['password'] }}</div>
+                            {% else %}
+                                <small class="text-muted">Default password: <strong>000000</strong></small>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -57,7 +70,10 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="first_name" class="form-label">First Name <span class="required-indicator">*</span></label>
-                            <input type="text" class="form-control required-field" id="first_name" name="first_name" value="{{ request.form.get('first_name', '') }}" required>
+                            <input type="text" class="form-control required-field {{ 'is-invalid' if errors and 'first_name' in errors }}" id="first_name" name="first_name" value="{{ request.form.get('first_name', '') }}" required>
+                            {% if errors and 'first_name' in errors %}
+                                <div class="invalid-feedback">{{ errors['first_name'] }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label for="middle_name" class="form-label">Middle Name</label>
@@ -65,7 +81,10 @@
                         </div>
                         <div class="col-md-4">
                             <label for="last_name" class="form-label">Last Name <span class="required-indicator">*</span></label>
-                            <input type="text" class="form-control required-field" id="last_name" name="last_name" value="{{ request.form.get('last_name', '') }}" required>
+                            <input type="text" class="form-control required-field {{ 'is-invalid' if errors and 'last_name' in errors }}" id="last_name" name="last_name" value="{{ request.form.get('last_name', '') }}" required>
+                            {% if errors and 'last_name' in errors %}
+                                <div class="invalid-feedback">{{ errors['last_name'] }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -110,7 +129,10 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="phone" class="form-label">Phone Number <span class="required-indicator">*</span></label>
-                            <input type="tel" class="form-control required-field" id="phone" name="phone" value="{{ request.form.get('phone', '') }}" required>
+                            <input type="tel" class="form-control required-field {{ 'is-invalid' if errors and 'phone' in errors }}" id="phone" name="phone" value="{{ request.form.get('phone', '') }}" required>
+                            {% if errors and 'phone' in errors %}
+                                <div class="invalid-feedback">{{ errors['phone'] }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
@@ -239,35 +261,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Check and highlight missing fields on form submission
+    // Check and highlight missing fields on form submission — no blocking alert
     document.getElementById('memberForm').addEventListener('submit', function(e) {
         const requiredFields = document.querySelectorAll('.required-field');
-        let hasErrors = false;
-        
+        let firstError = null;
         requiredFields.forEach(field => {
-            if (!field.value || (field.type === 'number' && parseFloat(field.value) <= 0)) {
-                field.classList.add('missing-field');
-                hasErrors = true;
+            if (!field.value || (field.type === 'number' && parseFloat(field.value) < 25)) {
+                field.classList.add('is-invalid');
+                if (!firstError) firstError = field;
             } else {
+                field.classList.remove('is-invalid');
                 field.classList.remove('missing-field');
             }
         });
-        
-        if (hasErrors) {
+        if (firstError) {
             e.preventDefault();
-            alert('Please fill in all required fields (marked with *)');
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstError.focus();
         }
     });
 
-    // Remove red highlight when user starts typing
+    // Remove error highlight when user starts typing
     document.querySelectorAll('.required-field').forEach(field => {
         field.addEventListener('input', function() {
             if (this.value) {
+                this.classList.remove('is-invalid');
                 this.classList.remove('missing-field');
             }
         });
         field.addEventListener('change', function() {
-            if (this.value && (this.type !== 'number' || parseFloat(this.value) > 0)) {
+            if (this.value && (this.type !== 'number' || parseFloat(this.value) >= 25)) {
+                this.classList.remove('is-invalid');
                 this.classList.remove('missing-field');
             }
         });
