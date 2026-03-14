@@ -67,6 +67,60 @@ with app.app_context():
             db.session.add(admin_user)
             db.session.commit()
 
+    # Seed members from seed_members.json if the database has no members yet
+    if Member.query.count() == 0:
+        import json as _json
+        from sqlalchemy import text as _text
+        _seed_file = os.path.join(os.path.dirname(__file__), 'seed_members.json')
+        if os.path.exists(_seed_file):
+            with open(_seed_file) as _f:
+                _seed_data = _json.load(_f)
+            _pwd = generate_password_hash('Welcome123')
+            _months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December']
+
+            # Bulk-insert all members in one statement for speed
+            db.session.bulk_insert_mappings(Member, [
+                {
+                    'member_id':      _md['member_id'],
+                    'first_name':     _md['first_name'],
+                    'last_name':      _md['last_name'],
+                    'middle_name':    _md.get('middle_name', ''),
+                    'monthly_payment': _md.get('monthly_payment', 25.0),
+                    'password_hash':  _pwd,
+                    'marital_status': 'single',
+                    'state':          'WA',
+                    'is_active':      True,
+                }
+                for _md in _seed_data
+            ])
+            db.session.commit()
+
+            # Bulk-insert contribution records for 2024, 2025, 2026
+            _all_members = Member.query.order_by(Member.id).all()
+            _contrib_rows = []
+            for _m in _all_members:
+                for _yr in [2024, 2025, 2026]:
+                    for _mo in _months:
+                        _contrib_rows.append({
+                            'member_id': _m.id,
+                            'year':      _yr,
+                            'month':     _mo,
+                            'status':    PaymentStatus.UNPAID,
+                            'amount':    0,
+                        })
+            db.session.bulk_insert_mappings(Contribution, _contrib_rows)
+            db.session.commit()
+
+            # Sync member_id sequence counter
+            _counter = SequenceCounter.query.filter_by(counter_name='member_id').first()
+            if not _counter:
+                _counter = SequenceCounter(counter_name='member_id', counter_value=len(_seed_data) + 1)
+                db.session.add(_counter)
+            else:
+                _counter.counter_value = len(_seed_data) + 1
+            db.session.commit()
+
 DATA_FILE = 'data.json'  # Legacy JSON file - now in read-only mode for backup
 CHURCH_NAME = 'ETOTC'
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 
