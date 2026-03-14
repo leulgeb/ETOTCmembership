@@ -251,6 +251,14 @@
         </div>
     </nav>
 
+    {% if flask_env == 'staging' %}
+    <div style="background:#f39c12;color:#000;text-align:center;padding:8px 16px;font-weight:600;font-size:0.95rem;letter-spacing:0.03em;position:sticky;top:0;z-index:1050;">
+        <i class="bi bi-cone-striped"></i>
+        STAGING ENVIRONMENT — Changes here do not affect production data
+        <i class="bi bi-cone-striped"></i>
+    </div>
+    {% endif %}
+
     <div class="container content-wrapper">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

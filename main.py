@@ -48,6 +48,10 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 db.init_app(app)
 
+@app.context_processor
+def inject_env():
+    return dict(flask_env=os.environ.get('FLASK_ENV', ''))
+
 # Create all database tables
 with app.app_context():
     db.create_all()
