@@ -65,7 +65,7 @@ def _build_member_lines(receipt_data, width):
     lines.append(('logo', LOGO_PATH))
 
     lines += [
-        ('center_bold', 'ETOTC Church'),
+        ('center_bold', 'Emmanuel Church'),
         ('center', '2101 14th Ave S'),
         ('center', 'Seattle, WA 98144'),
         ('center', 'EIN: 91-1699080'),
@@ -137,7 +137,7 @@ def _build_non_member_lines(receipt_data, width):
     lines.append(('logo', LOGO_PATH))
 
     lines += [
-        ('center_bold', 'ETOTC Church'),
+        ('center_bold', 'Emmanuel Church'),
         ('center', '2101 14th Ave S'),
         ('center', 'Seattle, WA 98144'),
         ('center', 'EIN: 91-1699080'),
@@ -341,7 +341,7 @@ def test_printer_connection(printer_ip, printer_port=9100, timeout=5):
     sep = '=' * width
     test_lines = [
         ('logo', LOGO_PATH),
-        ('center_bold', 'ETOTC Church'),
+        ('center_bold', 'Emmanuel Church'),
         ('center', 'Printer Test Page'),
         ('text', sep),
         ('text', f"IP Address: {printer_ip}"),
