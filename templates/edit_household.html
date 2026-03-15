@@ -181,19 +181,13 @@
                             {% if children %}
                                 <h6 class="mb-3 text-muted">Existing Children</h6>
                                 {% for child in children %}
-                                <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
-                                    <div class="position-absolute top-0 end-0 p-2">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" name="delete_child" value="{{ child.id }}" class="form-check-input">
-                                            <small class="text-danger">Remove</small>
-                                        </label>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4">
+                                <div class="child-entry mb-2 p-3 border rounded bg-light" id="child-row-{{ child.id }}">
+                                    <div class="row align-items-end g-2">
+                                        <div class="col-md-3">
                                             <label class="form-label fw-bold">Full Name</label>
-                                            <p class="form-control-plaintext">{{ child.full_name }}</p>
+                                            <p class="form-control-plaintext mb-0">{{ child.full_name }}</p>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label for="child_baptismal_{{ child.id }}" class="form-label">Baptismal Name</label>
                                             <input type="text" class="form-control form-control-sm" id="child_baptismal_{{ child.id }}" 
                                                    name="child_baptismal_{{ child.id }}" value="{{ child.baptismal_name or '' }}">
@@ -210,6 +204,15 @@
                                                 <option value="male" {% if child.gender and child.gender|upper == 'MALE' %}selected{% endif %}>Male</option>
                                                 <option value="female" {% if child.gender and child.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                             </select>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <input type="checkbox" name="delete_child" value="{{ child.id }}" 
+                                                   class="d-none" id="delete_check_{{ child.id }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                                                    id="remove_btn_{{ child.id }}"
+                                                    onclick="toggleRemoveChild({{ child.id }})">
+                                                <i class="bi bi-trash"></i> Remove
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -337,6 +340,23 @@ document.getElementById('householdForm').addEventListener('input', function(e) {
         e.target.classList.remove('is-invalid');
     }
 });
+
+function toggleRemoveChild(childId) {
+    const checkbox = document.getElementById('delete_check_' + childId);
+    const btn = document.getElementById('remove_btn_' + childId);
+    const row = document.getElementById('child-row-' + childId);
+    const marked = !checkbox.checked;
+    checkbox.checked = marked;
+    if (marked) {
+        btn.classList.replace('btn-outline-danger', 'btn-warning');
+        btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Undo';
+        row.classList.add('border-danger', 'opacity-50');
+    } else {
+        btn.classList.replace('btn-warning', 'btn-outline-danger');
+        btn.innerHTML = '<i class="bi bi-trash"></i> Remove';
+        row.classList.remove('border-danger', 'opacity-50');
+    }
+}
 </script>
 
 {% endblock %}
