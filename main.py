@@ -3522,7 +3522,7 @@ def thermal_print_member_receipt(receipt_number):
     for c in contributions:
         if not member:
             member = c.member
-        payments.append({'type': 'contribution', 'month': c.month, 'amount': c.amount})
+        payments.append({'type': 'contribution', 'month': c.month, 'year': c.year, 'amount': c.amount})
         if not receipt_date and c.payment_date:
             receipt_date   = c.payment_date.strftime('%Y-%m-%d')
             payment_method = c.payment_method.value if c.payment_method else 'Cash'

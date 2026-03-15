@@ -35,15 +35,34 @@ def _build_member_lines(receipt_data, width):
         ('text', dash),
     ]
 
-    # Payment lines
-    for payment in receipt_data.get('payments', []):
-        if payment.get('type') == 'donation':
-            desc = f"Donation: {payment.get('reason', 'General')}"
+    # Payment lines - group contributions by year
+    all_payments = receipt_data.get('payments', [])
+    contribs = [p for p in all_payments if p.get('type') != 'donation']
+    donations = [p for p in all_payments if p.get('type') == 'donation']
+
+    # Group contributions by year
+    by_year = {}
+    for p in contribs:
+        yr = p.get('year', '')
+        if yr not in by_year:
+            by_year[yr] = []
+        by_year[yr].append(p)
+
+    for yr in sorted(by_year.keys()):
+        yr_payments = by_year[yr]
+        yr_total = sum(p.get('amount', 0) for p in yr_payments)
+        if len(yr_payments) == 1:
+            desc = f"{yr_payments[0].get('month', '')} {yr} Contribution"
         else:
-            desc = f"{payment.get('month', '')} Contribution"
+            desc = f"{yr_payments[0].get('month', '')} to {yr_payments[-1].get('month', '')} {yr} Contribution"
+        amount_str = f"${yr_total:.2f}"
+        lines.append(('text', _pad_line(desc, amount_str, width)))
+
+    for payment in donations:
+        reason = payment.get('reason', 'General')
+        desc = f"Donation: {reason}" if reason else "Donation"
         amount_str = f"${payment.get('amount', 0):.2f}"
-        line = _pad_line(desc, amount_str, width)
-        lines.append(('text', line))
+        lines.append(('text', _pad_line(desc, amount_str, width)))
 
     lines.append(('text', dash))
 
