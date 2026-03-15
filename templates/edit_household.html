@@ -52,7 +52,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="gender" class="form-label">Gender</label>
                                     <select class="form-select" id="gender" name="gender">
                                         <option value="">Select Gender</option>
@@ -60,16 +60,26 @@
                                         <option value="female" {% if member.gender == 'female' %}selected{% endif %}>Female</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="phone" class="form-label">Phone *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone" 
                                            value="{{ member.phone }}">
                                     <div class="invalid-feedback">Phone number is required.</div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="email" class="form-label">Email</label>
                                     <input type="email" class="form-control" id="email" name="email" 
                                            value="{{ member.email or '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="monthly_payment" class="form-label">Monthly Contribution *</label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="monthly_payment" name="monthly_payment"
+                                               step="0.01" min="25" value="{{ '%.2f'|format(member.monthly_payment) }}">
+                                        <div class="invalid-feedback">Must be at least $25.00.</div>
+                                    </div>
+                                    <small class="text-muted">Minimum $25.00/month</small>
                                 </div>
                             </div>
 
@@ -293,6 +303,16 @@ document.getElementById('householdForm').addEventListener('submit', function(e) 
             valid = false;
         }
     });
+
+    // Validate monthly payment >= 25
+    const mpEl = document.getElementById('monthly_payment');
+    if (mpEl) {
+        const mpVal = parseFloat(mpEl.value);
+        if (isNaN(mpVal) || mpVal < 25) {
+            mpEl.classList.add('is-invalid');
+            valid = false;
+        }
+    }
 
     // Validate new child full names
     document.querySelectorAll('#newChildrenContainer .child-entry').forEach((entry, i) => {

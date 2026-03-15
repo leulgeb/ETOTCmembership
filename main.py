@@ -1252,6 +1252,17 @@ def edit_household(member_id):
             member.email = request.form.get('email', '').strip() or None
             member.phone = request.form.get('phone', '').strip()
             
+            monthly_payment_str = request.form.get('monthly_payment', '').strip()
+            if monthly_payment_str:
+                try:
+                    monthly_amount = float(monthly_payment_str)
+                    if monthly_amount >= MINIMUM_MONTHLY_PAYMENT:
+                        member.monthly_payment = monthly_amount
+                    else:
+                        flash(f'Monthly contribution must be at least ${MINIMUM_MONTHLY_PAYMENT:.2f}. Other changes were saved.', 'warning')
+                except ValueError:
+                    flash('Invalid monthly contribution amount entered. Other changes were saved.', 'warning')
+            
             # Get spouse information from form
             spouse_first_name = request.form.get('spouse_first_name', '').strip() or None
             spouse = Spouse.query.filter_by(member_id=member.id).first()
