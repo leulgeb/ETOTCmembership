@@ -3,6 +3,7 @@ Thermal printer integration for ETOTC Church contribution management system.
 Supports network thermal printers via ESC/POS protocol over TCP/IP (port 9100).
 """
 
+import os
 import socket
 import logging
 
@@ -13,6 +14,47 @@ PAPER_WIDTHS = {
     '58mm': 32,
 }
 
+LOGO_PATH = os.path.join(os.path.dirname(__file__), 'static', 'images', 'etotc_logo.png')
+
+
+def _wrap_payment_line(desc, amount_str, width):
+    """
+    Return a list of ('text', line) tuples for a single payment entry.
+    The description wraps to additional lines instead of being truncated.
+    The amount is right-aligned on the last line alongside the description.
+    """
+    amount_col = len(amount_str)
+    max_desc_with_amount = width - amount_col - 1
+
+    if len(desc) <= max_desc_with_amount:
+        gap = width - len(desc) - amount_col
+        return [('text', desc + (' ' * max(gap, 1)) + amount_str)]
+
+    words = desc.split()
+    lines_out = []
+    current = ''
+
+    for word in words:
+        test = (current + ' ' + word).strip()
+        if len(test) <= width:
+            current = test
+        else:
+            if current:
+                lines_out.append(current)
+            current = word
+
+    if current:
+        if len(current) <= max_desc_with_amount:
+            gap = width - len(current) - amount_col
+            lines_out.append(current + (' ' * max(gap, 1)) + amount_str)
+        else:
+            lines_out.append(current)
+            lines_out.append(' ' * (width - amount_col) + amount_str)
+    elif lines_out:
+        lines_out.append(' ' * (width - amount_col) + amount_str)
+
+    return [('text', l) for l in lines_out]
+
 
 def _build_member_lines(receipt_data, width):
     """Build list of (type, text) tuples for a member receipt."""
@@ -20,11 +62,12 @@ def _build_member_lines(receipt_data, width):
     dash = '-' * width
     lines = []
 
-    # Header
+    lines.append(('logo', LOGO_PATH))
+
     lines += [
         ('center_bold', 'ETOTC Church'),
-        ('center', '9256 227th Ave NE'),
-        ('center', 'Redmond, WA 98053'),
+        ('center', '2101 14th Ave S'),
+        ('center', 'Seattle, WA 98144'),
         ('center', 'EIN: 91-1699080'),
         ('text', sep),
         ('text', f"Receipt#: {receipt_data.get('receipt_number', '')}"),
@@ -35,12 +78,10 @@ def _build_member_lines(receipt_data, width):
         ('text', dash),
     ]
 
-    # Payment lines - group contributions by year
     all_payments = receipt_data.get('payments', [])
     contribs = [p for p in all_payments if p.get('type') != 'donation']
     donations = [p for p in all_payments if p.get('type') == 'donation']
 
-    # Group contributions by year
     by_year = {}
     for p in contribs:
         yr = p.get('year', '')
@@ -56,22 +97,20 @@ def _build_member_lines(receipt_data, width):
         else:
             desc = f"{yr_payments[0].get('month', '')} to {yr_payments[-1].get('month', '')} {yr} Contribution"
         amount_str = f"${yr_total:.2f}"
-        lines.append(('text', _pad_line(desc, amount_str, width)))
+        lines.extend(_wrap_payment_line(desc, amount_str, width))
 
     for payment in donations:
         reason = payment.get('reason', 'General')
         desc = f"Donation: {reason}" if reason else "Donation"
         amount_str = f"${payment.get('amount', 0):.2f}"
-        lines.append(('text', _pad_line(desc, amount_str, width)))
+        lines.extend(_wrap_payment_line(desc, amount_str, width))
 
     lines.append(('text', dash))
 
-    # Total
     total_str = f"${receipt_data.get('total', 0):.2f}"
     lines.append(('bold', _pad_line('TOTAL:', total_str, width)))
     lines.append(('text', sep))
 
-    # Payment method and processor
     method = (receipt_data.get('payment_method') or 'Cash').title()
     processor = receipt_data.get('processed_by') or 'N/A'
     lines += [
@@ -80,7 +119,6 @@ def _build_member_lines(receipt_data, width):
         ('text', sep),
     ]
 
-    # Footer
     lines += [
         ('center', 'Thank you for your contribution!'),
         ('center', 'God bless you.'),
@@ -96,10 +134,12 @@ def _build_non_member_lines(receipt_data, width):
     dash = '-' * width
     lines = []
 
+    lines.append(('logo', LOGO_PATH))
+
     lines += [
         ('center_bold', 'ETOTC Church'),
-        ('center', '9256 227th Ave NE'),
-        ('center', 'Redmond, WA 98053'),
+        ('center', '2101 14th Ave S'),
+        ('center', 'Seattle, WA 98144'),
         ('center', 'EIN: 91-1699080'),
         ('text', sep),
         ('text', f"Receipt#: {receipt_data.get('receipt_number', '')}"),
@@ -116,7 +156,7 @@ def _build_non_member_lines(receipt_data, width):
     for item in receipt_data.get('line_items', []):
         desc = item.get('description', 'General')
         amount_str = f"${item.get('amount', 0):.2f}"
-        lines.append(('text', _pad_line(desc, amount_str, width)))
+        lines.extend(_wrap_payment_line(desc, amount_str, width))
 
     lines.append(('text', dash))
 
@@ -162,7 +202,15 @@ def _send_lines(lines, printer_ip, printer_port, timeout):
         p.hw('INIT')
 
         for line_type, text in lines:
-            if line_type == 'center_bold':
+            if line_type == 'logo':
+                if os.path.exists(text):
+                    try:
+                        p.set(align='center')
+                        p.image(text)
+                        p.set(align='left')
+                    except Exception as e:
+                        logger.warning(f"Logo print skipped: {e}")
+            elif line_type == 'center_bold':
                 p.set(align='center', bold=True, text_type='B')
                 p.text(text + '\n')
                 p.set(align='left', bold=False, text_type='NORMAL')
@@ -184,7 +232,6 @@ def _send_lines(lines, printer_ip, printer_port, timeout):
         return True, "Receipt printed successfully!"
 
     except ImportError:
-        # Fallback: raw socket with ESC/POS bytes
         return _send_raw(lines, printer_ip, printer_port, timeout)
 
     except Exception as e:
@@ -195,18 +242,20 @@ def _send_lines(lines, printer_ip, printer_port, timeout):
 def _send_raw(lines, printer_ip, printer_port, timeout):
     """Fallback: send ESC/POS as raw bytes over a socket."""
     ESC = b'\x1b'
-    INIT       = ESC + b'@'
-    ALIGN_L    = ESC + b'a\x00'
-    ALIGN_C    = ESC + b'a\x01'
-    BOLD_ON    = ESC + b'E\x01'
-    BOLD_OFF   = ESC + b'E\x00'
-    CUT        = ESC + b'i'
-    FEED3      = b'\n\n\n'
+    INIT    = ESC + b'@'
+    ALIGN_L = ESC + b'a\x00'
+    ALIGN_C = ESC + b'a\x01'
+    BOLD_ON  = ESC + b'E\x01'
+    BOLD_OFF = ESC + b'E\x00'
+    CUT      = ESC + b'i'
+    FEED3    = b'\n\n\n'
 
     buf = bytearray()
     buf += INIT
 
     for line_type, text in lines:
+        if line_type == 'logo':
+            continue
         encoded = (text + '\n').encode('ascii', errors='replace')
         if line_type == 'center_bold':
             buf += ALIGN_C + BOLD_ON + encoded + BOLD_OFF + ALIGN_L
@@ -291,6 +340,7 @@ def test_printer_connection(printer_ip, printer_port=9100, timeout=5):
     width = 42
     sep = '=' * width
     test_lines = [
+        ('logo', LOGO_PATH),
         ('center_bold', 'ETOTC Church'),
         ('center', 'Printer Test Page'),
         ('text', sep),
