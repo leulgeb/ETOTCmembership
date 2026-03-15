@@ -64,24 +64,24 @@
                                     {% set yr_payments = contribution_payments | selectattr('year', 'equalto', yr) | list %}
                                     {% set yr_total = yr_payments | sum(attribute='amount') %}
                                     <tr style="border: 1px solid #ccc;">
-                                        <td style="padding: 6px;">
+                                        <td style="padding: 6px; vertical-align: top;">
                                             {% if yr_payments | length == 1 %}
                                                 {{ yr_payments[0].month }} {{ yr }} Contribution
                                             {% else %}
                                                 {{ yr_payments[0].month }} to {{ yr_payments[-1].month }} {{ yr }} Contribution
                                             {% endif %}
                                         </td>
-                                        <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(yr_total) }}</td>
+                                        <td style="padding: 6px; text-align: right; vertical-align: top; white-space: nowrap;">${{ "%.2f"|format(yr_total) }}</td>
                                     </tr>
                                 {% endfor %}
                             {% endif %}
 
                             {% for payment in donation_payments %}
                             <tr style="border: 1px solid #ccc;">
-                                <td style="padding: 6px;">
+                                <td style="padding: 6px; vertical-align: top;">
                                     Donation{% if payment.reason %}: {{ payment.reason }}{% endif %}
                                 </td>
-                                <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(payment.amount) }}</td>
+                                <td style="padding: 6px; text-align: right; vertical-align: top; white-space: nowrap;">${{ "%.2f"|format(payment.amount) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

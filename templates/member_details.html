@@ -650,16 +650,16 @@
                 desc = `${yrPayments[0].month} to ${yrPayments[yrPayments.length - 1].month} ${yr} Contribution`;
             }
             tableRows += `<tr style="border: 1px solid #ccc;">
-                <td style="padding: 4px;">${desc}</td>
-                <td style="padding: 4px; text-align: right;">$${yrTotal.toFixed(2)}</td>
+                <td style="padding: 4px; vertical-align: top;">${desc}</td>
+                <td style="padding: 4px; text-align: right; vertical-align: top; white-space: nowrap;">$${yrTotal.toFixed(2)}</td>
             </tr>`;
         });
 
         donationPayments.forEach(p => {
             const donDesc = p.reason ? `Donation: ${p.reason}` : 'Donation';
             tableRows += `<tr style="border: 1px solid #ccc;">
-                <td style="padding: 4px;">${donDesc}</td>
-                <td style="padding: 4px; text-align: right;">$${p.amount.toFixed(2)}</td>
+                <td style="padding: 4px; vertical-align: top;">${donDesc}</td>
+                <td style="padding: 4px; text-align: right; vertical-align: top; white-space: nowrap;">$${p.amount.toFixed(2)}</td>
             </tr>`;
         });
 
