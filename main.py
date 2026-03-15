@@ -1729,7 +1729,7 @@ def admin_bulk_pay(member_id, year):
         
         if is_year_complete:
             contributions_dict = {}
-            contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+            contribs = Contribution.query.filter_by(member_id=member.id, year=primary_year).all()
             for c in contribs:
                 contributions_dict[c.month] = {
                     'amount': c.amount,
@@ -1901,6 +1901,7 @@ def view_receipt(member_id, receipt_number):
         payments.append({
             'type': 'contribution',
             'month': contrib.month,
+            'year': contrib.year,
             'amount': contrib.amount
         })
         if not receipt_date and contrib.payment_date:

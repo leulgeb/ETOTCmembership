@@ -626,19 +626,43 @@
     {% endif %}
 
     function showReceipt(data) {
-        // Build description - show range for multiple months
-        let description = '';
-        if (data.payments.length > 1) {
-            const months = data.payments.filter(p => p.month).map(p => p.month);
-            if (months.length > 0) {
-                description = `${months[0]} to ${months[months.length - 1]} Contribution`;
+        // Group contribution payments by year, build one row per year
+        const contribPayments = data.payments.filter(p => p.type === 'contribution' || p.month);
+        const donationPayments = data.payments.filter(p => p.type === 'donation' && !p.month);
+
+        // Group contribs by year
+        const byYear = {};
+        contribPayments.forEach(p => {
+            const yr = p.year || data.year || '';
+            if (!byYear[yr]) byYear[yr] = [];
+            byYear[yr].push(p);
+        });
+
+        let tableRows = '';
+        const sortedYears = Object.keys(byYear).sort();
+        sortedYears.forEach(yr => {
+            const yrPayments = byYear[yr];
+            const yrTotal = yrPayments.reduce((s, p) => s + p.amount, 0);
+            let desc = '';
+            if (yrPayments.length === 1) {
+                desc = `${yrPayments[0].month} ${yr} Contribution`;
             } else {
-                description = 'Contribution';
+                desc = `${yrPayments[0].month} to ${yrPayments[yrPayments.length - 1].month} ${yr} Contribution`;
             }
-        } else if (data.payments.length === 1) {
-            description = data.payments[0].month ? `${data.payments[0].month} Contribution` : 'Contribution';
-        }
-        
+            tableRows += `<tr style="border: 1px solid #ccc;">
+                <td style="padding: 4px;">${desc}</td>
+                <td style="padding: 4px; text-align: right;">$${yrTotal.toFixed(2)}</td>
+            </tr>`;
+        });
+
+        donationPayments.forEach(p => {
+            const donDesc = p.reason ? `Donation: ${p.reason}` : 'Donation';
+            tableRows += `<tr style="border: 1px solid #ccc;">
+                <td style="padding: 4px;">${donDesc}</td>
+                <td style="padding: 4px; text-align: right;">$${p.amount.toFixed(2)}</td>
+            </tr>`;
+        });
+
         const content = `
             <div id="printableReceipt" style="width: 8.5in; height: 3.5in; padding: 15px; font-family: Arial, sans-serif; background-color: white; box-sizing: border-box; position: relative; overflow: hidden; border: 1px solid #eee; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 10px;">
@@ -667,10 +691,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr style="border: 1px solid #ccc;">
-                            <td style="padding: 4px;">${description}</td>
-                            <td style="padding: 4px; text-align: right;">$${data.total.toFixed(2)}</td>
-                        </tr>
+                        ${tableRows}
                     </tbody>
                 </table>
                 

@@ -49,33 +49,41 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% if receipt.payments|length > 1 %}
-                            <!-- Multiple months - show range -->
+                            {% set contribution_payments = receipt.payments | selectattr('type', 'equalto', 'contribution') | list %}
+                            {% set donation_payments = receipt.payments | selectattr('type', 'equalto', 'donation') | list %}
+
+                            {% if contribution_payments %}
+                                {# Group contributions by year #}
+                                {% set years_seen = [] %}
+                                {% for payment in contribution_payments %}
+                                    {% if payment.year not in years_seen %}{% set _ = years_seen.append(payment.year) %}{% endif %}
+                                {% endfor %}
+                                {% set years_seen = years_seen | sort %}
+
+                                {% for yr in years_seen %}
+                                    {% set yr_payments = contribution_payments | selectattr('year', 'equalto', yr) | list %}
+                                    {% set yr_total = yr_payments | sum(attribute='amount') %}
+                                    <tr style="border: 1px solid #ccc;">
+                                        <td style="padding: 6px;">
+                                            {% if yr_payments | length == 1 %}
+                                                {{ yr_payments[0].month }} {{ yr }} Contribution
+                                            {% else %}
+                                                {{ yr_payments[0].month }} to {{ yr_payments[-1].month }} {{ yr }} Contribution
+                                            {% endif %}
+                                        </td>
+                                        <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(yr_total) }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endif %}
+
+                            {% for payment in donation_payments %}
                             <tr style="border: 1px solid #ccc;">
                                 <td style="padding: 6px;">
-                                    {% set first_month = receipt.payments[0].month %}
-                                    {% set last_month = receipt.payments[-1].month %}
-                                    {{ first_month }} to {{ last_month }} Contribution
-                                </td>
-                                <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(receipt.total) }}</td>
-                            </tr>
-                            {% else %}
-                            <!-- Single payment -->
-                            {% for payment in receipt.payments %}
-                            <tr style="border: 1px solid #ccc;">
-                                <td style="padding: 6px;">
-                                    {% if payment.type == 'donation' %}
                                     Donation{% if payment.reason %}: {{ payment.reason }}{% endif %}
-                                    {% elif payment.month %}
-                                    {{ payment.month }} Contribution
-                                    {% else %}
-                                    Contribution
-                                    {% endif %}
                                 </td>
                                 <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(payment.amount) }}</td>
                             </tr>
                             {% endfor %}
-                            {% endif %}
                         </tbody>
                     </table>
                     
