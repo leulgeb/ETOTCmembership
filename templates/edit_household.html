@@ -22,7 +22,8 @@
                                 <div class="col-md-4">
                                     <label for="first_name" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="first_name" name="first_name" 
-                                           value="{{ member.first_name }}" required>
+                                           value="{{ member.first_name }}">
+                                    <div class="invalid-feedback">First name is required.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="middle_name" class="form-label">Middle Name</label>
@@ -32,7 +33,8 @@
                                 <div class="col-md-4">
                                     <label for="last_name" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="last_name" name="last_name" 
-                                           value="{{ member.last_name }}" required>
+                                           value="{{ member.last_name }}">
+                                    <div class="invalid-feedback">Last name is required.</div>
                                 </div>
                             </div>
 
@@ -61,7 +63,8 @@
                                 <div class="col-md-4">
                                     <label for="phone" class="form-label">Phone *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone" 
-                                           value="{{ member.phone }}" required>
+                                           value="{{ member.phone }}">
+                                    <div class="invalid-feedback">Phone number is required.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="email" class="form-label">Email</label>
@@ -135,8 +138,8 @@
                                     <label for="spouse_gender" class="form-label">Gender</label>
                                     <select class="form-select" id="spouse_gender" name="spouse_gender">
                                         <option value="">Select Gender</option>
-                                        <option value="male" {% if spouse and spouse.gender == 'male' %}selected{% endif %}>Male</option>
-                                        <option value="female" {% if spouse and spouse.gender == 'female' %}selected{% endif %}>Female</option>
+                                        <option value="male" {% if spouse and spouse.gender|upper == 'MALE' %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if spouse and spouse.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -194,8 +197,8 @@
                                             <label for="child_gender_{{ child.id }}" class="form-label">Gender</label>
                                             <select class="form-select form-select-sm" id="child_gender_{{ child.id }}" name="child_gender_{{ child.id }}">
                                                 <option value="">Select</option>
-                                                <option value="male" {% if child.gender == 'male' %}selected{% endif %}>Male</option>
-                                                <option value="female" {% if child.gender == 'female' %}selected{% endif %}>Female</option>
+                                                <option value="male" {% if child.gender and child.gender|upper == 'MALE' %}selected{% endif %}>Male</option>
+                                                <option value="female" {% if child.gender and child.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                             </select>
                                         </div>
                                     </div>
@@ -232,29 +235,31 @@ let newChildCount = 0;
 
 function addNewChild() {
     const container = document.getElementById('newChildrenContainer');
+    const idx = newChildCount;
     const childHtml = `
         <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
             <div class="position-absolute top-0 end-0 p-2">
-                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.child-entry').remove()">
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.child-entry').remove(); updateNewChildrenCount();">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
             <div class="row">
                 <div class="col-md-4">
-                    <label class="form-label">Full Name *</label>
-                    <input type="text" class="form-control" name="new_child_name_${newChildCount}" required>
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="new_child_name_${idx}" id="new_child_name_${idx}">
+                    <div class="invalid-feedback">Full name is required.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Baptismal Name</label>
-                    <input type="text" class="form-control" name="new_child_baptismal_${newChildCount}">
+                    <input type="text" class="form-control" name="new_child_baptismal_${idx}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">DOB</label>
-                    <input type="date" class="form-control" name="new_child_dob_${newChildCount}">
+                    <input type="date" class="form-control" name="new_child_dob_${idx}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Gender</label>
-                    <select class="form-select" name="new_child_gender_${newChildCount}">
+                    <select class="form-select" name="new_child_gender_${idx}">
                         <option value="">Select</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -273,9 +278,44 @@ function updateNewChildrenCount() {
     document.getElementById('new_children_count').value = count;
 }
 
-// Update count when removing children
-document.getElementById('householdForm').addEventListener('change', function() {
-    updateNewChildrenCount();
+// Client-side validation with field highlighting
+document.getElementById('householdForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    // Clear previous invalid states
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    // Validate required primary member fields
+    ['first_name', 'last_name', 'phone'].forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if (el && !el.value.trim()) {
+            el.classList.add('is-invalid');
+            valid = false;
+        }
+    });
+
+    // Validate new child full names
+    document.querySelectorAll('#newChildrenContainer .child-entry').forEach((entry, i) => {
+        const nameInput = entry.querySelector('input[name^="new_child_name_"]');
+        if (nameInput && !nameInput.value.trim()) {
+            nameInput.classList.add('is-invalid');
+            valid = false;
+        }
+    });
+
+    if (!valid) {
+        e.preventDefault();
+        // Scroll to first invalid field
+        const first = document.querySelector('.is-invalid');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+
+// Clear invalid state on input
+document.getElementById('householdForm').addEventListener('input', function(e) {
+    if (e.target.classList.contains('is-invalid') && e.target.value.trim()) {
+        e.target.classList.remove('is-invalid');
+    }
 });
 </script>
 

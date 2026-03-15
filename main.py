@@ -865,7 +865,7 @@ def add_member():
                         except ValueError:
                             pass
                     
-                    spouse_gender = spouse_gender_str if spouse_gender_str in ['male', 'female'] else None
+                    spouse_gender = spouse_gender_str.upper() if spouse_gender_str in ['male', 'female'] else None
                     
                     spouse = Spouse(
                         member_id=new_member.id,
@@ -895,7 +895,7 @@ def add_member():
                             except ValueError:
                                 pass
                         
-                        child_gender = child_gender_str if child_gender_str in ['male', 'female'] else None
+                        child_gender = child_gender_str.upper() if child_gender_str in ['male', 'female'] else None
                         
                         child = Child(
                             member_id=new_member.id,
@@ -1263,7 +1263,8 @@ def edit_household(member_id):
                 spouse_last_name = request.form.get('spouse_last_name', '').strip() or None
                 spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
                 spouse_dob_str = request.form.get('spouse_date_of_birth', '').strip()
-                spouse_gender = request.form.get('spouse_gender', '').strip() or None
+                spouse_gender_raw = request.form.get('spouse_gender', '').strip()
+                spouse_gender = spouse_gender_raw.upper() if spouse_gender_raw in ['male', 'female'] else (spouse_gender_raw.upper() if spouse_gender_raw.upper() in ['MALE', 'FEMALE'] else None)
                 spouse_phone = request.form.get('spouse_phone', '').strip() or None
                 spouse_email = request.form.get('spouse_email', '').strip() or None
                 
@@ -1315,7 +1316,8 @@ def edit_household(member_id):
             for child in existing_children:
                 child_baptismal = request.form.get(f'child_baptismal_{child.id}', '').strip() or None
                 child_dob_str = request.form.get(f'child_dob_{child.id}', '').strip()
-                child_gender = request.form.get(f'child_gender_{child.id}', '').strip() or None
+                child_gender_raw = request.form.get(f'child_gender_{child.id}', '').strip()
+                child_gender = child_gender_raw.upper() if child_gender_raw else None
                 
                 child_dob = None
                 if child_dob_str:
@@ -1335,7 +1337,8 @@ def edit_household(member_id):
                 if child_name:
                     child_baptismal = request.form.get(f'new_child_baptismal_{i}', '').strip() or None
                     child_dob_str = request.form.get(f'new_child_dob_{i}', '').strip()
-                    child_gender = request.form.get(f'new_child_gender_{i}', '').strip() or None
+                    child_gender_raw = request.form.get(f'new_child_gender_{i}', '').strip()
+                    child_gender = child_gender_raw.upper() if child_gender_raw else None
                     
                     child_dob = None
                     if child_dob_str:
@@ -1359,7 +1362,18 @@ def edit_household(member_id):
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error updating household information: {str(e)}', 'danger')
+            err = str(e)
+            if 'NotNullViolation' in err or 'null value' in err:
+                msg = 'A required field is missing. Please fill in all required fields.'
+            elif 'UniqueViolation' in err or 'duplicate key' in err:
+                msg = 'A duplicate value was entered. Please check your input.'
+            elif 'InvalidTextRepresentation' in err or 'invalid input value' in err:
+                msg = 'One of the fields contains an invalid value. Please check your selections and try again.'
+            elif 'DataError' in err or 'value too long' in err:
+                msg = 'One of the fields exceeds the maximum allowed length.'
+            else:
+                msg = 'An unexpected error occurred while saving. Please try again.'
+            flash(msg, 'danger')
             spouse = Spouse.query.filter_by(member_id=member.id).first()
             children = Child.query.filter_by(member_id=member.id).all()
             return render_template('edit_household.html', member=member, spouse=spouse, children=children)
