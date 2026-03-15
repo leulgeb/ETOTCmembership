@@ -1258,6 +1258,7 @@ def edit_household(member_id):
             
             # If spouse info provided, create or update
             if spouse_first_name:
+                spouse_middle_name = request.form.get('spouse_middle_name', '').strip() or None
                 spouse_father_name = request.form.get('spouse_father_name', '').strip() or None
                 spouse_last_name = request.form.get('spouse_last_name', '').strip() or None
                 spouse_baptismal_name = request.form.get('spouse_baptismal_name', '').strip() or None
