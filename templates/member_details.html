@@ -333,6 +333,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="thermalPrintModalBtn" class="btn btn-outline-dark" onclick="thermalPrintFromModal()">
+                    <i class="bi bi-receipt"></i> Thermal Print
+                </button>
                 <button type="button" class="btn btn-primary" onclick="printReceipt()">
                     <i class="bi bi-printer"></i> Print Receipt
                 </button>
@@ -710,7 +713,36 @@
         `;
         
         document.getElementById('receiptContent').innerHTML = content;
+        document.getElementById('thermalPrintModalBtn').dataset.receiptNumber = data.receipt_number;
         new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+
+    function thermalPrintFromModal() {
+        const btn = document.getElementById('thermalPrintModalBtn');
+        const receiptNumber = btn.dataset.receiptNumber;
+        if (!receiptNumber) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Printing...';
+        fetch('/admin/thermal-print/member/' + encodeURIComponent(receiptNumber), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+        })
+        .then(r => r.json())
+        .then(data => showThermalToast(data.success, data.message))
+        .catch(() => showThermalToast(false, 'Network error — could not reach server.'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-receipt"></i> Thermal Print';
+        });
+    }
+
+    function showThermalToast(success, message) {
+        const toastEl = document.getElementById('thermalToast');
+        const msgEl   = document.getElementById('thermalToastMsg');
+        toastEl.classList.remove('text-bg-success', 'text-bg-danger');
+        toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+        msgEl.textContent = message;
+        bootstrap.Toast.getOrCreateInstance(toastEl, {delay: 6000}).show();
     }
 
     function printReceipt() {
@@ -816,6 +848,16 @@
                     <i class="bi bi-trash"></i> Yes, Delete Member
                 </a>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thermal Print Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="thermalToast" class="toast align-items-center border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="thermalToastMsg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
     </div>
 </div>
