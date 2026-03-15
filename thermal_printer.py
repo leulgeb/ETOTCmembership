@@ -75,7 +75,7 @@ def _build_member_lines(receipt_data, width):
         ('text', sep),
         ('text', f"Member: {receipt_data.get('member_name', '')}"),
         ('text', f"ID:     {receipt_data.get('member_id', '')}"),
-        ('text', sep),
+        ('text', dash),
     ]
 
     all_payments = receipt_data.get('payments', [])
@@ -104,6 +104,8 @@ def _build_member_lines(receipt_data, width):
         desc = f"Donation: {reason}" if reason else "Donation"
         amount_str = f"${payment.get('amount', 0):.2f}"
         lines.extend(_wrap_payment_line(desc, amount_str, width))
+
+    lines.append(('text', dash))
 
     total_str = f"${receipt_data.get('total', 0):.2f}"
     lines.append(('bold', _pad_line('TOTAL:', total_str, width)))
@@ -149,12 +151,14 @@ def _build_non_member_lines(receipt_data, width):
         lines.append(('text', f"Email: {receipt_data['email']}"))
     if receipt_data.get('phone'):
         lines.append(('text', f"Phone: {receipt_data['phone']}"))
-    lines.append(('text', sep))
+    lines.append(('text', dash))
 
     for item in receipt_data.get('line_items', []):
         desc = item.get('description', 'General')
         amount_str = f"${item.get('amount', 0):.2f}"
         lines.extend(_wrap_payment_line(desc, amount_str, width))
+
+    lines.append(('text', dash))
 
     total_str = f"${receipt_data.get('total', 0):.2f}"
     lines.append(('bold', _pad_line('TOTAL:', total_str, width)))
