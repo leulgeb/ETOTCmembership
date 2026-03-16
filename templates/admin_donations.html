@@ -22,8 +22,8 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>Date</th>
-                                <th>Member ID</th>
-                                <th>Member Name</th>
+                                <th>ID / Type</th>
+                                <th>Name</th>
                                 <th>Amount</th>
                                 <th>Reason/Donation For</th>
                                 <th>Receipt #</th>
@@ -31,9 +31,15 @@
                         </thead>
                         <tbody>
                             {% for donation in donations %}
-                            <tr>
+                            <tr {% if donation.source == 'non_member' %}class="table-light"{% endif %}>
                                 <td>{{ donation.date }}</td>
-                                <td><strong>{{ donation.member_id }}</strong></td>
+                                <td>
+                                    {% if donation.source == 'non_member' %}
+                                        <span class="badge bg-secondary">Guest/Visitor</span>
+                                    {% else %}
+                                        <strong>{{ donation.member_id }}</strong>
+                                    {% endif %}
+                                </td>
                                 <td>{{ donation.member_name }}</td>
                                 <td><span class="badge bg-success">${{ "%.2f"|format(donation.amount) }}</span></td>
                                 <td>{{ donation.reason }}</td>

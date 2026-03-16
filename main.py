@@ -2056,28 +2056,45 @@ def view_year_certificate(member_id, year):
 @app.route('/admin/donations')
 @admin_required
 def admin_donations():
-    """Admin donations dashboard"""
-    data = load_data()
-    
-    # Collect all donations from all members
+    """Admin donations dashboard - member donations + non-member transactions"""
     all_donations = []
-    for member in data['members']:
-        for donation in member.get('donations', []):
-            all_donations.append({
-                **donation,
-                'member_name': member['name'],
-                'member_id': member['id']
-            })
-    
-    # Sort by date (newest first)
-    all_donations.sort(key=lambda x: x['date'], reverse=True)
-    
-    # Calculate total
+
+    # Member donations from the Donation table
+    member_donations = Donation.query.order_by(Donation.donation_date.desc()).all()
+    for d in member_donations:
+        all_donations.append({
+            'date': d.donation_date.strftime('%Y-%m-%d') if d.donation_date else '',
+            'member_id': d.member.member_id if d.member else '',
+            'member_name': d.member.full_name if d.member else '',
+            'amount': d.amount,
+            'reason': d.purpose or '',
+            'receipt': d.receipt_number or '',
+            'source': 'member',
+            '_sort_date': d.donation_date or datetime.min,
+        })
+
+    # Non-member transactions
+    non_member_txns = NonMemberTransaction.query.order_by(NonMemberTransaction.transaction_date.desc()).all()
+    for t in non_member_txns:
+        all_donations.append({
+            'date': t.transaction_date.strftime('%Y-%m-%d') if t.transaction_date else '',
+            'member_id': 'Guest/Visitor',
+            'member_name': t.full_name,
+            'amount': t.amount,
+            'reason': t.purpose or '',
+            'receipt': t.receipt_number or '',
+            'source': 'non_member',
+            '_sort_date': t.transaction_date or datetime.min,
+        })
+
+    # Sort combined list newest first
+    all_donations.sort(key=lambda x: x['_sort_date'], reverse=True)
+
     total_donations = sum(d['amount'] for d in all_donations)
-    
-    return render_template('admin_donations.html', 
-                         donations=all_donations,
-                         total_donations=total_donations)
+
+    return render_template('admin_donations.html',
+                           donations=all_donations,
+                           total_donations=total_donations)
 
 @app.route('/admin/export-csv/<export_type>')
 @admin_or_it_support
