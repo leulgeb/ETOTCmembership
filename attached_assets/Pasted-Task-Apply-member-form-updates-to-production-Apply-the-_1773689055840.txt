@@ -1,0 +1,132 @@
+Task: Apply member form updates to production
+
+Apply the following changes across two files: main.py and templates/edit_household.html, plus one change to templates/edit_member.html.
+
+1. main.py — inside the edit_household POST route
+a) Add spouse_middle_name retrieval (it was missing, causing a crash when editing a spouse):
+
+spouse_middle_name = request.form.get('spouse_middle_name', '').strip() or None
+b) Store all gender values as UPPERCASE to match the PostgreSQL ENUM (MALE/FEMALE). Find every place gender is read from the form and add .upper():
+
+# For spouse (new):
+spouse_gender_raw = request.form.get('spouse_gender', '').strip()
+spouse_gender = spouse_gender_raw.upper() if spouse_gender_raw in ['male', 'female', 'MALE', 'FEMALE'] else None
+# For existing children:
+child_gender_raw = request.form.get(f'child_gender_{child.id}', '').strip()
+child_gender = child_gender_raw.upper() if child_gender_raw else None
+# For new children:
+child_gender_raw = request.form.get(f'new_child_gender_{i}', '').strip()
+child_gender = child_gender_raw.upper() if child_gender_raw else None
+c) Save monthly_payment from the form with server-side validation (add this inside the POST handler after saving the member):
+
+monthly_payment_str = request.form.get('monthly_payment', '').strip()
+if monthly_payment_str:
+    try:
+        monthly_amount = float(monthly_payment_str)
+        if monthly_amount >= MINIMUM_MONTHLY_PAYMENT:
+            member.monthly_payment = monthly_amount
+        else:
+            flash(f'Monthly contribution must be at least ${MINIMUM_MONTHLY_PAYMENT:.2f}. Other changes were saved.', 'warning')
+    except ValueError:
+        flash('Invalid monthly contribution amount entered. Other changes were saved.', 'warning')
+d) Replace the raw DB exception flash with a user-friendly message:
+
+except Exception as e:
+    db.session.rollback()
+    err = str(e)
+    if 'NotNullViolation' in err or 'null value' in err:
+        msg = 'A required field is missing. Please fill in all required fields.'
+    elif 'UniqueViolation' in err or 'duplicate key' in err:
+        msg = 'A duplicate value was entered. Please check your input.'
+    elif 'InvalidTextRepresentation' in err or 'invalid input value' in err:
+        msg = 'One of the fields contains an invalid value. Please check your selections and try again.'
+    elif 'DataError' in err or 'value too long' in err:
+        msg = 'One of the fields exceeds the maximum allowed length.'
+    else:
+        msg = 'An unexpected error occurred while saving. Please try again.'
+    flash(msg, 'danger')
+2. templates/edit_household.html
+a) Add Monthly Contribution input field in the primary member row (alongside first name, last name, phone). Use col-md-3 for each column to fit all four. The new field:
+
+<div class="col-md-3">
+    <label for="monthly_payment" class="form-label text-nowrap">Monthly Contribution <span class="text-danger">*</span></label>
+    <div class="input-group has-validation">
+        <span class="input-group-text">$</span>
+        <input type="number" class="form-control" id="monthly_payment" name="monthly_payment"
+               step="0.01" min="25" value="{{ '%.2f'|format(member.monthly_payment) }}">
+        <div class="invalid-feedback">Must be at least $25.00.</div>
+    </div>
+    <small class="text-muted">Minimum $25.00/month</small>
+</div>
+b) Fix spouse gender selected comparisons to use uppercase:
+
+<option value="male"   {% if spouse and spouse.gender|upper == 'MALE'   %}selected{% endif %}>Male</option>
+<option value="female" {% if spouse and spouse.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
+c) Replace the child "Remove" checkbox with an inline red button that toggles (strike-through + hidden checkbox + "Undo" button) instead of a floating checkbox. For each existing child row:
+
+<div class="child-entry mb-2 p-3 border rounded bg-light" id="child-row-{{ child.id }}">
+    <div class="row align-items-end g-2">
+        <!-- name, gender columns ... -->
+        <div class="col-md-auto">
+            <input type="checkbox" name="delete_child" value="{{ child.id }}"
+                   id="del-{{ child.id }}" class="d-none">
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    id="btn-del-{{ child.id }}"
+                    onclick="toggleRemoveChild({{ child.id }})">Remove</button>
+        </div>
+    </div>
+</div>
+With JavaScript:
+
+function toggleRemoveChild(id) {
+    const cb  = document.getElementById('del-' + id);
+    const row = document.getElementById('child-row-' + id);
+    const btn = document.getElementById('btn-del-' + id);
+    cb.checked = !cb.checked;
+    if (cb.checked) {
+        row.style.opacity = '0.4';
+        btn.textContent   = 'Undo';
+        btn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+    } else {
+        row.style.opacity = '1';
+        btn.textContent   = 'Remove';
+        btn.classList.replace('btn-outline-secondary', 'btn-outline-danger');
+    }
+}
+d) Add client-side form validation on submit — highlight invalid fields and scroll to the first error:
+
+document.getElementById('householdForm').addEventListener('submit', function(e) {
+    let valid = true;
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    ['first_name', 'last_name', 'phone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+    });
+    const mp = document.getElementById('monthly_payment');
+    if (mp && (isNaN(parseFloat(mp.value)) || parseFloat(mp.value) < 25)) {
+        mp.classList.add('is-invalid'); valid = false;
+    }
+    document.querySelectorAll('#newChildrenContainer .child-entry').forEach(entry => {
+        const n = entry.querySelector('input[name^="new_child_name_"]');
+        if (n && !n.value.trim()) { n.classList.add('is-invalid'); valid = false; }
+    });
+    if (!valid) {
+        e.preventDefault();
+        const first = document.querySelector('.is-invalid');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+document.getElementById('householdForm').addEventListener('input', function(e) {
+    if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid');
+});
+Also add <div class="invalid-feedback">...</div> after the first_name, last_name, and phone inputs.
+
+3. templates/edit_member.html
+Make Member ID read-only and show the formatted ID (e.g. CH042) instead of the raw database integer:
+
+<!-- Replace the editable Member ID input with: -->
+<label for="member_id_display" class="form-label">Member ID</label>
+<input type="text" class="form-control bg-light text-muted" id="member_id_display"
+       value="{{ member.member_id }}" readonly>
+<input type="hidden" name="member_id" value="{{ member.member_id }}">
+<small class="text-muted">Member ID is assigned automatically and cannot be changed</small>

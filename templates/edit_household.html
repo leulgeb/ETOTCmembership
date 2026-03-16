@@ -19,30 +19,48 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="first_name" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="first_name" name="first_name" 
                                            value="{{ member.first_name }}" required>
+                                    <div class="invalid-feedback">First name is required.</div>
                                 </div>
+                                <div class="col-md-3">
+                                    <label for="last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ member.last_name }}" required>
+                                    <div class="invalid-feedback">Last name is required.</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="phone" class="form-label">Phone *</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           value="{{ member.phone }}" required>
+                                    <div class="invalid-feedback">Phone number is required.</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="monthly_payment" class="form-label text-nowrap">Monthly Contribution <span class="text-danger">*</span></label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="monthly_payment" name="monthly_payment"
+                                               step="0.01" min="25" value="{{ '%.2f'|format(member.monthly_payment) }}">
+                                        <div class="invalid-feedback">Must be at least $25.00.</div>
+                                    </div>
+                                    <small class="text-muted">Minimum $25.00/month</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="middle_name" class="form-label">Middle Name</label>
                                     <input type="text" class="form-control" id="middle_name" name="middle_name" 
                                            value="{{ member.middle_name or '' }}">
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="last_name" class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" 
-                                           value="{{ member.last_name }}" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
                                     <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
                                     <input type="text" class="form-control" id="baptismal_name" name="baptismal_name" 
                                            value="{{ member.baptismal_name or '' }}">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label for="date_of_birth" class="form-label">Date of Birth</label>
                                     <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
                                            value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
@@ -54,14 +72,9 @@
                                     <label for="gender" class="form-label">Gender</label>
                                     <select class="form-select" id="gender" name="gender">
                                         <option value="">Select Gender</option>
-                                        <option value="male" {% if member.gender == 'male' %}selected{% endif %}>Male</option>
-                                        <option value="female" {% if member.gender == 'female' %}selected{% endif %}>Female</option>
+                                        <option value="male" {% if member.gender and member.gender|upper == 'MALE' %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if member.gender and member.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                     </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="phone" class="form-label">Phone *</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" 
-                                           value="{{ member.phone }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="email" class="form-label">Email</label>
@@ -135,8 +148,8 @@
                                     <label for="spouse_gender" class="form-label">Gender</label>
                                     <select class="form-select" id="spouse_gender" name="spouse_gender">
                                         <option value="">Select Gender</option>
-                                        <option value="male" {% if spouse and spouse.gender == 'male' %}selected{% endif %}>Male</option>
-                                        <option value="female" {% if spouse and spouse.gender == 'female' %}selected{% endif %}>Female</option>
+                                        <option value="male"   {% if spouse and spouse.gender|upper == 'MALE'   %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if spouse and spouse.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -168,19 +181,13 @@
                             {% if children %}
                                 <h6 class="mb-3 text-muted">Existing Children</h6>
                                 {% for child in children %}
-                                <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
-                                    <div class="position-absolute top-0 end-0 p-2">
-                                        <label class="form-check-label">
-                                            <input type="checkbox" name="delete_child" value="{{ child.id }}" class="form-check-input">
-                                            <small class="text-danger">Remove</small>
-                                        </label>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4">
+                                <div class="child-entry mb-2 p-3 border rounded bg-light" id="child-row-{{ child.id }}">
+                                    <div class="row align-items-end g-2">
+                                        <div class="col-md-3">
                                             <label class="form-label fw-bold">Full Name</label>
-                                            <p class="form-control-plaintext">{{ child.full_name }}</p>
+                                            <p class="form-control-plaintext mb-0">{{ child.full_name }}</p>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label for="child_baptismal_{{ child.id }}" class="form-label">Baptismal Name</label>
                                             <input type="text" class="form-control form-control-sm" id="child_baptismal_{{ child.id }}" 
                                                    name="child_baptismal_{{ child.id }}" value="{{ child.baptismal_name or '' }}">
@@ -194,9 +201,16 @@
                                             <label for="child_gender_{{ child.id }}" class="form-label">Gender</label>
                                             <select class="form-select form-select-sm" id="child_gender_{{ child.id }}" name="child_gender_{{ child.id }}">
                                                 <option value="">Select</option>
-                                                <option value="male" {% if child.gender == 'male' %}selected{% endif %}>Male</option>
-                                                <option value="female" {% if child.gender == 'female' %}selected{% endif %}>Female</option>
+                                                <option value="male"   {% if child.gender and child.gender|upper == 'MALE'   %}selected{% endif %}>Male</option>
+                                                <option value="female" {% if child.gender and child.gender|upper == 'FEMALE' %}selected{% endif %}>Female</option>
                                             </select>
+                                        </div>
+                                        <div class="col-md-auto">
+                                            <input type="checkbox" name="delete_child" value="{{ child.id }}"
+                                                   id="del-{{ child.id }}" class="d-none">
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    id="btn-del-{{ child.id }}"
+                                                    onclick="toggleRemoveChild({{ child.id }})">Remove</button>
                                         </div>
                                     </div>
                                 </div>
@@ -235,7 +249,7 @@ function addNewChild() {
     const childHtml = `
         <div class="child-entry mb-3 p-3 border rounded bg-light position-relative">
             <div class="position-absolute top-0 end-0 p-2">
-                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.child-entry').remove()">
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.child-entry').remove(); updateNewChildrenCount();">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -243,6 +257,7 @@ function addNewChild() {
                 <div class="col-md-4">
                     <label class="form-label">Full Name *</label>
                     <input type="text" class="form-control" name="new_child_name_${newChildCount}" required>
+                    <div class="invalid-feedback">Child name is required.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Baptismal Name</label>
@@ -273,9 +288,50 @@ function updateNewChildrenCount() {
     document.getElementById('new_children_count').value = count;
 }
 
-// Update count when removing children
-document.getElementById('householdForm').addEventListener('change', function() {
-    updateNewChildrenCount();
+function toggleRemoveChild(id) {
+    const cb  = document.getElementById('del-' + id);
+    const row = document.getElementById('child-row-' + id);
+    const btn = document.getElementById('btn-del-' + id);
+    cb.checked = !cb.checked;
+    if (cb.checked) {
+        row.style.opacity = '0.4';
+        btn.textContent = 'Undo';
+        btn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+    } else {
+        row.style.opacity = '1';
+        btn.textContent = 'Remove';
+        btn.classList.replace('btn-outline-secondary', 'btn-outline-danger');
+    }
+}
+
+document.getElementById('householdForm').addEventListener('submit', function(e) {
+    let valid = true;
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    ['first_name', 'last_name', 'phone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+    });
+
+    const mp = document.getElementById('monthly_payment');
+    if (mp && (isNaN(parseFloat(mp.value)) || parseFloat(mp.value) < 25)) {
+        mp.classList.add('is-invalid'); valid = false;
+    }
+
+    document.querySelectorAll('#newChildrenContainer .child-entry').forEach(entry => {
+        const n = entry.querySelector('input[name^="new_child_name_"]');
+        if (n && !n.value.trim()) { n.classList.add('is-invalid'); valid = false; }
+    });
+
+    if (!valid) {
+        e.preventDefault();
+        const first = document.querySelector('.is-invalid');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+
+document.getElementById('householdForm').addEventListener('input', function(e) {
+    if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid');
 });
 </script>
 
