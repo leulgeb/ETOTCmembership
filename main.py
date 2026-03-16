@@ -2084,6 +2084,7 @@ def admin_donations():
             'reason': t.purpose or '',
             'receipt': t.receipt_number or '',
             'source': 'non_member',
+            'txn_id': t.id,
             '_sort_date': t.transaction_date or datetime.min,
         })
 

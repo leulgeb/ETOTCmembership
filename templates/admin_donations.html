@@ -43,7 +43,15 @@
                                 <td>{{ donation.member_name }}</td>
                                 <td><span class="badge bg-success">${{ "%.2f"|format(donation.amount) }}</span></td>
                                 <td>{{ donation.reason }}</td>
-                                <td><code>{{ donation.receipt }}</code></td>
+                                <td>
+                                    {% if donation.receipt %}
+                                        {% if donation.source == 'non_member' %}
+                                            <a href="{{ url_for('view_non_member_receipt', txn_id=donation.txn_id) }}"><code>{{ donation.receipt }}</code></a>
+                                        {% else %}
+                                            <a href="{{ url_for('view_receipt', member_id=donation.member_id, receipt_number=donation.receipt) }}"><code>{{ donation.receipt }}</code></a>
+                                        {% endif %}
+                                    {% else %}—{% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
