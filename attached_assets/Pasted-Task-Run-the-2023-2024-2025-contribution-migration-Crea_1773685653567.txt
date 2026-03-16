@@ -1,0 +1,378 @@
+Task: Run the 2023/2024/2025 contribution migration
+
+Create the file /tmp/migrate_all.py with the content below, then run it with python3 /tmp/migrate_all.py.
+
+import sys
+sys.path.insert(0, '/home/runner/workspace')
+from main import app
+from models import db, Member, Contribution, PaymentStatus
+from datetime import datetime, date
+from difflib import SequenceMatcher
+MONTHS = ['January','February','March','April','May','June',
+          'July','August','September','October','November','December']
+MONTH_END = {
+    2023: {'January':date(2023,1,31),'February':date(2023,2,28),'March':date(2023,3,31),'April':date(2023,4,30),'May':date(2023,5,31),'June':date(2023,6,30),'July':date(2023,7,31),'August':date(2023,8,31),'September':date(2023,9,30),'October':date(2023,10,31),'November':date(2023,11,30),'December':date(2023,12,31)},
+    2024: {'January':date(2024,1,31),'February':date(2024,2,29),'March':date(2024,3,31),'April':date(2024,4,30),'May':date(2024,5,31),'June':date(2024,6,30),'July':date(2024,7,31),'August':date(2024,8,31),'September':date(2024,9,30),'October':date(2024,10,31),'November':date(2024,11,30),'December':date(2024,12,31)},
+    2025: {'January':date(2025,1,31),'February':date(2025,2,28),'March':date(2025,3,31),'April':date(2025,4,30),'May':date(2025,5,31),'June':date(2025,6,30),'July':date(2025,7,31),'August':date(2025,8,31),'September':date(2025,9,30),'October':date(2025,10,31),'November':date(2025,11,30),'December':date(2025,12,31)},
+}
+# positive = PAID with that amount | 0 = UNPAID | -1 = not applicable (mid-year joiner)
+DATA = {
+2023: [
+    ("Abeba Gidey Bogale",              [-1,-1,-1,-1,-1,-1,25,0,0,0,0,0]),
+    ("Abeba G/mariam",                  [0]*12),
+    ("Abeba Fitsum Gebru",              [25,25,25,25,25,0,0,0,0,0,0,0]),
+    ("Abebe Ephrem",                    [-1,-1,-1,-1,25,25,25,25,25,25,0,0]),
+    ("Abreham Berihu &Lemlem K/mariam", [0]*12),
+    ("Alem Bisrat",                     [0]*12),
+    ("Alemayoh Tadesse",                [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Almaz Hadush/Angesom",            [25,25,25,0,0,0,0,0,0,0,0,0]),
+    ("Amleset GebregziAebhier",         [25,25,25,25,25,25,25,0,0,0,0,0]),
+    ("Aregawi Desta G/medhin",          [25,25,25,25,25,25,25,25,25,25,0,0]),
+    ("Berhanu Kiros (ku)",              [25,25,25,25,25,0,0,0,0,0,0,0]),
+    ("Bisrat Gidey &Serkalem Tes",      [0]*12),
+    ("Fiyory Grmay",                    [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Gebreamlak Mersha",               [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Gebremeskel Mekonen",             [0]*12),
+    ("Hagos Atsbeha",                   [25,25,25,25,25,25,25,25,25,25,25,0]),
+    ("Kidan G/Selassie",                [0]*12),
+    ("Matti Asfaw Llc",                 [0]*12),
+    ("Meles Rezene & Mulu Atalay",      [0]*12),
+    ("Melkam Aregay Hailu",             [0]*12),
+    ("Mesfun Tesfu",                    [25,25,25,25,25,0,0,0,0,0,0,0]),
+    ("Michael Tikue",                   [25,25,25,25,25,25,25,25,25,25,25,0]),
+    ("Regbey N Tekle & Beniam",         [0]*12),
+    ("Tsehainesh Kassa Gugsa & Abraha", [0]*12),
+    ("Serebe Tekle (deacon)",           [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Yonsas Gebremariam Fisehatsion",  [0]*12),
+    ("Yordanos S Gebreselama",          [0]*12),
+],
+2024: [
+    ("Abebe Seyoum",                           [25,25,25,25,25,0,0,0,0,0,0,0]),
+    ("Adeday L Tesfay&Yafiet K K/mariam",      [0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,25]),
+    ("Alem Tefferi Tesfay",                    [0]*12),
+    ("Amanuel Tesfazgi Tesfamichael",          [0,-1,-1,-1,-1,-1,50,0,0,0,0,0]),
+    ("Ameha Chewa",                            [0]*12),
+    ("Ashenafi Tafere & Mulu Girma",           [0]*12),
+    ("Azeb Yohalashet & Aklilu Abreha",        [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Berhane W/Gerima & Selamawit",           [0]*12),
+    ("Birizaf Leake Gebremedhin",              [0]*12),
+    ("Fekadu Mehari & Aster Tesfai",           [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Gebrehiwot Belay Abreha",                [25,25,25,25,25,25,25,25,25,25,0,0]),
+    ("Getnet Teklehaimanot",                   [0]*12),
+    ("Hadas Tesfai",                           [0]*12),
+    ("Letencheal G Teklu",                     [0]*12),
+    ("Luel Hagos & Senait G/yesus",            [0]*12),
+    ("Maikale Mengesha",                       [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Mhret Asgedom Hagos",                    [0]*12),
+    ("Nahom Kahsay",                           [0]*12),
+    ("Negasi G/Eyesus & Abebech Gemedhin",     [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Simret Gebrehiwot",                      [25,25,25,25,25,25,25,25,25,25,0,0]),
+    ("Tahguas G/medhin",                       [25,25,25,25,25,25,25,0,0,0,0,0]),
+    ("Tedros Leake Gebremedhin",               [0]*12),
+    ("Teklewoini Masho & Selamawit Girmay",    [25,25,25,25,25,25,25,25,25,25,0,0]),
+    ("Teshale Leake Gebremedhin",              [0]*12),
+    ("Tewodros Abrha Kidanu",                  [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Tirhas Haftemichael",                    [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Tirhas Mekonen Kebede",                  [25,25,25,25,25,0,0,0,0,0,0,0]),
+    ("Tsehay Haile",                           [0]*12),
+    ("Tsegazeab Aregay Assegehegn",            [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Yemane Gebre michael",                   [0]*12),
+    ("Zimam Aleni",                            [0]*12),
+],
+2025: [
+    ("M/H Zemichael & Roman G/Egziabher", [0]*12),
+    ("L.Tebebt Hawaz Tefara & Kahsu", [50]*12),
+    ("D.Tekleweyni Abel", [100,100,100,100,100,100,100,200,100,100,100,100]),
+    ("Abadi Haile & Shewit", [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Abay Gebrehiwet Hailemariam", [25]*12),
+    ("Abeba Berhe Zeru", [50]*12),
+    ("Abeba GebreEgziabher", [25]*12),
+    ("Aberash Abreha", [50]*12),
+    ("Abriha F Gebru", [25]*12),
+    ("Adane Gebretsadik & Alem Fiseha", [50]*12),
+    ("Alem Kassa", [30,30,30,30,0,0,0,0,0,0,0,0]),
+    ("Alem Kidane", [25]*12),
+    ("Alem Lema", [0]*12),
+    ("Alem Seyum & Negesty G/Egziabher", [50]*12),
+    ("Alemash Berhe", [50]*12),
+    ("Alemtsehai Tesfai & Teferi", [30]*12),
+    ("Amanuel Zeweldi & Luwam", [50]*12),
+    ("Araya WeldeAregay& Alganesh", [0]*12),
+    ("Aregach Ambachew Ayele", [50]*12),
+    ("Aregash Asres", [25]*12),
+    ("Asefa Asghedom", [25]*12),
+    ("Asefa Berhane & Atsede", [50,50,50,0,0,0,0,0,0,0,0,0]),
+    ("Askale W/selassie", [50]*12),
+    ("Asqual Asmare", [50]*12),
+    ("Aster Gebremichael Zeweldi", [50]*12),
+    ("Ataklti Nega Gidey & Slas", [100]*12),
+    ("Azeb Abay", [25]*12),
+    ("Azeb Syum GebreKidan", [50]*12),
+    ("Azeb & Habteab Gebremichael", [50]*12),
+    ("Bahta seyum/Rahel Gaim", [50]*12),
+    ("Bereket G/mariam & Tsega Abrham", [0]*12),
+    ("Berhane G. Tedla &Yalem", [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Brhan Asgedom & Ataklti", [50]*12),
+    ("Berhane Abraha & Azeb", [0]*12),
+    ("Berhane G/yesus & Mulu G/meskel", [30,30,30,30,30,30,30,30,50,50,50,50]),
+    ("Berhanu Alemayehu &Bezawit Y Belay", [100]*12),
+    ("Beseet Sirak & Yitbarek Demowez", [50]*12),
+    ("Danait Gebre & Aklilu", [50]*12),
+    ("Dawit Alemu", [50]*12),
+    ("Dawit Berhane & Haben Yihdego", [0]*12),
+    ("Degnesh Ayalew Mengesha", [0]*12),
+    ("Degnesh Ngusse", [25,25,25,50,50,50,50,50,50,50,50,50]),
+    ("Desta T Alemayew & Mentwab", [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,25,25]),
+    ("Dr. Tilahun H Abera", [25]*12),
+    ("Efrem G/michael & Nestanet Atsbeha", [25]*12),
+    ("Eleni Hadgu Beyene", [25]*12),
+    ("Elias Nirea", [50]*12),
+    ("Elizabeth Asegehegne", [-1,-1,-1,-1,-1,-1,-1,-1,-1,50,50,50]),
+    ("Ephrem Belay & Meraf Woldu", [50]*12),
+    ("Earmias Hishe", [50,50,50,50,50,50,50,50,50,0,0,0]),
+    ("Fana Arefe(Mulu Asgedom)", [0]*12),
+    ("Fantaye Mekuria", [25]*12),
+    ("Fesehatsion Gesese & Rebeka", [0]*12),
+    ("Feven Mehane & Tewodros", [-1,-1,-1,-1,-1,-1,-1,-1,-1,25,25,25]),
+    ("Fisehatsion & Alganesh", [25]*12),
+    ("Fidel Dori Equbazgi", [100]*12),
+    ("Fiori Tesfay/Embza Haile", [50]*12),
+    ("Fiseha Tasew & Zewdi", [50]*12),
+    ("Fisseha Woldu & Gergis G/Hiwot", [25]*12),
+    ("Freweyni Aiga & Gebremeskle", [50]*12),
+    ("Gebre Adhana Kassaye", [0]*12),
+    ("Gebregziabher Taffere & Bezawit", [50]*12),
+    ("Gebre Woldemimichael & Abrhet", [25]*12),
+    ("G/gziabhier G/Aregawi & Simret", [-1,-1,-1,-1,50,50,50,0,0,0,0,0]),
+    ("Gebreegziabhier Hagos & Miebale", [50]*12),
+    ("Gebremariam Abay & Woiny", [25]*12),
+    ("Gebremichael Zewoldi & Letay", [50]*12),
+    ("Gebreslassie Abreha", [50]*12),
+    ("Gebreslassie Gidey", [50,50,0,0,0,0,0,0,0,0,0,0]),
+    ("Gebru Kebede & Tsega", [25]*12),
+    ("Genet Fisseha Teklu", [-1,-1,-1,-1,-1,-1,-1,-1,-1,25,25,25]),
+    ("Genet Tesfay", [25,25,25,25,25,25,25,25,25,25,25,0]),
+    ("Getachew Mergia Tache/Fitsum", [50,50,50,0,0,0,0,0,0,0,0,0]),
+    ("Gezachin Haile Asres", [50]*12),
+    ("Gidey Abay", [50]*12),
+    ("Gidey Bogale Gidey", [25]*12),
+    ("Gidey Tesfay & Gidey Abreha", [25]*12),
+    ("Girmay Welde/Tsega Habtekiros", [0]*12),
+    ("Gizachew Abreha Tafere", [25,25,50,50,50,50,50,50,50,50,50,50]),
+    ("Goitom Yitebarek &Fruit Tekle", [25]*12),
+    ("Guesh (Zerabruk) Abdelkadir", [50]*12),
+    ("Guesh Tesfay & Almaz", [50]*12),
+    ("Gueush G/mariam & Tekebach", [25]*12),
+    ("Haben Embza Sebhatu", [-1,-1,-1,30,30,30,30,30,30,30,30,30]),
+    ("Hadas Belai", [50]*12),
+    ("Hadush Weldemihret & Elfu Medhane", [0]*12),
+    ("Hailemariam Hagos & Meaza", [50,50,50,50,50,50,50,50,0,0,0,0]),
+    ("Hareg Asgedom Kidanu &Gizachew", [50]*12),
+    ("Haregeweini G/michael& Tesfay", [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Haregu Desta", [25]*12),
+    ("Hayelom Beyene & Kibret Nega", [25]*12),
+    ("Haimanot Gebre", [50]*12),
+    ("Hibue Weldemariam & Azmeru", [25]*12),
+    ("Hirut Gebrekorkos", [50,25,25,25,25,25,25,25,25,25,25,0]),
+    ("Hirut Hailemelekot", [25]*12),
+    ("Hiwot Hagos Abera", [25,0,0,0,0,0,0,0,0,0,0,0]),
+    ("Kahsa Hagos Gerase(G/Silasie)", [-1,-1,-1,-1,-1,-1,-1,25,25,25,25,25]),
+    ("Kahsay Tewolde", [25]*12),
+    ("Kalayu W Aleme", [0]*12),
+    ("Kidan G/Egziaebher", [25]*12),
+    ("Kidane H Meressa & Berhan", [0]*12),
+    ("Kidist Berhanu", [50,50,50,50,50,50,50,50,50,50,0,0]),
+    ("Kidst Haile Seyfu", [50]*12),
+    ("Kiflom Mehari & Mehret Kidane", [25]*12),
+    ("Kindahafti Asgedom Abu", [50]*12),
+    ("Kiros Abrha Haftu", [50]*12),
+    ("Kiros Berhe Assefa", [50]*12),
+    ("Kiros Girmay & Asrat Tesfay", [-1,-1,-1,50,50,50,50,50,50,50,50,50]),
+    ("Kiros kiflay Arefaine", [50]*12),
+    ("Leake G/medhin & Talef", [50]*12),
+    ("Legessa WeleaAregay", [50]*12),
+    ("Lemlem Woldegerima", [0]*12),
+    ("Letai Kassahun", [25]*12),
+    ("Letay Abadi Kahsay", [25,25,25,25,25,25,25,0,0,0,0,0]),
+    ("Letebrhan Kahsay", [-1,-1,-1,-1,-1,25,25,25,25,25,25,25]),
+    ("Letemichael Abrha Woldenkel", [50]*12),
+    ("Letemichael Gidey Betewlgn", [50,50,50,50,50,50,0,0,0,0,0,0]),
+    ("Leoul Naizgi & Netsanet", [-1,-1,-1,-1,-1,-1,-1,-1,-1,50,50,0]),
+    ("Leuel Weldegerima and Tabotu", [25]*12),
+    ("Liya Zenebe Gebre", [30]*12),
+    ("Lucas & Elizabeth Gobezie", [30]*12),
+    ("Mamit Haile", [25]*12),
+    ("Mamu Kebede & Muna", [25]*12),
+    ("Mana W/Michael", [25]*12),
+    ("Masho Birhane", [25]*12),
+    ("Masho G/Slase & Tsegay Abreha", [50]*12),
+    ("Meaza Wasihun & Abreha", [50]*12),
+    ("Mebrat Hailu Abay", [25]*12),
+    ("Medhaniey Leake W/Gebriel", [0]*12),
+    ("Medhin Weldearegai", [50]*12),
+    ("Mehari G Gezahagn/Rutha Tesfay", [50]*12),
+    ("Mehret Gebre & Mebrahtu", [25]*12),
+    ("Mekdes Ambaye/Samson", [50]*12),
+    ("Meles G/mariam & Harinet Yemane", [-1,-1,-1,-1,-1,-1,50,50,50,50,50,50]),
+    ("Meron G. Legesse & Yoseph Kahsay", [25]*12),
+    ("Meron Taddese & Filmon Tekeste", [50]*12),
+    ("Meron Samson Wubneh & Gila", [50,50,50,0,0,0,0,0,0,0,0,0]),
+    ("Meseret Girma & D. Melkamu Morki", [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Michael Kidane & Lemlem Brahne", [50]*12),
+    ("Milashu Belay Gebrehiwet", [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Million Hagos", [50]*12),
+    ("Mitslal Gebreyesus & Tesfai", [25]*12),
+    ("Mizan Asefaw", [50]*12),
+    ("Muez Alemu Gebremedhin", [50]*12),
+    ("Mulu Asgehedom", [50]*12),
+    ("Mulubirhan Belay & Meaza", [0]*12),
+    ("Mulugeta Zenebe Gebre", [0]*12),
+    ("Mulugeta Kalayu/Nigsti Zeru", [0]*12),
+    ("Mulu Amare Kahsay", [50]*12),
+    ("Mulu Berhe Yimam", [25]*12),
+    ("Muna Tefera", [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Muzit Yehalashet & Amdebrhan", [25]*12),
+    ("Negash Wereta & Letemicael Tesfai", [25]*12),
+    ("Nigisti K/mariam", [25]*12),
+    ("Nigisty Goiytom", [25]*12),
+    ("Nugusse Leggesse Ambaye", [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Rahel Mehari", [25]*12),
+    ("Rahwa Gidey Desta/Michael Negash", [25,25,25,25,25,25,25,25,25,25,25,0]),
+    ("Roman Teklay Hailu", [-1,-1,-1,-1,-1,-1,30,30,30,30,30,30]),
+    ("Rut Belay Mora & Wag Brhane", [50]*12),
+    ("Saba Hagos", [50]*12),
+    ("Samson Wubneh", [25,25,25,25,25,25,25,25,25,0,0,0]),
+    ("Sara Gessese G/kidan & Tesfazgi", [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Seble Brhane & Leulseged Amare(Dr)", [0]*12),
+    ("Selamawit Assefa", [50]*12),
+    ("Selas Kasa Giday & Haftu Hishe", [25]*12),
+    ("Semhar Gebremichael", [30,30,30,30,0,0,0,0,0,0,0,0]),
+    ("Sesen Berhe", [25]*12),
+    ("Silas Meles Weledemariam", [25,25,25,25,25,25,25,0,0,0,0,0]),
+    ("Silass Kahsay", [0]*12),
+    ("Shewit Yihdego & Israel", [0]*12),
+    ("Shishai Hailu & Hiwot", [0]*12),
+    ("Solomon Abay", [50]*12),
+    ("Tadelech Addis Agizew", [25]*12),
+    ("Tadese A G/michael & Yirgalem Hagos", [0]*12),
+    ("Tafesu Merssa", [50]*12),
+    ("Teberh Abay", [0]*12),
+    ("Teberh Tsegu", [25]*12),
+    ("Tebirh Girmay", [30,30,30,30,30,30,30,30,0,0,0,0]),
+    ("Tedros G/slassie & Simret Asgedom", [50]*12),
+    ("Tekleab Haileslassie & Genet", [25,25,25,25,25,25,0,0,0,0,0,0]),
+    ("Tekle B Gebre & Abeba Fisseha", [50]*12),
+    ("Temesgen Hailu", [25,25,0,0,0,0,0,0,0,0,0,0]),
+    ("Tesfai Haile & Saba Weldemariam", [25]*12),
+    ("Tesfay Gebremichael &Hiwot Aregay", [50]*12),
+    ("Tesfay Mehari G/Slasie", [0]*12),
+    ("Tesfay Mulashu & Lemlem", [0]*12),
+    ("Tiebe Gebru Mezgebe", [30]*12),
+    ("Tilahun A. Ayele & Zuriash", [50]*12),
+    ("Tirhas Hagos & Yitbarek Teklu", [25]*12),
+    ("Tirhas Kinfe & Kahsay W/mariam", [30,30,30,30,30,30,30,0,0,0,0,0]),
+    ("Tsegay Hagos & Amleset", [25]*12),
+    ("Tsegaye Tadesse & Tsige G/kidan", [50]*12),
+    ("Tsegay G/meskel & Kiros", [0]*12),
+    ("Tsegay Weldetadyos & Kebra G/mariar", [25]*12),
+    ("Tsege Suyum", [25]*12),
+    ("Tsehaye G Tekle", [50]*12),
+    ("Tsahyenesh A G/egziabher", [50]*12),
+    ("Tsehaynesh Kassa Tedla", [-1,-1,-1,-1,25,25,25,25,25,25,25,25]),
+    ("Tsehay Nega Teka", [25]*12),
+    ("Tsehaytu Hagos", [25]*12),
+    ("Tsegireda Gebre", [25]*12),
+    ("Tsigereda Haile Abera", [0]*12),
+    ("Tsgereda Hailemariam", [25,25,25,25,0,0,0,0,0,0,0,0]),
+    ("Weldemariam Kahassay & Shewaye", [25]*12),
+    ("Weldesenbet Hagos & Hirut Alemu", [25,25,25,25,25,25,25,25,0,0,0,0]),
+    ("Weldu Teklemariam & Nardos", [50,25,25,25,25,25,25,25,25,0,0,0]),
+    ("Woldu Melashu & Kidan", [0]*12),
+    ("Wudnesh Ayele", [30]*12),
+    ("Yemar Tedila Feseha", [25]*12),
+    ("Yihdego Berhe& Tsehaynesh", [0]*12),
+    ("Yishak G/selassie & Abnet", [25,25,25,25,25,25,25,25,25,0,0,0]),
+    ("Yohannes Michael & Alemtsehay kiros", [25]*12),
+    ("Yohannes Senay Abrha", [50,50,50,50,0,0,0,0,0,0,0,0]),
+    ("Yonas Abraha & Tsige Amdework", [-1,-1,-1,50,0,0,0,0,0,0,0,0]),
+    ("Yonas Kassa Gugsa", [50]*12),
+    ("Yosef Haile Desta", [25]*12),
+    ("Yosief Solomon Weldearegay", [50,50,50,0,0,0,0,0,0,0,0,0]),
+    ("Yoseph Aregay Hailu", [50,50,50,50,50,50,0,0,0,0,0,0]),
+    ("Zafu Feseha", [50,50,50,50,50,50,0,0,0,0,0,0]),
+    ("Zefru A Gidey & Awetash", [25]*12),
+    ("Zerabruk Desta", [25]*12),
+    ("Zeraburuk Araya & Brzaf", [25]*12),
+    ("Zerai Keflu", [25]*12),
+    ("Zereu G/stadkan & Yeshi Abay", [50]*12),
+    ("Zeresenai Abreha & Atsede G", [30]*12),
+    ("Zewdi M GebrAmanuel", [25,25,25,25,25,25,25,25,25,25,50,50]),
+],
+}
+def normalize(n):
+    return n.lower().replace('&','and').replace('/',' ').replace('.','').replace('(','').replace(')','').replace(',','').strip()
+def find_member(name, members):
+    n = normalize(name)
+    for m in members:
+        if normalize(m.full_name) == n:
+            return m
+    best, best_m = 0, None
+    for m in members:
+        s = SequenceMatcher(None, n, normalize(m.full_name)).ratio()
+        if s > best:
+            best, best_m = s, m
+    return best_m if best >= 0.60 else None
+def last_nonzero(amounts):
+    for a in reversed(amounts):
+        if a > 0: return a
+    return None
+with app.app_context():
+    all_members = Member.query.filter_by(is_active=True).all()
+    # Delete ALL pre-2023 contributions for every member
+    deleted = Contribution.query.filter(Contribution.year < 2023).delete()
+    db.session.flush()
+    print(f"Deleted {deleted} pre-2023 records")
+    for year, entries in DATA.items():
+        unmatched = []
+        matched = 0
+        for image_name, amounts in entries:
+            member = find_member(image_name, all_members)
+            if not member:
+                unmatched.append(image_name)
+                continue
+            matched += 1
+            # For 2025: always update monthly_payment; for earlier years: only if unset
+            new_rate = last_nonzero(amounts)
+            if new_rate:
+                if year == 2025:
+                    member.monthly_payment = new_rate
+                elif not member.monthly_payment or member.monthly_payment == 0:
+                    member.monthly_payment = new_rate
+            for i, month in enumerate(MONTHS):
+                amt = amounts[i]
+                contrib = Contribution.query.filter_by(
+                    member_id=member.id, year=year, month=month
+                ).first()
+                if amt > 0:
+                    if contrib:
+                        contrib.status = PaymentStatus.PAID
+                        contrib.amount = amt
+                        contrib.payment_date = datetime.combine(MONTH_END[year][month], datetime.min.time())
+                    else:
+                        db.session.add(Contribution(
+                            member_id=member.id, year=year, month=month,
+                            status=PaymentStatus.PAID, amount=amt,
+                            payment_date=datetime.combine(MONTH_END[year][month], datetime.min.time())
+                        ))
+                else:
+                    if not contrib:
+                        db.session.add(Contribution(
+                            member_id=member.id, year=year, month=month,
+                            status=PaymentStatus.UNPAID, amount=0.0
+                        ))
+        db.session.flush()
+        print(f"{year}: {matched} matched, {len(unmatched)} unmatched")
+        for n in unmatched:
+            print(f"  NOT FOUND: {n}")
+    db.session.commit()
+    print("Done.")
