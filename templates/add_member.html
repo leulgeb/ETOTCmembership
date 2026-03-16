@@ -30,13 +30,13 @@
             <div class="card-body p-4">
                 <form method="POST" id="memberForm">
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="custom_id" class="form-label">Member ID</label>
                             <input type="text" class="form-control bg-light text-muted" id="custom_id" name="custom_id"
                                    value="{{ suggested_id }}" readonly>
                             <small class="text-muted">Assigned automatically</small>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="monthly_payment" class="form-label">Monthly Payment <span class="required-indicator">*</span></label>
                             <div class="input-group {{ 'has-validation' if errors and 'monthly_payment' in errors }}">
                                 <span class="input-group-text">$</span>
@@ -47,16 +47,26 @@
                                 {% endif %}
                             </div>
                             {% if not (errors and 'monthly_payment' in errors) %}
-                                <small class="text-muted">Minimum monthly contribution is $25</small>
+                                <small class="text-muted">Minimum $25</small>
                             {% endif %}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label for="start_month" class="form-label">First Payment Month <span class="required-indicator">*</span></label>
+                            <select class="form-select" id="start_month" name="start_month">
+                                {% set months_list = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                                {% for m in months_list %}
+                                <option value="{{ m }}" {% if request.form.get('start_month', current_month) == m %}selected{% endif %}>{{ m }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Months before this are pre-registration</small>
+                        </div>
+                        <div class="col-md-3">
                             <label for="password" class="form-label">Password <span class="required-indicator">*</span></label>
                             <input type="password" class="form-control required-field {{ 'is-invalid' if errors and 'password' in errors }}" id="password" name="password" value="000000" required>
                             {% if errors and 'password' in errors %}
                                 <div class="invalid-feedback">{{ errors['password'] }}</div>
                             {% else %}
-                                <small class="text-muted">Default password: <strong>000000</strong></small>
+                                <small class="text-muted">Default: <strong>000000</strong></small>
                             {% endif %}
                         </div>
                     </div>

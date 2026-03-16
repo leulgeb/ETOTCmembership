@@ -908,35 +908,25 @@ def add_member():
             
             db.session.commit()
             
-            # Initialize contributions starting from the month they signed up
+            # Initialize contributions based on selected start month
             current_date = get_current_time()
             current_year = current_date.year
-            current_month_index = current_date.month - 1  # 0-indexed
-            
+            start_month_name = request.form.get('start_month', MONTHS[current_date.month - 1])
+            if start_month_name not in MONTHS:
+                start_month_name = MONTHS[current_date.month - 1]
+            start_month_index = MONTHS.index(start_month_name)
+
             for i, month in enumerate(MONTHS):
-                status = PaymentStatus.UNPAID
-                # If the month is before the current signup month, mark as 'N/A' or just don't create?
-                # User said "members start payment on the month they signed up on", 
-                # implying preceding months are not owed.
-                
                 contribution = Contribution(
                     member_id=new_member.id,
                     year=current_year,
                     month=month,
-                    status=status,
+                    status=PaymentStatus.UNPAID,
                     amount=0
                 )
-                
-                # If month is before signup, we can mark it differently or set amount to 0
-                # Here we just ensure they are created as Unpaid but they will only start paying from now
-                if i < current_month_index:
-                    # Mark as Paid with 0 amount to effectively "open" the later months
-                    # or keep as Unpaid but the UI should handle it. 
-                    # The user says "open the months that precede", likely meaning 
-                    # they shouldn't be blocked by them.
+                if i < start_month_index:
                     contribution.status = PaymentStatus.PAID
                     contribution.payment_comment = "Pre-registration month"
-                
                 db.session.add(contribution)
             db.session.commit()
             
@@ -974,13 +964,16 @@ def add_member():
             flash(friendly_error, 'danger')
             
             # Pass form data and error fields back to template
+            current_month = MONTHS[get_current_time().month - 1]
             return render_template('add_member.html',
                                  suggested_id=suggested_id,
                                  form_data=request.form,
                                  error_fields=error_fields,
-                                 errors={})
+                                 errors={},
+                                 current_month=current_month)
 
-    return render_template('add_member.html', suggested_id=suggested_id, errors={})
+    current_month = MONTHS[get_current_time().month - 1]
+    return render_template('add_member.html', suggested_id=suggested_id, errors={}, current_month=current_month)
 
 @app.route('/admin/edit-member/<member_id>', methods=['GET', 'POST'])
 @admin_required
