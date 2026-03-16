@@ -648,51 +648,42 @@
             description = data.payments[0].month ? `${data.payments[0].month} Contribution` : 'Contribution';
         }
         
+        const paymentLines = data.payments.map(p => {
+            const label = p.month ? `${p.month} Contribution` : 'Contribution';
+            return `<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span>${label}</span><span>$${parseFloat(p.amount).toFixed(2)}</span></div>`;
+        }).join('');
+
+        const pmMethod = data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash';
+        const pmComment = data.payment_comment ? ` (${data.payment_comment})` : '';
+
         const content = `
-            <div id="printableReceipt" style="width: 8.5in; height: 3.5in; padding: 15px; font-family: Arial, sans-serif; background-color: white; box-sizing: border-box; position: relative; overflow: hidden; border: 1px solid #eee; margin: 0 auto;">
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <img src="/static/images/etotc_logo.png" alt="ETOTC Logo" style="height: 60px; width: auto; margin-bottom: 5px;">
-                    <p style="margin: 2px 0; font-size: 12px; color: #7f8c8d;">9256 227th Ave NE, Redmond, WA 98053</p>
-                    <p style="margin: 2px 0; font-size: 11px; color: #7f8c8d;">EIN: 91-1699080</p>
+            <div id="printableReceipt" style="width:300px;padding:14px 12px;font-family:'Courier New',Courier,monospace;font-size:12px;background-color:white;box-sizing:border-box;border:1px solid #ddd;margin:0 auto;">
+                <div style="text-align:center;margin-bottom:8px;">
+                    <img src="/static/images/etotc_logo.png" alt="ETOTC Logo" style="height:65px;width:auto;display:block;margin:0 auto 6px;">
+                    <div style="font-size:13px;font-weight:bold;letter-spacing:1px;">ETOTC CHURCH</div>
+                    <div style="font-size:10px;color:#444;margin-top:2px;">9256 227th Ave NE</div>
+                    <div style="font-size:10px;color:#444;">Redmond, WA 98053</div>
+                    <div style="font-size:10px;color:#444;">EIN: 91-1699080</div>
                 </div>
-                <!-- Header with receipt details -->
-                <div style="margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px;">
-                    <div style="display: flex; justify-content: flex-end; align-items: center;">
-                        <span style="font-size: 10px;"><strong>Receipt #:</strong> ${data.receipt_number}</span>
-                    </div>
-                </div>
-                
-                <!-- Member info in one line -->
-                <div style="margin-bottom: 8px; font-size: 10px;">
-                    <strong>Member Information</strong> ID: ${data.member_id} Name: ${data.member_name}
-                </div>
-                
-                <!-- Payment description -->
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;">
-                    <thead>
-                        <tr style="background: #f0f0f0;">
-                            <th style="padding: 4px; text-align: left; border: 1px solid #ccc;">Description</th>
-                            <th style="padding: 4px; text-align: right; border: 1px solid #ccc; width: 60px;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border: 1px solid #ccc;">
-                            <td style="padding: 4px;">${description}</td>
-                            <td style="padding: 4px; text-align: right;">$${data.total.toFixed(2)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Payment method and received by -->
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 10px;">
-                    <span><strong>Payment Method:</strong> ${data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash'}${data.payment_comment ? ` (${data.payment_comment})` : ''}</span>
-                    <span><strong>Received By:</strong> ${data.processed_by || ''}</span>
-                </div>
-                
-                <!-- Website and closing message -->
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; border-top: 1px solid #ddd; padding-top: 5px;">
-                    <span style="font-weight: bold;">Thank you for your contribution! God bless you.</span>
-                    <span>Website: ETOTC.org</span>
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="font-size:11px;margin-bottom:3px;"><strong>Receipt #:</strong> ${data.receipt_number}</div>
+                <div style="font-size:11px;margin-bottom:3px;"><strong>Date:</strong> ${data.date || ''}</div>
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="font-size:11px;margin-bottom:3px;"><strong>Member ID:</strong> ${data.member_id}</div>
+                <div style="font-size:11px;margin-bottom:3px;"><strong>Name:</strong> ${data.member_name}</div>
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:4px;"><span>DESCRIPTION</span><span>AMOUNT</span></div>
+                ${paymentLines}
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;margin-bottom:4px;"><span>TOTAL</span><span>$${data.total.toFixed(2)}</span></div>
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="font-size:11px;margin-bottom:3px;"><strong>Payment Method:</strong> ${pmMethod}${pmComment}</div>
+                <div style="font-size:11px;margin-bottom:4px;"><strong>Received By:</strong> ${data.processed_by || ''}</div>
+                <div style="border-top:1px dashed #000;margin:8px 0;"></div>
+                <div style="text-align:center;font-size:11px;line-height:1.7;">
+                    <div style="font-weight:bold;">Thank you for your contribution!</div>
+                    <div>God bless you.</div>
+                    <div style="margin-top:4px;font-size:10px;color:#555;">www.ETOTC.org</div>
                 </div>
             </div>
         `;
@@ -702,30 +693,20 @@
     }
 
     function printReceipt() {
-        const printContent = document.getElementById('printableReceipt').innerHTML;
+        const printContent = document.getElementById('printableReceipt').outerHTML;
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <html>
             <head>
                 <title>ETOTC Church - Payment Receipt</title>
                 <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
-                    @page {
-                        size: 8.5in 3.5in;
-                        margin: 0;
-                    }
-                    #printableReceipt {
-                        width: 8.5in;
-                        height: 3.5in;
-                        padding: 15px;
-                        box-sizing: border-box;
-                    }
+                    body { margin: 0; padding: 0; }
+                    @page { size: 80mm auto; margin: 0; }
+                    #printableReceipt { border: none !important; }
                 </style>
             </head>
             <body>
-                <div id="printableReceipt">
-                    ${printContent}
-                </div>
+                ${printContent}
             </body>
             </html>
         `);
