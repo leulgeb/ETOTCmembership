@@ -32,11 +32,19 @@
                                     <div class="invalid-feedback">Last name is required.</div>
                                 </div>
                                 <div class="col-md-3">
+                                    <label for="middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                           value="{{ member.middle_name or '' }}">
+                                </div>
+                                <div class="col-md-3">
                                     <label for="phone" class="form-label">Phone *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone" 
                                            value="{{ member.phone }}" required>
                                     <div class="invalid-feedback">Phone number is required.</div>
                                 </div>
+                            </div>
+
+                            <div class="row mb-3">
                                 <div class="col-md-3">
                                     <label for="monthly_payment" class="form-label text-nowrap">Monthly Contribution <span class="text-danger">*</span></label>
                                     <div class="input-group has-validation">
@@ -47,20 +55,12 @@
                                     </div>
                                     <small class="text-muted">Minimum $25.00/month</small>
                                 </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label for="middle_name" class="form-label">Middle Name</label>
-                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
-                                           value="{{ member.middle_name or '' }}">
-                                </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="baptismal_name" class="form-label">Baptismal (Christian) Name</label>
                                     <input type="text" class="form-control" id="baptismal_name" name="baptismal_name" 
                                            value="{{ member.baptismal_name or '' }}">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="date_of_birth" class="form-label">Date of Birth</label>
                                     <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
                                            value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
