@@ -1,0 +1,184 @@
+Here is the full set of cross-year payment changes you can hand to your agent. Three files were changed: main.py, templates/member_details.html, and templates/view_receipt.html.
+
+Background
+The original code only supported selecting months within one calendar year per transaction. These changes allow a cashier to select months from two adjacent years (e.g. Nov/Dec 2024 + Jan/Feb 2025) in a single transaction with one receipt.
+
+1. main.py — process_bulk_payment route
+a) Change the form field name from months to month_year, and parse each value as "YEAR-MONTH" (e.g. "2025-January"):
+
+# OLD
+selected_months = request.form.getlist('months')
+if not selected_months:
+    flash('No months selected', 'warning')
+    return redirect(...)
+# NEW
+selected_items = request.form.getlist('month_year')
+if not selected_items:
+    # Backward compatibility fallback
+    selected_months = request.form.getlist('months')
+    selected_items = [f"{year}-{m}" for m in selected_months if m in MONTHS]
+if not selected_items:
+    flash('No months selected', 'warning')
+    return redirect(...)
+b) Parse each item into (item_year, month) and track all years involved:
+
+years_involved = set()
+valid_months = []   # now a list of (item_year, month) tuples
+for item in selected_items:
+    if '-' in item:
+        parts = item.rsplit('-', 1)
+        try:
+            item_year = int(parts[0])
+            month = parts[1]
+        except (ValueError, IndexError):
+            continue
+    else:
+        month = item
+        item_year = int(year)   # year = URL parameter
+    years_involved.add(item_year)
+    # ... existing validation (check month in MONTHS, contrib exists, already paid check) ...
+    valid_months.append((item_year, month))
+c) When processing payments, unpack the tuple:
+
+# OLD
+for month in valid_months:
+    contrib = Contribution.query.filter_by(member_id=member.id, year=year_int, month=month).first()
+# NEW
+for item_year, month in valid_months:
+    contrib = Contribution.query.filter_by(member_id=member.id, year=item_year, month=month).first()
+    # ... set contrib.status, contrib.amount, contrib.payment_date ...
+    payments.append({
+        'month': month,
+        'year': item_year,          # ← add year to each payment dict
+        'amount': amount,
+        'type': 'contribution',
+    })
+d) Auto-generate next year's sheet for EACH year involved (not just the primary year):
+
+# OLD: single check for one year
+paid_count = Contribution.query.filter_by(member_id=member.id, year=year_int, status=PaymentStatus.PAID).count()
+if paid_count >= 11:
+    next_year = year_int + 1
+    # create next year sheet ...
+# NEW: check every year that had payments in this transaction
+for check_year in years_involved:
+    paid_count = Contribution.query.filter_by(
+        member_id=member.id, year=check_year, status=PaymentStatus.PAID
+    ).count()
+    if paid_count >= 11:
+        next_year = check_year + 1
+        existing = Contribution.query.filter_by(member_id=member.id, year=next_year).first()
+        if not existing:
+            for m in MONTHS:
+                db.session.add(Contribution(
+                    member_id=member.id, year=next_year, month=m,
+                    status=PaymentStatus.UNPAID, amount=0
+                ))
+            db.session.commit()
+            flash(f'Next year ({next_year}) contribution sheet has been created!', 'info')
+# Year-complete check uses the primary URL year (for the "year complete" flash message)
+primary_year = int(year)
+primary_paid_count = Contribution.query.filter_by(
+    member_id=member.id, year=primary_year, status=PaymentStatus.PAID
+).count()
+is_year_complete = primary_paid_count == 12
+e) Fix a NameError — inside the receipt-building block, change year_int to primary_year where it queries contributions for the receipt:
+
+# OLD
+contribs = Contribution.query.filter_by(member_id=member.id, year=year_int).all()
+# NEW
+contribs = Contribution.query.filter_by(member_id=member.id, year=primary_year).all()
+Also add 'year': contrib.year to each payment dict built for the receipt:
+
+payments_for_receipt.append({
+    'month': contrib.month,
+    'year': contrib.year,    # ← add this
+    'amount': contrib.amount,
+    'type': 'contribution',
+})
+2. templates/member_details.html — checkbox input
+Change each month checkbox so its name is month_year and its value encodes both year and month:
+
+<!-- OLD -->
+<input type="checkbox" name="months" value="{{ month }}" class="form-check-input month-checkbox">
+<!-- NEW -->
+<input type="checkbox"
+       name="month_year"
+       value="{{ selected_year }}-{{ month }}"
+       class="form-check-input month-checkbox"
+       data-month="{{ month }}"
+       data-year="{{ selected_year }}">
+Also update the JavaScript preview that shows selected months in the confirmation modal:
+
+// OLD
+const months = Array.from(checked).map(cb => cb.value).join(', ');
+// NEW
+const months = Array.from(checked).map(cb => {
+    const month = cb.getAttribute('data-month');
+    const year  = cb.getAttribute('data-year');
+    return `${month} ${year}`;
+}).join(', ');
+3. templates/member_details.html — receipt preview modal (JavaScript showReceipt)
+Replace the simple single-description receipt row with logic that groups payments by year, one row per year:
+
+// NEW: group contribution payments by year
+const contribPayments = data.payments.filter(p => p.type === 'contribution' || p.month);
+const donationPayments = data.payments.filter(p => p.type === 'donation' && !p.month);
+const byYear = {};
+contribPayments.forEach(p => {
+    const yr = p.year || data.year || '';
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(p);
+});
+let tableRows = '';
+Object.keys(byYear).sort().forEach(yr => {
+    const yrPayments = byYear[yr];
+    const yrTotal = yrPayments.reduce((s, p) => s + p.amount, 0);
+    let desc = yrPayments.length === 1
+        ? `${yrPayments[0].month} ${yr} Contribution`
+        : `${yrPayments[0].month} to ${yrPayments[yrPayments.length - 1].month} ${yr} Contribution`;
+    tableRows += `<tr style="border: 1px solid #ccc;">
+        <td style="padding: 4px;">${desc}</td>
+        <td style="padding: 4px; text-align: right;">$${yrTotal.toFixed(2)}</td>
+    </tr>`;
+});
+donationPayments.forEach(p => {
+    const donDesc = p.reason ? `Donation: ${p.reason}` : 'Donation';
+    tableRows += `<tr style="border: 1px solid #ccc;">
+        <td style="padding: 4px;">${donDesc}</td>
+        <td style="padding: 4px; text-align: right;">$${p.amount.toFixed(2)}</td>
+    </tr>`;
+});
+// Then in the table body: ${tableRows}  (replacing the old single <tr>)
+4. templates/view_receipt.html — saved receipt view
+Replace the old single-row contribution display with Jinja logic that groups by year:
+
+{% set contribution_payments = receipt.payments | selectattr('type', 'equalto', 'contribution') | list %}
+{% set donation_payments     = receipt.payments | selectattr('type', 'equalto', 'donation')     | list %}
+{% if contribution_payments %}
+    {# collect unique years #}
+    {% set years_seen = [] %}
+    {% for p in contribution_payments %}
+        {% if p.year not in years_seen %}{% set _ = years_seen.append(p.year) %}{% endif %}
+    {% endfor %}
+    {% for yr in years_seen | sort %}
+        {% set yr_payments = contribution_payments | selectattr('year', 'equalto', yr) | list %}
+        {% set yr_total = yr_payments | sum(attribute='amount') %}
+        <tr style="border: 1px solid #ccc;">
+            <td style="padding: 6px;">
+                {% if yr_payments | length == 1 %}
+                    {{ yr_payments[0].month }} {{ yr }} Contribution
+                {% else %}
+                    {{ yr_payments[0].month }} to {{ yr_payments[-1].month }} {{ yr }} Contribution
+                {% endif %}
+            </td>
+            <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(yr_total) }}</td>
+        </tr>
+    {% endfor %}
+{% endif %}
+{% for payment in donation_payments %}
+<tr style="border: 1px solid #ccc;">
+    <td style="padding: 6px;">{{ payment.reason and 'Donation: ' ~ payment.reason or 'Donation' }}</td>
+    <td style="padding: 6px; text-align: right;">${{ "%.2f"|format(payment.amount) }}</td>
+</tr>
+{% endfor %}

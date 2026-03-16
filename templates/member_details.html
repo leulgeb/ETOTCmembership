@@ -648,10 +648,28 @@
             description = data.payments[0].month ? `${data.payments[0].month} Contribution` : 'Contribution';
         }
         
-        const paymentLines = data.payments.map(p => {
-            const label = p.month ? `${p.month} Contribution` : 'Contribution';
-            return `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;"><span>${label}</span><span>$${parseFloat(p.amount).toFixed(2)}</span></div>`;
-        }).join('');
+        // Group contribution payments by year; donations stay separate
+        const contribPayments = data.payments.filter(p => p.month);
+        const donationPayments = data.payments.filter(p => p.type === 'donation' && !p.month);
+        const byYear = {};
+        contribPayments.forEach(p => {
+            const yr = p.year || data.year || '';
+            if (!byYear[yr]) byYear[yr] = [];
+            byYear[yr].push(p);
+        });
+        let paymentLines = '';
+        Object.keys(byYear).sort().forEach(yr => {
+            const yrPayments = byYear[yr];
+            const yrTotal = yrPayments.reduce((s, p) => s + parseFloat(p.amount), 0);
+            const desc = yrPayments.length === 1
+                ? `${yrPayments[0].month} ${yr} Contribution`
+                : `${yrPayments[0].month} to ${yrPayments[yrPayments.length - 1].month} ${yr} Contribution`;
+            paymentLines += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;"><span>${desc}</span><span>$${yrTotal.toFixed(2)}</span></div>`;
+        });
+        donationPayments.forEach(p => {
+            const donDesc = p.reason ? `Donation: ${p.reason}` : 'Donation';
+            paymentLines += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;"><span>${donDesc}</span><span>$${parseFloat(p.amount).toFixed(2)}</span></div>`;
+        });
 
         const pmMethod = data.payment_method ? data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1) : 'Cash';
         const pmComment = data.payment_comment ? ` (${data.payment_comment})` : '';

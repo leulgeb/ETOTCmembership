@@ -47,17 +47,29 @@
                 <span>DESCRIPTION</span><span>AMOUNT</span>
             </div>
 
-            {% for payment in receipt.payments %}
+            {% set contrib_payments = receipt.payments | selectattr('month') | list %}
+            {% set donation_payments = receipt.payments | rejectattr('month') | list %}
+            {% set years_seen = [] %}
+            {% for p in contrib_payments %}
+                {% if p.year not in years_seen %}{% set _ = years_seen.append(p.year) %}{% endif %}
+            {% endfor %}
+            {% for yr in years_seen | sort %}
+                {% set yr_payments = contrib_payments | selectattr('year', 'equalto', yr) | list %}
+                {% set yr_total = yr_payments | sum(attribute='amount') %}
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+                    <span>
+                        {% if yr_payments | length == 1 %}
+                            {{ yr_payments[0].month }} {{ yr }} Contribution
+                        {% else %}
+                            {{ yr_payments[0].month }} to {{ yr_payments[-1].month }} {{ yr }} Contribution
+                        {% endif %}
+                    </span>
+                    <span>${{ "%.2f"|format(yr_total) }}</span>
+                </div>
+            {% endfor %}
+            {% for payment in donation_payments %}
             <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
-                <span>
-                    {% if payment.type == 'donation' %}
-                        Donation{% if payment.reason %}: {{ payment.reason }}{% endif %}
-                    {% elif payment.month %}
-                        {{ payment.month }} Contribution
-                    {% else %}
-                        Contribution
-                    {% endif %}
-                </span>
+                <span>Donation{% if payment.reason %}: {{ payment.reason }}{% endif %}</span>
                 <span>${{ "%.2f"|format(payment.amount) }}</span>
             </div>
             {% endfor %}
