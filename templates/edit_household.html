@@ -26,15 +26,15 @@
                                     <div class="invalid-feedback">First name is required.</div>
                                 </div>
                                 <div class="col-md-3">
+                                    <label for="middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                           value="{{ member.middle_name or '' }}">
+                                </div>
+                                <div class="col-md-3">
                                     <label for="last_name" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="last_name" name="last_name" 
                                            value="{{ member.last_name }}" required>
                                     <div class="invalid-feedback">Last name is required.</div>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="middle_name" class="form-label">Middle Name</label>
-                                    <input type="text" class="form-control" id="middle_name" name="middle_name" 
-                                           value="{{ member.middle_name or '' }}">
                                 </div>
                                 <div class="col-md-3">
                                     <label for="phone" class="form-label">Phone *</label>
