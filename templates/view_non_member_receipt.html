@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-auto">
-        <div class="d-flex justify-content-between align-items-center mb-3 d-print-none" style="max-width: 340px; margin: 0 auto;">
+        <div class="d-flex justify-content-between align-items-center mb-3 d-print-none" style="max-width: 360px; margin: 0 auto;">
             <a href="{{ url_for('non_member_transactions') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left"></i> Back
             </a>
@@ -20,66 +20,66 @@
             </div>
         </div>
 
-        <div id="printableReceipt" style="width: 300px; padding: 14px 12px; font-family: 'Courier New', Courier, monospace; font-size: 12px; background-color: white; box-sizing: border-box; border: 1px solid #ddd; margin: 0 auto;">
+        <div id="printableReceipt" style="width: 320px; padding: 16px 14px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #000; background-color: white; box-sizing: border-box; border: 1px solid #ddd; margin: 0 auto;">
 
             <!-- Logo & Church Header -->
-            <div style="text-align: center; margin-bottom: 8px;">
-                <img src="{{ url_for('static', filename='images/etotc_logo.png') }}" alt="ETOTC Logo" style="height: 65px; width: auto; display: block; margin: 0 auto 6px;">
-                <div style="font-size: 13px; font-weight: bold; letter-spacing: 1px;">ETOTC CHURCH</div>
-                <div style="font-size: 10px; color: #444; margin-top: 2px;">9256 227th Ave NE</div>
-                <div style="font-size: 10px; color: #444;">Redmond, WA 98053</div>
-                <div style="font-size: 10px; color: #444;">EIN: 91-1699080</div>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <img src="{{ url_for('static', filename='images/etotc_logo.png') }}" alt="ETOTC Logo" style="height: 70px; width: auto; display: block; margin: 0 auto 8px;">
+                <div style="font-size: 15px; font-weight: bold; letter-spacing: 1px; color: #000;">ETOTC CHURCH</div>
+                <div style="font-size: 12px; color: #000; margin-top: 3px;">9256 227th Ave NE</div>
+                <div style="font-size: 12px; color: #000;">Redmond, WA 98053</div>
+                <div style="font-size: 12px; color: #000;">EIN: 91-1699080</div>
             </div>
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Receipt # and Date -->
-            <div style="font-size: 11px; margin-bottom: 3px;"><strong>Receipt #:</strong> {{ receipt.receipt_number }}</div>
-            <div style="font-size: 11px; margin-bottom: 3px;"><strong>Date:</strong> {{ receipt.date }}</div>
+            <div style="font-size: 13px; margin-bottom: 4px;"><strong>Receipt #:</strong> {{ receipt.receipt_number }}</div>
+            <div style="font-size: 13px; margin-bottom: 4px;"><strong>Date:</strong> {{ receipt.date }}</div>
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Guest Info -->
-            <div style="font-size: 11px; margin-bottom: 3px;"><strong>Guest:</strong> {{ receipt.name }}</div>
-            {% if receipt.email %}<div style="font-size: 11px; margin-bottom: 3px;"><strong>Email:</strong> {{ receipt.email }}</div>{% endif %}
-            {% if receipt.phone %}<div style="font-size: 11px; margin-bottom: 3px;"><strong>Phone:</strong> {{ receipt.phone }}</div>{% endif %}
+            <div style="font-size: 13px; margin-bottom: 4px;"><strong>Guest:</strong> {{ receipt.name }}</div>
+            {% if receipt.email %}<div style="font-size: 13px; margin-bottom: 4px;"><strong>Email:</strong> {{ receipt.email }}</div>{% endif %}
+            {% if receipt.phone %}<div style="font-size: 13px; margin-bottom: 4px;"><strong>Phone:</strong> {{ receipt.phone }}</div>{% endif %}
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Payment Lines Header -->
-            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 5px;">
                 <span>DESCRIPTION</span><span>AMOUNT</span>
             </div>
 
             <!-- Line Items -->
             {% for item in receipt.line_items %}
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
                 <span>{{ item.description }}</span>
                 <span>${{ "%.2f"|format(item.amount) }}</span>
             </div>
             {% endfor %}
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Total -->
-            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: bold; margin-bottom: 5px;">
                 <span>TOTAL</span>
                 <span>${{ "%.2f"|format(receipt.total) }}</span>
             </div>
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Payment Method & Received By -->
-            <div style="font-size: 11px; margin-bottom: 3px;"><strong>Payment Method:</strong> {{ receipt.payment_method|title|replace('_', ' ') }}{% if receipt.payment_comment %} ({{ receipt.payment_comment }}){% endif %}</div>
-            <div style="font-size: 11px; margin-bottom: 4px;"><strong>Received By:</strong> {{ receipt.processed_by }}</div>
+            <div style="font-size: 13px; margin-bottom: 4px;"><strong>Payment Method:</strong> {{ receipt.payment_method|title|replace('_', ' ') }}{% if receipt.payment_comment %} ({{ receipt.payment_comment }}){% endif %}</div>
+            <div style="font-size: 13px; margin-bottom: 5px;"><strong>Received By:</strong> {{ receipt.processed_by }}</div>
 
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
 
             <!-- Footer -->
-            <div style="text-align: center; font-size: 11px; line-height: 1.7;">
+            <div style="text-align: center; font-size: 13px; line-height: 1.8; color: #000;">
                 <div style="font-weight: bold;">Thank you for your contribution!</div>
                 <div>God bless you.</div>
-                <div style="margin-top: 4px; font-size: 10px; color: #555;">www.ETOTC.org</div>
+                <div style="margin-top: 5px; font-size: 12px;">www.ETOTC.org</div>
             </div>
 
         </div>
@@ -137,8 +137,9 @@ function showThermalToast(success, message) {
         border: none !important;
         width: 80mm !important;
         margin: 0 !important;
-        padding: 6px !important;
-        font-size: 11px !important;
+        padding: 8px !important;
+        font-size: 13px !important;
+        color: #000 !important;
     }
 }
 </style>
