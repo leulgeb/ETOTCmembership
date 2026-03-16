@@ -32,3 +32,20 @@ After you merge on GitHub, just tell me "pull latest changes" here in the produc
 
 git pull origin main
 And restart the app. That's the full cycle. Would you like help with any of
+
+
+This is most likely because Replit automatically commits changes behind the scenes (those checkpoints you see in the chat). So the files ARE already committed — they just haven't been pushed to GitHub yet.
+
+Run this in the staging Repl shell to check:
+
+git log --oneline -5
+You'll probably see recent commits there. If so, you just need to push them:
+
+git push origin staging
+If git log shows nothing new, the changes might have been committed to a different branch. Check with:
+
+git log --oneline --all -10
+Look for commits on main or replit-agent that aren't on staging. If that's the case, bring them in with:
+
+git merge main
+git push origin staging
