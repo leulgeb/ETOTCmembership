@@ -2097,6 +2097,120 @@ def admin_donations():
                            donations=all_donations,
                            total_donations=total_donations)
 
+@app.route('/admin/donations/add', methods=['GET', 'POST'])
+@staff_required
+def admin_add_donation_general():
+    """Add a donation from the All Donations page - member or guest"""
+    current_user = get_current_user()
+
+    if request.method == 'POST':
+        donor_type = request.form.get('donor_type', 'member')
+
+        try:
+            amount_str = request.form.get('amount', '').strip()
+            purpose = sanitize_input(request.form.get('purpose', ''), 200) or 'Donation'
+            payment_method_str = request.form.get('payment_method', 'cash')
+            payment_comment = sanitize_input(request.form.get('payment_comment', ''), 500) or None
+
+            if not amount_str:
+                flash('Amount is required.', 'danger')
+                return redirect(url_for('admin_add_donation_general'))
+            try:
+                amount = float(amount_str)
+                if amount <= 0:
+                    raise ValueError
+            except ValueError:
+                flash('Amount must be a positive number.', 'danger')
+                return redirect(url_for('admin_add_donation_general'))
+
+            if donor_type == 'member':
+                member_id_str = request.form.get('member_id', '').strip()
+                member = Member.query.filter_by(member_id=member_id_str).first()
+                if not member:
+                    flash('Member not found. Please select a valid member.', 'danger')
+                    return redirect(url_for('admin_add_donation_general'))
+
+                receipt_number = get_next_receipt_number()
+                donation = Donation(
+                    member_id=member.id,
+                    amount=amount,
+                    purpose=purpose,
+                    donation_date=get_current_time(),
+                    payment_method=PaymentMethod(payment_method_str),
+                    payment_comment=payment_comment,
+                    processed_by_id=current_user.id,
+                    receipt_number=receipt_number
+                )
+                db.session.add(donation)
+                db.session.commit()
+
+                receipt_data = {
+                    'receipt_number': receipt_number,
+                    'date': donation.donation_date.strftime('%Y-%m-%d'),
+                    'member_name': member.full_name,
+                    'member_id': member.member_id,
+                    'member_email': member.email or '',
+                    'payments': [{'type': 'donation', 'reason': purpose, 'amount': amount}],
+                    'total': amount,
+                    'payment_method': payment_method_str,
+                    'processed_by': current_user.full_name or current_user.username,
+                }
+                session['receipt_data'] = receipt_data
+
+                if member.email:
+                    send_receipt_email(member.email, member.full_name, receipt_data, False, None)
+
+                flash(f'Donation of ${amount:.2f} recorded for {member.full_name}. Receipt: {receipt_number}', 'success')
+
+            else:
+                first_name = sanitize_input(request.form.get('first_name', ''), 100)
+                last_name = sanitize_input(request.form.get('last_name', ''), 100)
+                email = sanitize_input(request.form.get('email', ''), 200) or None
+                phone = sanitize_input(request.form.get('phone', ''), 50) or None
+
+                if not first_name or not last_name:
+                    flash('First name and last name are required for guest donations.', 'danger')
+                    return redirect(url_for('admin_add_donation_general'))
+
+                receipt_number = get_next_nonmember_receipt_number()
+                txn = NonMemberTransaction(
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    phone=phone,
+                    amount=amount,
+                    purpose=purpose,
+                    transaction_date=get_current_time(),
+                    receipt_number=receipt_number,
+                    payment_method=PaymentMethod(payment_method_str),
+                    payment_comment=payment_comment,
+                    processed_by_id=current_user.id
+                )
+                db.session.add(txn)
+                db.session.commit()
+
+                session['non_member_receipt_data'] = {
+                    'receipt_number': receipt_number,
+                    'name': f"{first_name} {last_name}",
+                    'amount': amount,
+                    'purpose': purpose,
+                    'payment_method': payment_method_str.capitalize(),
+                    'date': get_current_time().strftime('%Y-%m-%d %H:%M')
+                }
+
+                flash(f'Donation of ${amount:.2f} recorded for {first_name} {last_name}. Receipt: {receipt_number}', 'success')
+
+            return redirect(url_for('admin_donations'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error recording donation: {str(e)}', 'danger')
+            return redirect(url_for('admin_add_donation_general'))
+
+    members = Member.query.filter_by(is_active=True).order_by(Member.last_name).all()
+    return render_template('add_donation.html', members=members, payment_methods=PaymentMethod)
+
+
 @app.route('/admin/export-csv/<export_type>')
 @admin_or_it_support
 def export_csv(export_type):
