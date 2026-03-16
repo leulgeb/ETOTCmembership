@@ -10,7 +10,7 @@
                 <i class="bi bi-arrow-left"></i> Back
             </a>
             <div class="d-flex gap-2">
-                <button onclick="window.print()" class="btn btn-primary btn-sm">
+                <button onclick="printReceipt()" class="btn btn-primary btn-sm">
                     <i class="bi bi-printer"></i> Print
                 </button>
                 <button id="thermalPrintBtn" class="btn btn-outline-dark btn-sm"
@@ -90,6 +90,25 @@
 </div>
 
 <script>
+function printReceipt() {
+    const el = document.getElementById('printableReceipt');
+    const heightPx = el.offsetHeight + 20;
+    const heightMm = Math.ceil(heightPx * 0.2646);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html><head><title>Receipt</title>
+        <style>
+            body { margin: 0; padding: 0; }
+            @page { size: 80mm ${heightMm}mm; margin: 0; }
+            #printableReceipt { border: none !important; width: 80mm !important; padding: 6px !important; box-sizing: border-box; }
+        </style>
+        </head><body>${el.outerHTML}</body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+}
+
 function thermalPrint(type, id) {
     const btn = document.getElementById('thermalPrintBtn');
     btn.disabled = true;

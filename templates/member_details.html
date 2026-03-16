@@ -693,7 +693,9 @@
     }
 
     function printReceipt() {
-        const printContent = document.getElementById('printableReceipt').outerHTML;
+        const el = document.getElementById('printableReceipt');
+        const heightPx = el.offsetHeight + 20;
+        const heightMm = Math.ceil(heightPx * 0.2646);
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <html>
@@ -701,12 +703,12 @@
                 <title>ETOTC Church - Payment Receipt</title>
                 <style>
                     body { margin: 0; padding: 0; }
-                    @page { size: 80mm auto; margin: 0; }
-                    #printableReceipt { border: none !important; }
+                    @page { size: 80mm ${heightMm}mm; margin: 0; }
+                    #printableReceipt { border: none !important; width: 80mm !important; padding: 6px !important; box-sizing: border-box; }
                 </style>
             </head>
             <body>
-                ${printContent}
+                ${el.outerHTML}
             </body>
             </html>
         `);
