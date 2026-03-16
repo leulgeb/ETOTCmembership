@@ -127,25 +127,47 @@
                                 {% set first_unpaid_found = false %}
                                 {% for month in months %}
                                 {% set contrib = contributions[month] %}
-                                <tr class="{{ 'table-paid' if contrib.status == 'Paid' else 'table-unpaid' }}">
+                                {% set is_pre_reg = contrib.get('pre_registration', false) %}
+                                <tr class="{{ 'table-paid' if contrib.status == 'Paid' else ('table-secondary text-muted' if is_pre_reg else 'table-unpaid') }}">
                                     <td>
-                                        {% if contrib.status == 'Unpaid' %}
-                                        <input type="checkbox" name="month_year" value="{{ selected_year }}-{{ month }}" class="form-check-input month-checkbox" data-month="{{ month }}" data-year="{{ selected_year }}">
-                                        {% else %}
+                                        {% if contrib.status == 'Paid' %}
                                         <i class="bi bi-check-circle-fill text-success"></i>
+                                        {% elif is_pre_reg %}
+                                        <span class="text-muted">—</span>
+                                        {% else %}
+                                        <input type="checkbox" name="month_year" value="{{ selected_year }}-{{ month }}" class="form-check-input month-checkbox" data-month="{{ month }}" data-year="{{ selected_year }}">
                                         {% endif %}
                                     </td>
                                     <td><strong>{{ month }} {{ selected_year }}</strong></td>
                                     <td>
+                                        {% if is_pre_reg %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                        {% else %}
                                         <span class="status-badge-{{ contrib.status.lower() }}">
                                             {{ contrib.status }}
                                         </span>
+                                        {% endif %}
                                     </td>
-                                    <td>${{ "%.2f"|format(contrib.amount) if contrib.amount > 0 else '0.00' }}</td>
-                                    <td>{{ contrib.date if contrib.date else '-' }}</td>
-                                    <td>{{ contrib.receipt if contrib.receipt else '-' }}</td>
+                                    <td>{{ '$' ~ "%.2f"|format(contrib.amount) if contrib.amount > 0 else ('—' if is_pre_reg else '$0.00') }}</td>
+                                    <td>{{ contrib.date if contrib.date else ('—' if is_pre_reg else '-') }}</td>
+                                    <td>{{ contrib.receipt if contrib.receipt else ('—' if is_pre_reg else '-') }}</td>
                                     <td>
-                                        {% if contrib.status == 'Unpaid' %}
+                                        {% if contrib.status == 'Paid' %}
+                                        {% if contrib.receipt %}
+                                        <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
+                                           class="btn btn-sm btn-outline-info" title="View Receipt">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if session.user_role == 'admin' %}
+                                        <a href="{{ url_for('admin_correction', member_id=member.id, year=selected_year, month=month) }}" 
+                                           class="btn btn-sm btn-outline-warning" title="Correct">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% elif is_pre_reg %}
+                                        <span class="text-muted small">Pre-registration</span>
+                                        {% else %}
                                         {% if not first_unpaid_found and previous_year_complete %}
                                             {% set first_unpaid_found = true %}
                                             <button type="button" class="btn btn-sm btn-success pay-single-btn" 
@@ -162,19 +184,6 @@
                                                     disabled title="Pay in sequence or use bulk payment">
                                                 <i class="bi bi-cash-coin"></i> Pay
                                             </button>
-                                        {% endif %}
-                                        {% else %}
-                                        {% if contrib.receipt %}
-                                        <a href="{{ url_for('view_receipt', member_id=member.id, receipt_number=contrib.receipt) }}" 
-                                           class="btn btn-sm btn-outline-info" title="View Receipt">
-                                            <i class="bi bi-receipt"></i>
-                                        </a>
-                                        {% endif %}
-                                        {% if session.user_role == 'admin' %}
-                                        <a href="{{ url_for('admin_correction', member_id=member.id, year=selected_year, month=month) }}" 
-                                           class="btn btn-sm btn-outline-warning" title="Correct">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
                                         {% endif %}
                                         {% endif %}
                                     </td>

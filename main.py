@@ -1109,6 +1109,18 @@ def member_details(member_id):
                 'receipt': ''
             }
     
+    # Mark pre-registration months: unpaid months before the first paid month
+    # These are mid-year joiners who didn't owe earlier months
+    first_paid_index = None
+    for i, month in enumerate(MONTHS):
+        if contributions[month]['status'] == 'Paid':
+            first_paid_index = i
+            break
+    if first_paid_index is not None and first_paid_index > 0:
+        for i in range(first_paid_index):
+            if contributions[MONTHS[i]]['status'] == 'Unpaid':
+                contributions[MONTHS[i]]['pre_registration'] = True
+
     # Get available years for this member
     years = db.session.query(db.distinct(Contribution.year)).filter_by(
         member_id=member.id
@@ -1117,11 +1129,11 @@ def member_details(member_id):
     if str(current_year) not in available_years:
         available_years.insert(0, str(current_year))
     
-    # Calculate stats
+    # Calculate stats (exclude pre-registration months from counts)
     paid_months = sum(1 for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     total_paid = sum(contributions.get(month, {}).get('amount', 0) for month in MONTHS if contributions.get(month, {}).get('status') == 'Paid')
     
-    # Check if previous year is fully paid (for disabling checkboxes on new years)
+    # Check if previous year is fully paid (accounting for pre-registration months)
     previous_year = selected_year - 1
     previous_year_exists = Contribution.query.filter(
         Contribution.member_id == member.id,
@@ -1129,12 +1141,23 @@ def member_details(member_id):
     ).count() > 0
     
     if previous_year_exists:
-        previous_year_paid = Contribution.query.filter(
-            Contribution.member_id == member.id,
-            Contribution.year == previous_year,
-            Contribution.status == PaymentStatus.PAID
-        ).count()
-        previous_year_complete = previous_year_paid >= 12
+        prev_contribs = Contribution.query.filter_by(
+            member_id=member.id, year=previous_year
+        ).all()
+        prev_paid = sum(1 for c in prev_contribs if c.status == PaymentStatus.PAID)
+        # Find pre-registration months in previous year
+        prev_dict = {c.month: c.status for c in prev_contribs}
+        prev_first_paid_idx = None
+        for i, month in enumerate(MONTHS):
+            if prev_dict.get(month) == PaymentStatus.PAID:
+                prev_first_paid_idx = i
+                break
+        prev_pre_reg = 0
+        if prev_first_paid_idx is not None and prev_first_paid_idx > 0:
+            for i in range(prev_first_paid_idx):
+                if prev_dict.get(MONTHS[i]) == PaymentStatus.UNPAID:
+                    prev_pre_reg += 1
+        previous_year_complete = (prev_paid + prev_pre_reg) >= 12
     else:
         previous_year_complete = True
     
