@@ -1971,7 +1971,13 @@ def view_receipt(member_id, receipt_number):
     if not payments:
         flash('Receipt not found.', 'danger')
         return redirect(url_for('admin_member_transactions', member_id=member_id))
-    
+
+    # Sort contribution payments by year then calendar month so range labels are correct
+    payments.sort(key=lambda p: (
+        p.get('year', 0) if p.get('year') else 0,
+        MONTHS.index(p['month']) if p.get('month') and p['month'] in MONTHS else 0
+    ))
+
     total = sum(p['amount'] for p in payments)
     
     # Determine payment reason

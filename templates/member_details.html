@@ -657,9 +657,11 @@
             if (!byYear[yr]) byYear[yr] = [];
             byYear[yr].push(p);
         });
+        const MONTH_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         let paymentLines = '';
         Object.keys(byYear).sort().forEach(yr => {
             const yrPayments = byYear[yr];
+            yrPayments.sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month));
             const yrTotal = yrPayments.reduce((s, p) => s + parseFloat(p.amount), 0);
             const desc = yrPayments.length === 1
                 ? `${yrPayments[0].month} ${yr} Contribution`
